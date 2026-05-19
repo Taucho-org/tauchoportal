@@ -34,6 +34,6 @@ steps:
   - DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,GOOGLE_REDIRECT_URL=GOOGLE_REDIRECT_URL:latest
 
 substitutions:
-  _SERVICE: tauchoportal
+  _SERVICE: TauchoApiGitHubConnection_USWEST2
   _REGION: us-central1
   _CLOUDSQL_INSTANCE: Taucho:us-central1:tauchodb
