@@ -3,7 +3,7 @@ steps:
   args:
   - build
   - -t
-  - us-west2-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
   - -f
   - Dockerfile
   - .
@@ -11,7 +11,7 @@ steps:
 - name: gcr.io/cloud-builders/docker
   args:
   - push
-  - us-west2-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
 
 - name: gcr.io/google.com/cloudsdktool/cloud-sdk
   entrypoint: gcloud
@@ -20,7 +20,7 @@ steps:
   - deploy
   - ${_SERVICE}
   - --image
-  - us-west2-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
   - --region
   - ${_REGION}
   - --platform
@@ -35,5 +35,5 @@ steps:
 
 substitutions:
   _SERVICE: tauchoportal
-  _REGION: us-west2
-  _CLOUDSQL_INSTANCE: tauchopostgres:us-west2:tauchodb
+  _REGION: asia-northeast1
+  _CLOUDSQL_INSTANCE: tauchopostgres-prod:asia-northeast1:tauchodb
