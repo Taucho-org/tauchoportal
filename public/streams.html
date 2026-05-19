@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Management - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/streams.css">
+</head>
+<body>
+    <div class="streams-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📡 Stream Management</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openAddStreamModal()">+ Add Stream</button>
+                <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Your Streams</h2>
+                </div>
+
+                <!-- Providers List -->
+                <div class="providers-list">
+                    <!-- YouTube -->
+                    <div class="provider-group">
+                        <div class="provider-header" onclick="toggleProvider('youtube')">
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🔴 YouTube</span>
+                            <span class="provider-count">(2)</span>
+                        </div>
+                        <div class="streams-in-provider" id="youtube-streams">
+                            <div class="stream-item active" onclick="selectStream(1)">
+                                <span class="status-badge live">📡</span>
+                                <span class="stream-title">Gaming Stream</span>
+                            </div>
+                            <div class="stream-item" onclick="selectStream(2)">
+                                <span class="status-badge offline">⚪</span>
+                                <span class="stream-title">Creative Session</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Twitch -->
+                    <div class="provider-group">
+                        <div class="provider-header" onclick="toggleProvider('twitch')">
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🟣 Twitch</span>
+                            <span class="provider-count">(1)</span>
+                        </div>
+                        <div class="streams-in-provider" id="twitch-streams">
+                            <div class="stream-item" onclick="selectStream(3)">
+                                <span class="status-badge live">📡</span>
+                                <span class="stream-title">Main Broadcast</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NicoNico -->
+                    <div class="provider-group">
+                        <div class="provider-header" onclick="toggleProvider('niconico')">
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🔵 NicoNico</span>
+                            <span class="provider-count">(1)</span>
+                        </div>
+                        <div class="streams-in-provider" id="niconico-streams">
+                            <div class="stream-item" onclick="selectStream(4)">
+                                <span class="status-badge ended">⏹️</span>
+                                <span class="stream-title">Live #1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Stream Details Card -->
+                <div class="stream-details-card">
+                    <div class="stream-header">
+                        <div class="stream-title-section">
+                            <h2 id="streamTitle">Gaming Stream</h2>
+                            <span id="streamProvider" class="provider-badge">YouTube</span>
+                            <span id="streamStatus" class="status-badge live">● LIVE</span>
+                        </div>
+                        <div class="stream-actions">
+                            <button class="action-btn pause" onclick="pauseStream()">⏸ Pause</button>
+                            <button class="action-btn stop" onclick="stopStream()">⏹ Stop</button>
+                            <button class="action-btn settings" onclick="editStream()">⚙️ Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Viewers</div>
+                            <div class="metric-value" id="metricViewers">1,523</div>
+                            <div class="metric-trend">+45 in last 5m</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Uptime</div>
+                            <div class="metric-value" id="metricUptime">1h 23m</div>
+                            <div class="metric-trend">Started 1h 23m ago</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Health Status</div>
+                            <div class="metric-value healthy" id="metricHealth">✅ Excellent</div>
+                            <div class="metric-trend">All systems normal</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Bitrate</div>
+                            <div class="metric-value" id="metricBitrate">5000 kbps</div>
+                            <div class="metric-trend">Target: 5000 kbps</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">FPS</div>
+                            <div class="metric-value" id="metricFps">60</div>
+                            <div class="metric-trend">Frame rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Resolution</div>
+                            <div class="metric-value" id="metricResolution">1920x1080</div>
+                            <div class="metric-trend">Full HD</div>
+                        </div>
+                    </div>
+
+                    <!-- Stream Info Section -->
+                    <div class="stream-info-section">
+                        <div class="info-column">
+                            <h3>Stream Information</h3>
+                            <div class="info-item">
+                                <span class="info-label">RTMP URL:</span>
+                                <span class="info-value" id="streamUrl">rtmp://live.youtube.com/rtmp/...</span>
+                                <button class="copy-btn" onclick="copyToClipboard('streamUrl')">📋</button>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Stream Key:</span>
+                                <span class="info-value masked" id="streamKey">••••••••••••••••</span>
+                                <button class="copy-btn" onclick="toggleStreamKeyVisibility()">👁</button>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Started:</span>
+                                <span class="info-value" id="streamStarted">May 14, 2:35 PM</span>
+                            </div>
+                        </div>
+
+                        <div class="info-column">
+                            <h3>Recent Issues</h3>
+                            <div id="issuesList">
+                                <div class="issue-item success">
+                                    <span class="issue-icon">✅</span>
+                                    <span class="issue-text">No issues detected</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Chart Placeholder -->
+                    <div class="chart-section">
+                        <h3>Viewer Count (Last Hour)</h3>
+                        <div class="chart-placeholder">
+                            <p>📊 Chart will display viewer trends here</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (hidden by default) -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-state-content">
+                        <h2>No Stream Selected</h2>
+                        <p>Select a stream from the sidebar to view details</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Stream Modal -->
+    <div id="addStreamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddStreamModal()">&times;</span>
+            <div class="modal-header">
+                <h2>➕ Add New Stream</h2>
+            </div>
+            <form id="addStreamForm">
+                <div class="form-group">
+                    <label for="streamProvider">Select Provider</label>
+                    <select id="streamProvider" required>
+                        <option value="">Choose a provider...</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="twitch">Twitch</option>
+                        <option value="niconico">NicoNico</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="streamName">Stream Name</label>
+                    <input type="text" id="streamName" required placeholder="e.g., Gaming Stream">
+                </div>
+                <div class="form-group">
+                    <label for="streamRtmpUrl">RTMP URL</label>
+                    <input type="text" id="streamRtmpUrl" required placeholder="rtmp://...">
+                </div>
+                <div class="form-group">
+                    <label for="streamKey">Stream Key</label>
+                    <input type="password" id="streamKey" required placeholder="Your stream key">
+                </div>
+                <button type="submit" class="submit-btn">Add Stream</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentStreamId = 1;
+        const streams = {
+            1: {
+                id: 1,
+                title: 'Gaming Stream',
+                provider: 'YouTube',
+                status: 'live',
+                viewers: '1,523',
+                uptime: '1h 23m',
+                health: 'Excellent',
+                bitrate: '5000 kbps',
+                fps: '60',
+                resolution: '1920x1080',
+                url: 'rtmp://live.youtube.com/rtmp/...',
+                key: 'key123456789',
+                started: 'May 14, 2:35 PM'
+            },
+            2: {
+                id: 2,
+                title: 'Creative Session',
+                provider: 'YouTube',
+                status: 'offline',
+                viewers: '0',
+                uptime: '0m',
+                health: 'Offline',
+                bitrate: '-',
+                fps: '-',
+                resolution: '-',
+                url: 'rtmp://live.youtube.com/rtmp/...',
+                key: 'key987654321',
+                started: 'May 13, 6:00 PM'
+            },
+            3: {
+                id: 3,
+                title: 'Main Broadcast',
+                provider: 'Twitch',
+                status: 'live',
+                viewers: '2,145',
+                uptime: '45m',
+                health: 'Excellent',
+                bitrate: '6000 kbps',
+                fps: '60',
+                resolution: '1920x1080',
+                url: 'rtmp://live.twitch.tv/app/...',
+                key: 'twitch_key_123',
+                started: 'May 14, 3:20 PM'
+            },
+            4: {
+                id: 4,
+                title: 'Live #1',
+                provider: 'NicoNico',
+                status: 'ended',
+                viewers: '523',
+                uptime: '2h 15m',
+                health: 'Completed',
+                bitrate: '4000 kbps',
+                fps: '30',
+                resolution: '1280x720',
+                url: 'rtmp://niconico.jp/rtmp/...',
+                key: 'nico_key_456',
+                started: 'May 14, 12:00 PM'
+            }
+        };
+
+        function selectStream(id) {
+            currentStreamId = id;
+            const stream = streams[id];
+
+            // Update UI
+            document.getElementById('streamTitle').textContent = stream.title;
+            document.getElementById('streamProvider').textContent = stream.provider;
+            
+            const statusEl = document.getElementById('streamStatus');
+            statusEl.textContent = '● ' + stream.status.toUpperCase();
+            statusEl.className = 'status-badge ' + stream.status;
+
+            document.getElementById('metricViewers').textContent = stream.viewers;
+            document.getElementById('metricUptime').textContent = stream.uptime;
+            document.getElementById('metricHealth').textContent = '✅ ' + stream.health;
+            document.getElementById('metricBitrate').textContent = stream.bitrate;
+            document.getElementById('metricFps').textContent = stream.fps;
+            document.getElementById('metricResolution').textContent = stream.resolution;
+
+            document.getElementById('streamUrl').textContent = stream.url;
+            document.getElementById('streamKey').textContent = '••••••••••••••••';
+            document.getElementById('streamStarted').textContent = stream.started;
+
+            // Update sidebar highlighting
+            document.querySelectorAll('.stream-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[onclick="selectStream(${id})"]`).classList.add('active');
+
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        function toggleProvider(provider) {
+            const element = document.getElementById(provider + '-streams');
+            element.style.display = element.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function pauseStream() {
+            alert('Pause stream: ' + streams[currentStreamId].title);
+        }
+
+        function stopStream() {
+            alert('Stop stream: ' + streams[currentStreamId].title);
+        }
+
+        function editStream() {
+            alert('Edit stream: ' + streams[currentStreamId].title);
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        function toggleStreamKeyVisibility() {
+            const element = document.getElementById('streamKey');
+            const stream = streams[currentStreamId];
+            if (element.textContent === '••••••••••••••••') {
+                element.textContent = stream.key;
+                element.classList.remove('masked');
+            } else {
+                element.textContent = '••••••••••••••••';
+                element.classList.add('masked');
+            }
+        }
+
+        function openAddStreamModal() {
+            document.getElementById('addStreamModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAddStreamModal() {
+            document.getElementById('addStreamModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('addStreamModal');
+            if (event.target == modal) {
+                closeAddStreamModal();
+            }
+        }
+
+        document.getElementById('addStreamForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Stream added! (Backend integration needed)');
+            closeAddStreamModal();
+        });
+
+        // Initialize with first stream selected
+        selectStream(1);
+    </script>
+</body>
+</html>

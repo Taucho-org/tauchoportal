@@ -1,0 +1,40 @@
+steps:
+- name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - -t
+  - ${_IMAGE}
+  - -f
+  - Dockerfile
+  - .
+
+- name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - ${_IMAGE}
+
+- name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  entrypoint: gcloud
+  args:
+  - run
+  - deploy
+  - ${_SERVICE}
+  - --image
+  - ${_IMAGE}
+  - --region
+  - ${_REGION}
+  - --platform
+  - managed
+  - --allow-unauthenticated
+  - --add-cloudsql-instances
+  - ${_CLOUDSQL_INSTANCE}
+  - --set-env-vars
+  - GOOGLE_CLOUD_PROJECT=$PROJECT_ID
+  - --set-secrets
+  - DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,GOOGLE_REDIRECT_URL=GOOGLE_REDIRECT_URL:latest
+
+substitutions:
+  _SERVICE: tauchoportal
+  _REGION: us-central1
+  _IMAGE: us-central1-docker.pkg.dev/$PROJECT_ID/tauchoportal/tauchoportal:latest
+  _CLOUDSQL_INSTANCE: Taucho:us-central1:tauchodb  # e.g. myproject:us-central1:mydb

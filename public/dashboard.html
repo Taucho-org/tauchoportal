@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🌊 TauchoPortal Dashboard</h1>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="username" id="username">Loading...</div>
+                    <div class="email" id="email">Loading...</div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-section">
+                <h2>Welcome to Your Dashboard!</h2>
+                <p>Manage your RTMP streams and account settings from here.</p>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>📡 Stream Management</h3>
+                    <p>Add, edit, and manage your RTMP streams.</p>
+                    <a href="/streams" class="card-link">Manage Streams →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Analytics</h3>
+                    <p>View detailed analytics and stream statistics.</p>
+                    <a href="#" class="card-link">View Analytics →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>⚙️ Settings</h3>
+                    <p>Update your account settings and preferences.</p>
+                    <a href="#" class="card-link">Go to Settings →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <script src="/js/auth.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🌊 TauchoPortal Dashboard</h1>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="username" id="username">Loading...</div>
+                    <div class="email" id="email">Loading...</div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-section">
+                <h2>Welcome to Your Dashboard!</h2>
+                <p>Manage your RTMP streams and account settings from here.</p>
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>📡 Stream Management</h3>
+                    <p>Add, edit, and manage your RTMP streams.</p>
+                    <a href="/streams" class="card-link">Manage Streams →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Analytics</h3>
+                    <p>View detailed analytics and stream statistics.</p>
+                    <a href="#" class="card-link">View Analytics →</a>
+                </div>
+                
+                <div class="card">
+                    <h3>⚙️ Settings</h3>
+                    <p>Update your account settings and preferences.</p>
+                    <a href="#" class="card-link">Go to Settings →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Check authentication and load user info
+        document.addEventListener('DOMContentLoaded', async () => {
+            // First check if authenticated
+            const isAuth = await isUserAuthenticated();
+            if (!isAuth) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load user profile
+            const user = await getUserProfile();
+            if (user) {
+                document.getElementById('username').textContent = user.username || user.email || 'User';
+                document.getElementById('email').textContent = user.email || '';
+            } else {
+                console.error('Failed to load user profile');
+                window.location.href = '/login';
+            }
+        });
+        
+        async function logout() {
+            // For OAuth-based sessions, we just need to clear the cookie on the backend
+            // The backend (API) will handle this. We can just redirect to home.
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

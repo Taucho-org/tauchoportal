@@ -1,0 +1,86 @@
+/* ============================================
+   Register Page Styles
+   ============================================ */
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.register-container {
+    max-width: 400px;
+    width: 100%;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.register-header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.register-header p {
+    color: #999;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.password-requirements {
+    font-size: 0.85em;
+    color: #999;
+    margin-top: 5px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.footer-links {
+    text-align: center;
+    margin-top: 20px;
+    color: #999;
+}
+
+.footer-links a {
+    color: #667eea;
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .register-header h1 {
+        font-size: 1.5em;
+    }
+
+    .container {
+        padding: 20px;
+    }
+}

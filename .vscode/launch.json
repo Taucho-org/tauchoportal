@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Cloud Run: Run/Debug Locally",
+            "type": "cloudcode.cloudrun",
+            "request": "launch",
+            "build": {
+                "buildpacks": {
+                    "path": "go.mod",
+                    "builder": "gcr.io/buildpacks/builder:v1"
+                }
+            },
+            "image": "tauchoportal",
+            "service": {
+                "name": "tauchoportal",
+                "containerPort": 8080,
+                "resources": {
+                    "limits": {
+                        "memory": "256Mi"
+                    }
+                }
+            },
+            "target": {
+                "minikube": {}
+            },
+            "watch": true
+        },
+        {
+            "name": "Debug Taucho Potal",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PORT": "8080",
+                "DATABASE_URL": "postgres://futoshi:futoshipass1@localhost:5432/tauchoportal?sslmode=disable",
+                "GOOGLE_CLIENT_ID": "687596832350-j6db399054taih5096mbf1bk99e6ka1u.apps.googleusercontent.com",
+                "GOOGLE_REDIRECT_URL": "http://localhost:8080/auth/callback/google"
+            },
+            "args": [],
+            "showLog": true,
+            "trace": "verbose"
+        }
+    ]
+}

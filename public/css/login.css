@@ -1,0 +1,152 @@
+/* ============================================
+   Login Page Styles
+   ============================================ */
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-container {
+    max-width: 400px;
+    width: 100%;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.login-header p {
+    color: #999;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.footer-links {
+    text-align: center;
+    margin-top: 20px;
+    color: #999;
+}
+
+.footer-links a {
+    color: #667eea;
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+/* OAuth Buttons */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 30px 0 20px 0;
+    color: #999;
+    font-size: 0.9em;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e0e0e0;
+}
+
+.divider span {
+    margin: 0 15px;
+}
+
+.oauth-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.oauth-btn {
+    flex: 1;
+    padding: 12px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95em;
+}
+
+.oauth-btn:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.oauth-icon {
+    font-size: 1.2em;
+}
+
+.google-btn {
+    border-color: #4285f4;
+    color: #4285f4;
+}
+
+.google-btn:hover {
+    background: #f1f5ff;
+    border-color: #4285f4;
+}
+
+@media (max-width: 480px) {
+    .login-header h1 {
+        font-size: 1.5em;
+    }
+
+    .container {
+        padding: 20px;
+    }
+    
+    .oauth-buttons {
+        flex-direction: column;
+    }
+    
+    .oauth-btn {
+        width: 100%;
+    }
+}

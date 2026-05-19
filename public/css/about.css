@@ -1,0 +1,134 @@
+/* ============================================
+   About Page Styles
+   ============================================ */
+
+body {
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #f0f0f0;
+    border-radius: 50%;
+    text-decoration: none;
+    color: #667eea;
+    font-weight: bold;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+}
+
+.back-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.header h1 {
+    flex: 1;
+    margin: 0;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+p {
+    color: #555;
+    margin-bottom: 15px;
+    text-align: justify;
+}
+
+ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+li {
+    padding-left: 25px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.tech-stack {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.tech-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid #e0e0e0;
+    transition: all 0.3s;
+}
+
+.tech-item:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.tech-item strong {
+    color: #667eea;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.footer {
+    margin-top: 50px;
+    padding-top: 30px;
+    border-top: 2px solid #eee;
+    text-align: center;
+    color: #999;
+}
+
+.footer a {
+    color: #667eea;
+    text-decoration: none;
+    margin: 0 10px;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tech-stack {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .container {
+        padding: 20px;
+    }
+}
