@@ -11,8 +11,9 @@ import (
 
 // Client handles communication with the tauchoportal API server
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL  string
+	http     *http.Client
+	apiToken string
 }
 
 // OAuthLoginResponse represents the response from GET /oauth/login
@@ -40,9 +41,15 @@ func NewClient() *Client {
 		baseURL = baseURL[:len(baseURL)-1]
 	}
 
+	apiToken := os.Getenv("API_TOKEN")
+	if apiToken == "" {
+		apiToken = "dev-token-change-in-production"
+	}
+
 	return &Client{
-		baseURL: baseURL,
-		http:    &http.Client{},
+		baseURL:  baseURL,
+		http:     &http.Client{},
+		apiToken: apiToken,
 	}
 }
 

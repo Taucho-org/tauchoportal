@@ -15,6 +15,7 @@ type Config struct {
 	FFProbeBinary      string
 	FFProbeTimeout     time.Duration
 	APIListenAddr      string
+	APIToken           string // Secret token for UI->API authentication
 }
 
 func Load() (Config, error) {
@@ -53,6 +54,13 @@ func Load() (Config, error) {
 
 	if v := os.Getenv("API_LISTEN_ADDR"); v != "" {
 		cfg.APIListenAddr = v
+	}
+
+	if v := os.Getenv("API_TOKEN"); v != "" {
+		cfg.APIToken = v
+	} else {
+		// Default token for local development
+		cfg.APIToken = "dev-token-change-in-production"
 	}
 
 	return cfg, nil

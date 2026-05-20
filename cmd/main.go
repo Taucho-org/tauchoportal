@@ -1,52 +1,80 @@
-package main
+﻿package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
-
-	"tauchoportal/internal/apiclient"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Initialize API client (stateless - no database needed)
-	apiClient := apiclient.NewClient()
+	apiURL := os.Getenv("API_URL")
+	if apiURL == "" {
+		apiURL = "http://localhost:8081"
+	}
 
-	// Custom router with clean URLs
+	// Get the API token for service-to-service authentication
+	apiToken := os.Getenv("API_TOKEN")
+	if apiToken == "" {
+		apiToken = "dev-token-change-in-production"
+	}
+
+	target, err := url.Parse(apiURL)
+	if err != nil {
+		log.Fatalf("invalid API_URL %q: %v", apiURL, err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	// Create a custom director that strips /api prefix AND adds the auth token
+	proxy.Director = func(r *http.Request) {
+		// Strip the /api prefix from the path
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
+		if r.URL.RawPath != "" {
+			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, "/api")
+		}
+		
+		// Set the target scheme and host
+		r.URL.Scheme = target.Scheme
+		r.URL.Host = target.Host
+		
+		// Update the Host header to match the target
+		r.Host = target.Host
+		r.RequestURI = "" // Clear RequestURI as it's only valid for client requests
+		
+		// Add the API token for service-to-service authentication
+		r.Header.Set("X-API-Token", apiToken)
+		
+		// Log for debugging
+		log.Printf("Proxying request: %s %s -> %s://%s%s", r.Method, r.RequestURI, r.URL.Scheme, r.URL.Host, r.URL.Path)
+	}
+
 	router := NewRouter()
-
 	mux := http.NewServeMux()
 
-	// Static files with clean URLs (no .html extension)
-	mux.HandleFunc("/", router.ServeStatic)
+	// Proxy /api/* to the API server
+	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		proxy.ServeHTTP(w, r)
+	})
 
-	// Health check endpoint
+	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// API version endpoint
-	mux.HandleFunc("/api/version", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"version":"1.0.0","service":"tauchoportal-ui"}`))
-	})
-
-	// OAuth API proxy endpoints - these call the backend API and return auth URLs
-	mux.HandleFunc("/api/oauth/login", handleOAuthStart(apiClient))
-	mux.HandleFunc("/api/auth/check", handleAuthCheck(apiClient))
-	mux.HandleFunc("/api/auth/user", handleGetUserProfile(apiClient))
+	// Static files with clean URLs (no .html extension)
+	mux.HandleFunc("/", router.ServeStatic)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -58,7 +86,6 @@ func main() {
 		Handler: mux,
 	}
 
-	// Graceful shutdown
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -66,83 +93,10 @@ func main() {
 		server.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("Tauchoportal UI server starting on :%s", port)
+	log.Printf("UI server starting on :%s (proxying API to %s)", port, apiURL)
 	log.Printf("Open http://localhost:%s in your browser", port)
-	log.Printf("API URL: %s", apiClient.GetBaseURL())
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
-	}
-}
-
-// handleOAuthStart returns the OAuth login URL from the backend API
-func handleOAuthStart(apiClient *apiclient.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		provider := r.URL.Query().Get("provider")
-		if provider == "" {
-			provider = "google"
-		}
-
-		// Call the backend API to get the OAuth login URL
-		result, err := apiClient.GetOAuthLoginURL(provider)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(result)
-	}
-}
-
-// handleAuthCheck checks if the user is authenticated
-func handleAuthCheck(apiClient *apiclient.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		isAuth, err := apiClient.IsAuthenticated(r)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false, "error": err.Error()})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]bool{"authenticated": isAuth})
-	}
-}
-
-// handleGetUserProfile retrieves the authenticated user's profile
-func handleGetUserProfile(apiClient *apiclient.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		user, err := apiClient.GetUserProfile(r)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Not authenticated"})
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(user)
 	}
 }
 
@@ -171,12 +125,8 @@ func (r *Router) ServeStatic(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Clean the path to prevent directory traversal
-	path = strings.ReplaceAll(path, "..", "")
-	filePath := path
-	if !strings.HasPrefix(filePath, "/") {
-		filePath = "/" + filePath
-	}
-	filePath = "public" + filePath
+	path = filepath.Clean(path)
+	filePath := filepath.Join(r.publicDir, path)
 
 	// Serve the file
 	http.ServeFile(w, req, filePath)

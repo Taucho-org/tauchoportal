@@ -1,4 +1,4 @@
-{
+﻿{
     "version": "0.2.0",
     "configurations": [
         {
@@ -35,9 +35,7 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "PORT": "8080",
-                "DATABASE_URL": "postgres://futoshi:futoshipass1@localhost:5432/tauchoportal?sslmode=disable",
-                "GOOGLE_CLIENT_ID": "687596832350-j6db399054taih5096mbf1bk99e6ka1u.apps.googleusercontent.com",
-                "GOOGLE_REDIRECT_URL": "http://localhost:8080/auth/callback/google"
+                "API_URL": "http://localhost:8081"
             },
             "args": [],
             "showLog": true,

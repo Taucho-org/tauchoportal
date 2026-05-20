@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,11 +10,11 @@
 <body>
     <div class="register-container">
         <div class="back-link">
-            <a href="/">← Back to Home</a>
+            <a href="/">â† Back to Home</a>
         </div>
         
         <div class="register-header">
-            <h1>🌊 Join Us</h1>
+            <h1>ðŸŒŠ Join Us</h1>
             <p>Create your TauchoPortal account</p>
         </div>
         
@@ -52,7 +52,7 @@
                     id="password" 
                     name="password" 
                     required
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     minlength="6"
                 >
                 <div class="password-requirements">
@@ -84,7 +84,7 @@
             const password = document.getElementById('password').value;
             
             try {
-                const response = await fetch('/auth/register', {
+                const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -112,3 +112,4 @@
     </script>
 </body>
 </html>
+
