@@ -7,15 +7,26 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/streams.css">
     <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
 </head>
 <body>
     <div class="streams-container">
         <!-- Header -->
         <div class="header">
-            <h1>ðŸ“¡ Stream Management</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h1>ðŸ"¡ <span data-i18n="streams.title">Stream Management</span></h1>
+                <select id="language-selector" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: white; cursor: pointer;">
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="es">🇪🇸 Español</option>
+                </select>
+            </div>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openAddStreamModal()">+ Add Stream</button>
-                <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+                <button data-i18n="streams.yourStreams" class="btn btn-primary" onclick="openAddStreamModal()" data-i18n="streams.addStream">+ Add Stream</button>
+                <a href="/dashboard" class="btn btn-secondary" data-i18n="streams.backToDashboard">Back to Dashboard</a>
             </div>
         </div>
 
@@ -90,43 +101,43 @@
                             <span id="streamStatus" class="status-badge live">â— LIVE</span>
                         </div>
                         <div class="stream-actions">
-                            <button class="action-btn pause" onclick="pauseStream()">â¸ Pause</button>
-                            <button class="action-btn stop" onclick="stopStream()">â¹ Stop</button>
-                            <button class="action-btn settings" onclick="editStream()">âš™ï¸ Settings</button>
+                            <button class="action-btn pause" onclick="pauseStream()" data-i18n="stream.pause">â¸ Pause</button>
+                            <button class="action-btn stop" onclick="stopStream()" data-i18n="stream.stop">â¹ Stop</button>
+                            <button class="action-btn settings" onclick="editStream()" data-i18n="stream.settings">âš™ï¸ Settings</button>
                         </div>
                     </div>
 
                     <!-- Metrics Grid -->
                     <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-label">Viewers</div>
+                            <div class="metric-label" data-i18n="stream.viewers">Viewers</div>
                             <div class="metric-value" id="metricViewers">1,523</div>
-                            <div class="metric-trend">+45 in last 5m</div>
+                            <div class="metric-trend" data-i18n="metrics.trendViewers">+45 in last 5m</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">Uptime</div>
+                            <div class="metric-label" data-i18n="stream.uptime">Uptime</div>
                             <div class="metric-value" id="metricUptime">1h 23m</div>
-                            <div class="metric-trend">Started 1h 23m ago</div>
+                            <div class="metric-trend"><span data-i18n="metrics.trendStarted">Started </span><span id="uptimeTrend">1h 23m ago</span></div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">Health Status</div>
+                            <div class="metric-label" data-i18n="stream.healthStatus">Health Status</div>
                             <div class="metric-value healthy" id="metricHealth">âœ… Excellent</div>
-                            <div class="metric-trend">All systems normal</div>
+                            <div class="metric-trend" data-i18n="metrics.trendSystemsNormal">All systems normal</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">Bitrate</div>
+                            <div class="metric-label" data-i18n="stream.bitrate">Bitrate</div>
                             <div class="metric-value" id="metricBitrate">5000 kbps</div>
-                            <div class="metric-trend">Target: 5000 kbps</div>
+                            <div class="metric-trend"><span data-i18n="metrics.trendTarget">Target: </span><span id="bitrateTrend">5000 kbps</span></div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">FPS</div>
+                            <div class="metric-label" data-i18n="stream.fps">FPS</div>
                             <div class="metric-value" id="metricFps">60</div>
-                            <div class="metric-trend">Frame rate</div>
+                            <div class="metric-trend" data-i18n="metrics.frameRate">Frame rate</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">Resolution</div>
+                            <div class="metric-label" data-i18n="stream.resolution">Resolution</div>
                             <div class="metric-value" id="metricResolution">1920x1080</div>
-                            <div class="metric-trend">Full HD</div>
+                            <div class="metric-trend" data-i18n="metrics.fullHd">Full HD</div>
                         </div>
                     </div>
 
@@ -173,8 +184,8 @@
                 <!-- Empty State (hidden by default) -->
                 <div class="empty-state" id="emptyState" style="display: none;">
                     <div class="empty-state-content">
-                        <h2>No Stream Selected</h2>
-                        <p>Select a stream from the sidebar to view details</p>
+                        <h2 data-i18n="streams.noStreamSelected">No Stream Selected</h2>
+                        <p data-i18n="streams.selectStream">Select a stream from the sidebar to view details</p>
                     </div>
                 </div>
             </main>
@@ -186,31 +197,31 @@
         <div class="modal-content">
             <span class="close" onclick="closeAddStreamModal()">&times;</span>
             <div class="modal-header">
-                <h2>âž• Add New Stream</h2>
+                <h2 data-i18n="modal.addNewStream">âž• Add New Stream</h2>
             </div>
             <form id="addStreamForm">
                 <div class="form-group">
-                    <label for="streamProvider">Select Provider</label>
+                    <label for="streamProvider" data-i18n="modal.selectProvider">Select Provider</label>
                     <select id="streamProvider" required>
-                        <option value="">Choose a provider...</option>
+                        <option value="" data-i18n="modal.chooseProvider">Choose a provider...</option>
                         <option value="youtube">YouTube</option>
                         <option value="twitch">Twitch</option>
                         <option value="niconico">NicoNico</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="streamName">Stream Name</label>
-                    <input type="text" id="streamName" required placeholder="e.g., Gaming Stream">
+                    <label for="streamName" data-i18n="modal.streamName">Stream Name</label>
+                    <input type="text" id="streamName" required data-i18n-placeholder="modal.streamNamePlaceholder" placeholder="e.g., Gaming Stream">
                 </div>
                 <div class="form-group">
-                    <label for="streamRtmpUrl">RTMP URL</label>
-                    <input type="text" id="streamRtmpUrl" required placeholder="rtmp://...">
+                    <label for="streamRtmpUrl" data-i18n="modal.rtmpUrl">RTMP URL</label>
+                    <input type="text" id="streamRtmpUrl" required data-i18n-placeholder="modal.rtmpUrlPlaceholder" placeholder="rtmp://...">
                 </div>
                 <div class="form-group">
-                    <label for="streamKey">Stream Key</label>
-                    <input type="password" id="streamKey" required placeholder="Your stream key">
+                    <label for="streamKey" data-i18n="modal.streamKey">Stream Key</label>
+                    <input type="password" id="streamKey" required data-i18n-placeholder="modal.streamKeyPlaceholder" placeholder="Your stream key">
                 </div>
-                <button type="submit" class="submit-btn">Add Stream</button>
+                <button type="submit" class="submit-btn" data-i18n="modal.addStream">Add Stream</button>
             </form>
         </div>
     </div>
@@ -316,22 +327,26 @@
         }
 
         function pauseStream() {
-            alert('Pause stream: ' + streams[currentStreamId].title);
+            const lang = getCurrentLanguage();
+            alert(t('alert.pauseStream', lang) + streams[currentStreamId].title);
         }
 
         function stopStream() {
-            alert('Stop stream: ' + streams[currentStreamId].title);
+            const lang = getCurrentLanguage();
+            alert(t('alert.stopStream', lang) + streams[currentStreamId].title);
         }
 
         function editStream() {
-            alert('Edit stream: ' + streams[currentStreamId].title);
+            const lang = getCurrentLanguage();
+            alert(t('alert.editStream', lang) + streams[currentStreamId].title);
         }
 
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
             navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
+                const lang = getCurrentLanguage();
+                alert(t('alert.copiedToClipboard', lang));
             });
         }
 
@@ -366,9 +381,18 @@
 
         document.getElementById('addStreamForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            alert('Stream added! (Backend integration needed)');
+            const lang = getCurrentLanguage();
+            alert(t('modal.streamAdded', lang));
             closeAddStreamModal();
         });
+
+        // Language selector
+        document.getElementById('language-selector').addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+
+        // Initialize localization on page load
+        initLocalization();
 
         // Redirect to login if not authenticated
         requireAuth();

@@ -1,0 +1,254 @@
+<header class="main-header">
+    <div class="header-container">
+        <div class="logo-section">
+            <a href="/" class="logo">TauchoPortal</a>
+        </div>
+
+        <nav class="main-nav">
+            <ul>
+                <li><a href="/dashboard" data-i18n="nav.dashboard">Dashboard</a></li>
+                <li><a href="/streams" data-i18n="nav.streams">Stream Management</a></li>
+                <li><a href="/settings" data-i18n="nav.settings">Settings</a></li>
+            </ul>
+        </nav>
+
+        <div class="header-controls">
+            <select id="language-selector" class="language-selector">
+                <option value="en">🇬🇧 English</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="es">🇪🇸 Español</option>
+            </select>
+
+            <button class="user-menu-btn" id="userMenuBtn">
+                <span id="userMenuText" data-i18n="nav.logout">Account</span>
+                <span class="user-avatar">👤</span>
+            </button>
+
+            <div id="userMenu" class="user-menu" style="display: none;">
+                <a href="/profile" data-i18n="nav.profile">Profile</a>
+                <a href="/account-settings" data-i18n="nav.accountSettings">Account Settings</a>
+                <hr>
+                <a href="/logout" id="logoutBtn" data-i18n="nav.logout">Logout</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<style>
+    .main-header {
+        background-color: #1a1a1a;
+        color: white;
+        padding: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .header-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .logo-section {
+        flex-shrink: 0;
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .logo:hover {
+        color: #4CAF50;
+    }
+
+    .main-nav {
+        flex: 1;
+    }
+
+    .main-nav ul {
+        list-style: none;
+        display: flex;
+        gap: 2rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .main-nav a {
+        color: #ccc;
+        text-decoration: none;
+        transition: color 0.3s;
+        font-size: 0.95rem;
+    }
+
+    .main-nav a:hover,
+    .main-nav a.active {
+        color: white;
+        border-bottom: 2px solid #4CAF50;
+        padding-bottom: 0.25rem;
+    }
+
+    .header-controls {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .language-selector {
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        border: 1px solid #444;
+        background-color: #2a2a2a;
+        color: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .language-selector:hover {
+        background-color: #333;
+        border-color: #555;
+    }
+
+    .user-menu-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: none;
+        border: 1px solid #444;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+    }
+
+    .user-menu-btn:hover {
+        background-color: #2a2a2a;
+        border-color: #4CAF50;
+    }
+
+    .user-avatar {
+        font-size: 1.2rem;
+    }
+
+    .user-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        min-width: 200px;
+        margin-top: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-menu a {
+        display: block;
+        padding: 0.75rem 1rem;
+        color: #ccc;
+        text-decoration: none;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+    }
+
+    .user-menu a:hover {
+        background-color: #333;
+        color: white;
+        padding-left: 1.25rem;
+    }
+
+    .user-menu a:first-child {
+        border-radius: 4px 4px 0 0;
+    }
+
+    .user-menu a:last-child {
+        border-radius: 0 0 4px 4px;
+    }
+
+    .user-menu hr {
+        margin: 0.5rem 0;
+        border: none;
+        border-top: 1px solid #444;
+    }
+
+    @media (max-width: 768px) {
+        .header-container {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .main-nav ul {
+            gap: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .header-controls {
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+    // Toggle user menu dropdown
+    document.getElementById('userMenuBtn').addEventListener('click', function() {
+        const menu = document.getElementById('userMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('userMenu');
+        const btn = document.getElementById('userMenuBtn');
+        if (!menu.contains(e.target) && !btn.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    // Highlight active nav link based on current page
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.main-nav a').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    });
+
+    // Language selector integration
+    const langSelector = document.getElementById('language-selector');
+    if (langSelector) {
+        // Set current language
+        langSelector.value = getCurrentLanguage();
+
+        // Listen for language changes
+        langSelector.addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+
+        // Listen for external language changes and update selector
+        window.addEventListener('languageChanged', (e) => {
+            langSelector.value = e.detail.lang;
+        });
+    }
+
+    // Apply localization to header when language changes
+    window.addEventListener('languageChanged', function() {
+        updatePageTranslations(getCurrentLanguage());
+    });
+</script>

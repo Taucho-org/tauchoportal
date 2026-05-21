@@ -1,0 +1,86 @@
+<!-- 
+  Example: How to update your pages to use Web Components
+  
+  This shows the before and after for streams.html
+  You can apply the same pattern to all your pages
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Management - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/streams.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script> <!-- NEW: Web Components -->
+</head>
+<body>
+    <!-- NEW: Replace the old header HTML with this single line -->
+    <taucho-header></taucho-header>
+
+    <!-- Your existing page content (no header.html code needed) -->
+    <div class="streams-container">
+        <!-- REMOVE all the old header/sidebar code here -->
+        <!-- Just keep: sidebar, main-content, etc. -->
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 data-i18n="streams.yourStreams">Your Streams</h2>
+            </div>
+            <!-- ... rest of sidebar ... -->
+        </aside>
+
+        <main class="main-content">
+            <!-- ... rest of content ... -->
+        </main>
+    </div>
+
+    <!-- NEW: Replace the old footer HTML with this single line -->
+    <taucho-footer></taucho-footer>
+
+    <script>
+        // Initialize localization
+        initLocalization();
+
+        // Rest of your existing page code
+        requireAuth();
+        selectStream(1);
+    </script>
+</body>
+</html>
+
+<!-- 
+  CHANGES SUMMARY
+  
+  BEFORE (old approach):
+  - Inline header HTML (50+ lines)
+  - Inline footer HTML (30+ lines)
+  - Repeated on every page
+  
+  AFTER (Web Components):
+  - <taucho-header></taucho-header>
+  - <taucho-footer></taucho-footer>
+  - Saves 80+ lines per page
+  - Single source of truth
+  - Automatic translations
+  - Auto-updates on language change
+  
+  FILES TO REMOVE:
+  - public/components/header.html (no longer needed)
+  - public/components/footer.html (no longer needed)
+  - public/js/components.js (no longer needed)
+  
+  FILES TO KEEP:
+  - public/js/web-components.js (everything in one file)
+  
+  BENEFITS:
+  ✅ No header/footer duplication
+  ✅ Update once, affects all pages
+  ✅ Automatic language switching
+  ✅ Better performance
+  ✅ Modern approach
+-->
