@@ -15,195 +15,175 @@
  * Usage: <taucho-header></taucho-header>
  */
 class TauchoHeader extends HTMLElement {
-  connectedCallback() {
-    this.render();
+  async connectedCallback() {
+    this.render('...');
     this.setupEventListeners();
+    // Fetch real username and re-render once we have it
+    if (typeof getUserProfile === 'function') {
+      const user = await getUserProfile();
+      const display = user ? (user.username || user.email?.split('@')[0] || 'Account') : 'Account';
+      this.render(display);
+      this.setupEventListeners();
+    }
   }
 
-  render() {
+  render(username) {
     const currentLang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
-    const t = typeof t === 'function' ? window.t : (key) => key;
+    const tr = typeof window.t === 'function' ? window.t : (key) => key;
 
     this.innerHTML = `
       <header class="taucho-header" data-component="header">
         <div class="header-container">
           <div class="logo-section">
-            <a href="/" class="logo">TauchoPortal</a>
+            <a href="/" class="logo">🌊 TauchoPortal</a>
           </div>
 
           <nav class="header-nav">
             <ul>
-              <li><a href="/dashboard">${t('nav.dashboard', currentLang)}</a></li>
-              <li><a href="/streams">${t('nav.streams', currentLang)}</a></li>
+              <li><a href="/dashboard">Dashboard</a></li>
+              <li><a href="/streams">My Streams</a></li>
               <li><a href="/monitors">📡 Watched Channels</a></li>
               <li><a href="/devices">🔌 My Devices</a></li>
-              <li><a href="/settings">${t('nav.settings', currentLang)}</a></li>
             </ul>
           </nav>
 
           <div class="header-controls">
-            <select id="language-selector" class="language-selector">
-              <option value="en">🇬🇧 English</option>
-              <option value="ja">🇯🇵 日本語</option>
-              <option value="de">🇩🇪 Deutsch</option>
-              <option value="fr">🇫🇷 Français</option>
-              <option value="es">🇪🇸 Español</option>
+            <select id="language-selector" class="language-selector" title="Language">
+              <option value="en">🇬🇧 EN</option>
+              <option value="ja">🇯🇵 JA</option>
+              <option value="de">🇩🇪 DE</option>
+              <option value="fr">🇫🇷 FR</option>
+              <option value="es">🇪🇸 ES</option>
             </select>
 
-            <button class="user-menu-btn" id="userMenuBtn">
-              <span>${t('nav.logout', currentLang)}</span>
-              <span class="user-avatar">👤</span>
-            </button>
-
-            <div id="userMenu" class="user-menu" style="display: none;">
-              <a href="/profile">${t('nav.profile', currentLang)}</a>
-              <a href="/account-settings">${t('nav.accountSettings', currentLang)}</a>
-              <hr>
-              <a href="/logout" id="logoutBtn">${t('nav.logout', currentLang)}</a>
+            <div class="user-menu-wrap">
+              <button class="user-menu-btn" id="userMenuBtn">
+                <span class="user-avatar">👤</span>
+                <span class="user-label">${username}</span>
+                <span class="caret">▾</span>
+              </button>
+              <div id="userMenu" class="user-menu" style="display:none">
+                <a href="/profile">👤 Profile</a>
+                <a href="/account-settings">⚙️ Account Settings</a>
+                <hr>
+                <a href="#" id="logoutBtn" class="logout-item">🚪 Sign Out</a>
+              </div>
             </div>
           </div>
         </div>
 
         <style>
-          :host {
-            display: block;
-          }
-
           .taucho-header {
-            background-color: #1a1a1a;
+            background: #1a1a1a;
             color: white;
-            padding: 1rem 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 200;
           }
-
           .header-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 0 2rem;
+            padding: 0 1.5rem;
+            height: 56px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
             gap: 2rem;
           }
-
-          .logo-section {
-            flex-shrink: 0;
-          }
-
+          .logo-section { flex-shrink: 0; }
           .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.15rem;
+            font-weight: 700;
             color: white;
             text-decoration: none;
+            white-space: nowrap;
           }
-
-          .logo:hover {
-            color: #4CAF50;
-          }
-
-          .header-nav {
-            flex: 1;
-          }
-
+          .logo:hover { color: #4CAF50; text-decoration: none; }
+          .header-nav { flex: 1; }
           .header-nav ul {
             list-style: none;
             display: flex;
-            gap: 2rem;
-            margin: 0;
-            padding: 0;
+            gap: 0.25rem;
+            margin: 0; padding: 0;
           }
-
           .header-nav a {
-            color: #ccc;
+            color: #bbb;
             text-decoration: none;
-            transition: color 0.3s;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            display: block;
+            white-space: nowrap;
           }
-
-          .header-nav a:hover {
-            color: white;
-            border-bottom: 2px solid #4CAF50;
-          }
-
+          .header-nav a:hover { color: white; background: rgba(255,255,255,0.08); text-decoration: none; }
+          .header-nav a.active { color: white; background: rgba(76,175,80,0.2); font-weight: 600; }
           .header-controls {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
-            position: relative;
+            flex-shrink: 0;
           }
-
           .language-selector {
-            padding: 0.5rem 0.75rem;
+            padding: 0.35rem 0.6rem;
             border-radius: 4px;
             border: 1px solid #444;
-            background-color: #2a2a2a;
+            background: #2a2a2a;
             color: white;
             cursor: pointer;
+            font-size: 0.85rem;
           }
-
+          .language-selector:hover { border-color: #666; }
+          .user-menu-wrap { position: relative; }
           .user-menu-btn {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             background: none;
             border: 1px solid #444;
             color: white;
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.85rem;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            white-space: nowrap;
           }
-
-          .user-menu-btn:hover {
-            border-color: #4CAF50;
-          }
-
-          .user-avatar {
-            font-size: 1.2rem;
-          }
-
+          .user-menu-btn:hover { border-color: #4CAF50; background: rgba(255,255,255,0.05); }
+          .user-avatar { font-size: 1rem; }
+          .caret { font-size: 0.7rem; opacity: 0.6; }
           .user-menu {
             position: absolute;
-            top: 100%;
+            top: calc(100% + 6px);
             right: 0;
             background: #2a2a2a;
             border: 1px solid #444;
-            border-radius: 4px;
+            border-radius: 6px;
             min-width: 200px;
-            margin-top: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            overflow: hidden;
           }
-
           .user-menu a {
             display: block;
             padding: 0.75rem 1rem;
             color: #ccc;
             text-decoration: none;
-            transition: all 0.3s;
+            font-size: 0.88rem;
+            transition: all 0.2s;
           }
-
-          .user-menu a:hover {
-            background-color: #333;
-            color: white;
+          .user-menu a:hover { background: #333; color: white; text-decoration: none; }
+          .user-menu hr { margin: 0; border: none; border-top: 1px solid #3a3a3a; }
+          .logout-item { color: #ff7070 !important; }
+          .logout-item:hover { background: rgba(255,80,80,0.1) !important; color: #ff9090 !important; }
+          @media (max-width: 860px) {
+            .header-nav ul { gap: 0; }
+            .header-nav a { padding: 0.4rem 0.5rem; font-size: 0.82rem; }
           }
-
-          .user-menu hr {
-            margin: 0.5rem 0;
-            border: none;
-            border-top: 1px solid #444;
-          }
-
-          @media (max-width: 768px) {
-            .header-container {
-              flex-wrap: wrap;
-              gap: 1rem;
-            }
-
-            .header-nav ul {
-              gap: 1rem;
-              font-size: 0.9rem;
-            }
+          @media (max-width: 640px) {
+            .header-container { height: auto; padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.75rem; }
+            .header-nav { order: 3; width: 100%; }
+            .header-nav ul { flex-wrap: wrap; }
           }
         </style>
       </header>
@@ -211,34 +191,46 @@ class TauchoHeader extends HTMLElement {
   }
 
   setupEventListeners() {
-    const userMenuBtn = this.querySelector('#userMenuBtn');
-    const userMenu = this.querySelector('#userMenu');
-    const langSelector = this.querySelector('#language-selector');
-
-    if (userMenuBtn && userMenu) {
-      userMenuBtn.addEventListener('click', () => {
-        userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!userMenu.contains(e.target) && !userMenuBtn.contains(e.target)) {
-          userMenu.style.display = 'none';
-        }
-      });
-    }
-
-    if (langSelector && typeof setLanguage === 'function') {
-      langSelector.value = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
-      langSelector.addEventListener('change', (e) => {
-        setLanguage(e.target.value);
-      });
-    }
-
-    // Re-render when language changes
-    window.addEventListener('languageChanged', () => {
-      this.render();
-      this.setupEventListeners();
+    // Active nav link
+    const path = window.location.pathname;
+    this.querySelectorAll('.header-nav a').forEach(link => {
+      const href = link.getAttribute('href');
+      if (href && href !== '/' && path.startsWith(href)) link.classList.add('active');
+      else if (href === '/dashboard' && path === '/dashboard') link.classList.add('active');
     });
+
+    // User menu toggle
+    const btn = this.querySelector('#userMenuBtn');
+    const menu = this.querySelector('#userMenu');
+    if (btn && menu) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      });
+      document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: false });
+    }
+
+    // Logout button — calls auth.js logout()
+    const logoutBtn = this.querySelector('#logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof logout === 'function') logout();
+        else window.location.href = '/login';
+      });
+    }
+
+    // Language selector
+    const langSel = this.querySelector('#language-selector');
+    if (langSel) {
+      if (typeof getCurrentLanguage === 'function') langSel.value = getCurrentLanguage();
+      langSel.addEventListener('change', (e) => {
+        if (typeof setLanguage === 'function') setLanguage(e.target.value);
+      });
+      window.addEventListener('languageChanged', () => {
+        if (typeof getCurrentLanguage === 'function') langSel.value = getCurrentLanguage();
+      });
+    }
   }
 }
 

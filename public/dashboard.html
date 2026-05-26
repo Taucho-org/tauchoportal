@@ -7,48 +7,89 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/dashboard.css">
     <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
 </head>
 <body>
+    <taucho-header></taucho-header>
+
     <div class="dashboard-container">
-        <div class="header">
-            <h1>🌊 TauchoPortal Dashboard</h1>
-            <div class="header-user">
-                <div class="user-info">
-                    <div class="username" id="username">Loading...</div>
-                    <div class="email" id="email">Loading...</div>
-                </div>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+        <div class="welcome-banner">
+            <div class="welcome-text">
+                <h1>Welcome back, <span id="username">...</span> 👋</h1>
+                <p id="userEmail" class="welcome-sub"></p>
             </div>
         </div>
-        
-        <div class="content">
-            <div class="welcome-section">
-                <h2>Welcome to Your Dashboard!</h2>
-                <p>Manage your RTMP streams and account settings from here.</p>
+
+        <div class="section-title">Quick Navigation</div>
+
+        <div class="cards-grid">
+            <a href="/streams" class="card">
+                <div class="card-icon">📡</div>
+                <div class="card-body">
+                    <h3>My Streams</h3>
+                    <p>View and manage your registered streaming accounts across YouTube, Twitch, and NicoNico.</p>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <a href="/monitors" class="card">
+                <div class="card-icon">👁️</div>
+                <div class="card-body">
+                    <h3>Watched Channels</h3>
+                    <p>Configure which live streaming channels to monitor. The service detects streams automatically.</p>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <a href="/devices" class="card">
+                <div class="card-icon">💡</div>
+                <div class="card-body">
+                    <h3>My Devices</h3>
+                    <p>Register and manage your smart home devices — lights, plugs, LED controllers, and more.</p>
+                </div>
+                <div class="card-arrow">→</div>
+            </a>
+
+            <div class="card card-muted">
+                <div class="card-icon">⚙️</div>
+                <div class="card-body">
+                    <h3>Account Settings <span class="coming-badge">Soon</span></h3>
+                    <p>Update your profile, change password, manage notification preferences.</p>
+                </div>
+                <div class="card-arrow muted">→</div>
             </div>
-            
-            <div class="cards-grid">
-                <div class="card">
-                    <h3>📡 Stream Management</h3>
-                    <p>Add, edit, and manage your RTMP streams.</p>
-                    <a href="/streams" class="card-link">Manage Streams →</a>
-                </div>
-                
-                <div class="card">
-                    <h3>📊 Analytics</h3>
-                    <p>View detailed analytics and stream statistics.</p>
-                    <a href="#" class="card-link">View Analytics →</a>
-                </div>
-                
-                <div class="card">
-                    <h3>⚙️ Settings</h3>
-                    <p>Update your account settings and preferences.</p>
-                    <a href="#" class="card-link">Go to Settings →</a>
-                </div>
+        </div>
+
+        <div class="section-title">How It Works</div>
+        <div class="flow-row">
+            <div class="flow-step">
+                <div class="flow-icon">📡</div>
+                <div class="flow-label">Watch Channels</div>
+                <div class="flow-desc">Add streaming accounts to monitor</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-icon">⚡</div>
+                <div class="flow-label">Set Conditions</div>
+                <div class="flow-desc">Define event rules per channel</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-icon">💡</div>
+                <div class="flow-label">Assign Devices</div>
+                <div class="flow-desc">Link conditions to smart devices</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-icon">🎉</div>
+                <div class="flow-label">Stream!</div>
+                <div class="flow-desc">Devices react automatically</div>
             </div>
         </div>
     </div>
-    
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const user = await getUserProfile();
@@ -56,9 +97,11 @@
                 window.location.href = '/login';
                 return;
             }
-            document.getElementById('username').textContent = user.username || user.email || 'User';
-            document.getElementById('email').textContent = user.email || '';
+            document.getElementById('username').textContent = user.username || user.email?.split('@')[0] || 'there';
+            const emailEl = document.getElementById('userEmail');
+            if (user.email) emailEl.textContent = user.email;
         });
     </script>
 </body>
 </html>
+

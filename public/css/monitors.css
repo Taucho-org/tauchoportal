@@ -1,5 +1,7 @@
 /* Watched Channels (monitors) Page Styles */
 
+body { background: #f5f5f5; }
+
 .monitors-container {
     max-width: 1100px;
     margin: 0 auto;

@@ -79,7 +79,7 @@ async function logout() {
         // proceed with redirect even if the request fails
     }
     _cachedUser = null;
-    window.location.href = '/';
+    window.location.href = '/login';
 }
 
 /**

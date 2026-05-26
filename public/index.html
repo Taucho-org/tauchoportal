@@ -10,35 +10,40 @@
 <body>
     <div class="container">
         <h1>🌊 TauchoPortal</h1>
-        <p class="subtitle">Your ultimate RTMP streaming management platform</p>
-        
+        <p class="subtitle">Bring your live streams to life — automate your smart home with every chat, gift, and reaction.</p>
+
         <div class="features">
             <div class="feature">
-                <h3>📡 Real-time Monitoring</h3>
-                <p>Monitor your RTMP streams in real-time with live status updates.</p>
+                <h3>📡 Watch Any Channel</h3>
+                <p>Register your YouTube, Twitch, or NicoNico channels. The service automatically detects when you go live.</p>
             </div>
             <div class="feature">
-                <h3>🔧 Easy Management</h3>
-                <p>Simple and intuitive interface for managing multiple streams.</p>
+                <h3>⚡ Event Conditions</h3>
+                <p>Set rules for stream events — comments, Super Chats, Bits, gifts, emotion effects — per channel and platform.</p>
             </div>
             <div class="feature">
-                <h3>☁️ Cloud Powered</h3>
-                <p>Built on Google Cloud for reliability and scalability.</p>
+                <h3>💡 Smart Home Actions</h3>
+                <p>Trigger Govee lights, Philips Hue, LIFX, TP-Link Kasa, and more smart devices when conditions are met.</p>
             </div>
             <div class="feature">
-                <h3>⚡ Fast & Responsive</h3>
-                <p>Lightning-fast response times and minimal latency.</p>
+                <h3>☁️ Always On</h3>
+                <p>Cloud-hosted polling service runs continuously — no need to keep a browser or app open while streaming.</p>
             </div>
         </div>
-        
-        <div class="cta-buttons">
+
+        <div class="cta-buttons" data-auth="unauthenticated">
             <button onclick="openLoginModal()" class="btn btn-primary">Sign In</button>
             <a href="/register" class="btn btn-primary">Create Account</a>
             <a href="/about" class="btn btn-secondary">Learn More</a>
         </div>
-        
+
+        <div class="cta-buttons" data-auth="authenticated" style="display:none">
+            <a href="/dashboard" class="btn btn-primary">Go to Dashboard →</a>
+            <a href="/about" class="btn btn-secondary">Learn More</a>
+        </div>
+
         <div class="nav-footer">
-            <p>Ready to get started? <a href="/about">Explore our features →</a></p>
+            <p>Ready to get started? <a href="/about">See how it works →</a></p>
         </div>
     </div>
 
@@ -145,6 +150,12 @@
                 errorMessage.textContent = 'An error occurred. Please try again.';
                 errorMessage.classList.add('show');
             }
+        });
+
+        // If already logged in, go straight to dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await getUserProfile();
+            if (user) window.location.replace('/dashboard');
         });
     </script>
 

@@ -9,24 +9,20 @@
     <script src="/js/auth.js"></script>
     <script src="/js/translations.js"></script>
     <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
 </head>
 <body>
+    <taucho-header></taucho-header>
+
     <div class="streams-container">
-        <!-- Header -->
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <!-- Page Header -->
+        <div class="page-title-bar">
+            <div>
                 <h1>📡 <span data-i18n="streams.title">Stream Management</span></h1>
-                <select id="language-selector" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: white; cursor: pointer;">
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ja">🇯🇵 日本語</option>
-                    <option value="de">🇩🇪 Deutsch</option>
-                    <option value="fr">🇫🇷 Français</option>
-                    <option value="es">🇪🇸 Español</option>
-                </select>
+                <p>Register and manage your live streaming accounts across platforms.</p>
             </div>
             <div class="header-actions">
-                <button data-i18n="streams.yourStreams" class="btn btn-primary" onclick="openAddStreamModal()" data-i18n="streams.addStream">+ Add Stream</button>
-                <a href="/dashboard" class="btn btn-secondary" data-i18n="streams.backToDashboard">Back to Dashboard</a>
+                <button class="btn btn-primary" onclick="openAddStreamModal()" data-i18n="streams.addStream">+ Add Stream</button>
             </div>
         </div>
 

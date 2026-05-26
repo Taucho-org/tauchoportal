@@ -8,62 +8,148 @@
     <link rel="stylesheet" href="/css/about.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <a href="/" class="back-btn">←</a>
-            <h1>About TauchoPortal</h1>
-        </div>
-        
-        <div class="section">
-            <p>TauchoPortal is a modern, cloud-native platform for managing and monitoring RTMP streams. Built with Go and deployed on Google Cloud, it provides a seamless experience for streaming professionals.</p>
-        </div>
-        
-        <div class="section">
-            <h2>🎯 Our Mission</h2>
-            <p>We aim to simplify RTMP stream management by providing an intuitive, reliable, and scalable solution that developers and content creators can rely on.</p>
-        </div>
-        
-        <div class="section">
-            <h2>✨ Key Features</h2>
-            <ul>
-                <li>Real-time stream monitoring and analytics</li>
-                <li>One-click RTMP URL registration</li>
-                <li>Automatic health checks and notifications</li>
-                <li>Cloud-native architecture for high availability</li>
-                <li>RESTful API for programmatic access</li>
-                <li>Dashboard with live statistics</li>
-            </ul>
-        </div>
-        
-        <div class="section">
-            <h2>🏗️ Technology Stack</h2>
-            <div class="tech-stack">
-                <div class="tech-item">
-                    <strong>Go 1.22</strong>
-                    <p>Backend runtime</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Google Cloud Run</strong>
-                    <p>Website hosting</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Cloud Functions</strong>
-                    <p>API services</p>
-                </div>
-                <div class="tech-item">
-                    <strong>Firestore</strong>
-                    <p>Database</p>
+    <div class="about-page">
+        <nav class="about-nav">
+            <a href="/" class="about-logo">🌊 TauchoPortal</a>
+            <div class="about-nav-links">
+                <a href="/">Home</a>
+                <a href="/login" class="nav-btn">Sign In</a>
+                <a href="/register" class="nav-btn nav-btn-primary">Create Account</a>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="header">
+                <h1>About TauchoPortal</h1>
+            </div>
+
+            <div class="section lead-section">
+                <p>TauchoPortal is a live stream automation platform. It watches your YouTube, Twitch, and NicoNico channels around the clock, and when viewers interact — sending a Super Chat, gifting, cheering with Bits, or triggering emotion effects — your smart home devices respond instantly.</p>
+                <p>No scripts to run. No browser tab to keep open. The cloud service handles all detection and device control automatically.</p>
+            </div>
+
+            <div class="section">
+                <h2>🎯 How It Works</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div>
+                            <strong>Add Watched Channels</strong>
+                            <p>Register your streaming account handles (YouTube, Twitch, NicoNico). The polling service detects when you go live automatically — nothing to trigger manually.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div>
+                            <strong>Define Event Conditions</strong>
+                            <p>For each channel, set rules tied to platform-specific events: comments, Super Chats, Bits, gifts, Nicoru reactions, hype trains, raids, and more.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div>
+                            <strong>Register Your Devices</strong>
+                            <p>Add your smart home devices — Govee, Philips Hue, LIFX, WLED, TP-Link Kasa, and others. Configure API credentials once; reuse devices across any number of conditions.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div>
+                            <strong>Stream and React</strong>
+                            <p>When a condition fires, the cloud service calls the device API directly. Lights change color, plugs switch, LEDs animate — in real time, while you stream.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="section">
-            <h2>🚀 Getting Started</h2>
-            <p>To get started with TauchoPortal, check out our <a href="/">home page</a> for more information or visit our GitHub repository for source code and documentation.</p>
-        </div>
-        
-        <div class="footer">
-            <p>TauchoPortal © 2026 | <a href="/">Home</a> | <a href="/login">Sign In</a> | <a href="/register">Sign Up</a></p>
+
+            <div class="section">
+                <h2>✨ Supported Platforms</h2>
+                <div class="platform-grid">
+                    <div class="platform-card">
+                        <div class="platform-icon">🔴</div>
+                        <strong>YouTube</strong>
+                        <ul>
+                            <li>Live chat comments</li>
+                            <li>Super Chat / Super Sticker</li>
+                            <li>Channel memberships</li>
+                            <li>Stream start / end</li>
+                        </ul>
+                    </div>
+                    <div class="platform-card">
+                        <div class="platform-icon">🟣</div>
+                        <strong>Twitch</strong>
+                        <ul>
+                            <li>Chat comments</li>
+                            <li>Cheering (Bits)</li>
+                            <li>Subscriptions &amp; follows</li>
+                            <li>Hype Train / Raid</li>
+                        </ul>
+                    </div>
+                    <div class="platform-card">
+                        <div class="platform-icon">🔵</div>
+                        <strong>NicoNico</strong>
+                        <ul>
+                            <li>Live comments</li>
+                            <li>Nicoru reactions</li>
+                            <li>Gifts</li>
+                            <li>Emotion effects</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>💡 Supported Devices</h2>
+                <p>TauchoPortal works with popular smart home brands out of the box:</p>
+                <div class="device-tags">
+                    <span class="dtag">Govee</span>
+                    <span class="dtag">Philips Hue</span>
+                    <span class="dtag">LIFX</span>
+                    <span class="dtag">WLED</span>
+                    <span class="dtag">TP-Link Kasa</span>
+                    <span class="dtag">Nanoleaf</span>
+                    <span class="dtag">Tuya</span>
+                    <span class="dtag">Yeelight</span>
+                    <span class="dtag">Meross</span>
+                    <span class="dtag">SwitchBot</span>
+                </div>
+                <p>Actions include power on/off, color, brightness, LED effects, and scenes — depending on what each device supports.</p>
+            </div>
+
+            <div class="section">
+                <h2>🏗️ Technology Stack</h2>
+                <div class="tech-stack">
+                    <div class="tech-item">
+                        <strong>Go 1.22</strong>
+                        <p>Backend & web server</p>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Google Cloud Run</strong>
+                        <p>Hosting &amp; scaling</p>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Cloud Functions</strong>
+                        <p>Event polling &amp; dispatch</p>
+                    </div>
+                    <div class="tech-item">
+                        <strong>Firestore</strong>
+                        <p>User &amp; config storage</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section cta-section">
+                <h2>🚀 Get Started</h2>
+                <p>Create a free account and connect your first streaming channel in minutes.</p>
+                <div class="cta-row">
+                    <a href="/register" class="btn btn-primary">Create Account</a>
+                    <a href="/login" class="btn btn-secondary">Sign In</a>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>TauchoPortal © 2026 | <a href="/">Home</a> | <a href="/login">Sign In</a> | <a href="/register">Sign Up</a> | <a href="https://github.com/DonTaucho/tauchoportal" target="_blank">GitHub</a></p>
+            </div>
         </div>
     </div>
 </body>
