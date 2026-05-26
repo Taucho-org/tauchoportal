@@ -1,0 +1,780 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watched Channels - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/monitors.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
+</head>
+<body>
+    <taucho-header></taucho-header>
+
+    <div class="monitors-container">
+        <!-- VIEW: Channel List -->
+        <div id="view-list" class="view">
+            <div class="page-header">
+                <div class="page-header-top">
+                    <div>
+                        <h1>📡 Watched Channels</h1>
+                        <p>Live streaming accounts monitored by the polling service. Detection is automatic — just add the channels you want to track.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddChannelModal()">+ Add Channel</button>
+                </div>
+                <div class="stats-row" id="statsRow"></div>
+            </div>
+            <div class="channels-list" id="channelsList"></div>
+            <div class="empty-state" id="emptyState" style="display:none">
+                <div class="empty-icon">📡</div>
+                <h2>No channels yet</h2>
+                <p>Add a streaming account to start monitoring live streams.</p>
+                <button class="btn btn-primary" onclick="openAddChannelModal()">+ Add Channel</button>
+            </div>
+        </div>
+
+        <!-- VIEW: Channel Detail -->
+        <div id="view-channel" class="view" style="display:none"></div>
+
+        <!-- VIEW: Conditions -->
+        <div id="view-conditions" class="view" style="display:none"></div>
+    </div>
+
+    <!-- Add/Edit Channel Modal -->
+    <div id="channelModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('channelModal')">&times;</span>
+            <div class="modal-header">
+                <h2 id="channelModalTitle">Add Channel</h2>
+                <p>Add a streaming account to monitor.</p>
+            </div>
+            <form id="channelForm" onsubmit="saveChannel(event)">
+                <div class="form-group">
+                    <label for="chName">Display Name</label>
+                    <input type="text" id="chName" required placeholder="e.g., Gaming Stream">
+                </div>
+                <div class="form-group">
+                    <label for="chPlatform">Platform</label>
+                    <select id="chPlatform" required>
+                        <option value="">Select platform...</option>
+                        <option value="youtube">▶ YouTube</option>
+                        <option value="twitch">🟣 Twitch</option>
+                        <option value="niconico">🔵 NicoNico</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chId">Channel ID / Username</label>
+                    <input type="text" id="chId" required placeholder="e.g., @YourChannel or UC...">
+                    <small class="form-help">The unique identifier used by the platform.</small>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="chActive" checked>
+                        <span>Start watching immediately</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('channelModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="chSaveBtn">Add Channel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Condition Modal -->
+    <div id="conditionModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('conditionModal')">&times;</span>
+            <div class="modal-header">
+                <h2 id="condModalTitle">Add Condition</h2>
+                <p id="condModalSubtitle">Define when to trigger an action on this channel.</p>
+            </div>
+            <form id="conditionForm" onsubmit="saveCondition(event)">
+                <div class="form-group">
+                    <label for="condName">Condition Name</label>
+                    <input type="text" id="condName" required placeholder="e.g., Keyword Alert: hype">
+                </div>
+                <fieldset class="form-section">
+                    <legend>Event</legend>
+                    <div class="form-group">
+                        <label for="condEventType">Event Type</label>
+                        <select id="condEventType" required onchange="updateCondEventFields()">
+                            <option value="">Select event type...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="condFilterGroup" style="display:none">
+                        <label for="condFilter" id="condFilterLabel">Keyword filter <span class="optional-label">(optional)</span></label>
+                        <input type="text" id="condFilter" placeholder="e.g., hype — leave empty to match all">
+                        <small class="form-help" id="condFilterHelp">Only trigger when a comment contains this keyword. Leave empty to match all comments.</small>
+                    </div>
+                </fieldset>
+                <fieldset class="form-section device-action-section">
+                    <legend>Device Action</legend>
+                    <p class="section-note">Select a smart home device to trigger when this condition is met.
+                        Manage devices on the <a href="/devices">Devices page</a>.</p>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="condHasDevice" onchange="toggleDeviceAction(this)">
+                            <span>Trigger a device action when this condition fires</span>
+                        </label>
+                    </div>
+                    <div id="deviceActionFields" style="display:none">
+                        <div class="form-group">
+                            <label for="condDeviceSelect">Device</label>
+                            <select id="condDeviceSelect" onchange="updateCondActionSelect()">
+                                <option value="">Select a device...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="condActionSelectGroup" style="display:none">
+                            <label for="condActionSelect">Action</label>
+                            <select id="condActionSelect" onchange="updateCondActionParams()">
+                                <option value="">Select action...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="condColorGroup" style="display:none">
+                            <label>Color</label>
+                            <div class="color-presets">
+                                <button type="button" class="color-preset selected" style="background:#ff2020" data-color="#ff2020" onclick="selectCondColor(this)" title="Red"></button>
+                                <button type="button" class="color-preset" style="background:#ff7700" data-color="#ff7700" onclick="selectCondColor(this)" title="Orange"></button>
+                                <button type="button" class="color-preset" style="background:#ffee00" data-color="#ffee00" onclick="selectCondColor(this)" title="Yellow"></button>
+                                <button type="button" class="color-preset" style="background:#00cc44" data-color="#00cc44" onclick="selectCondColor(this)" title="Green"></button>
+                                <button type="button" class="color-preset" style="background:#00ccff" data-color="#00ccff" onclick="selectCondColor(this)" title="Cyan"></button>
+                                <button type="button" class="color-preset" style="background:#0055ff" data-color="#0055ff" onclick="selectCondColor(this)" title="Blue"></button>
+                                <button type="button" class="color-preset" style="background:#aa00ff" data-color="#aa00ff" onclick="selectCondColor(this)" title="Purple"></button>
+                                <button type="button" class="color-preset" style="background:#ff00cc" data-color="#ff00cc" onclick="selectCondColor(this)" title="Pink"></button>
+                                <button type="button" class="color-preset" style="background:#ffffff;border-color:#ccc" data-color="#ffffff" onclick="selectCondColor(this)" title="White"></button>
+                            </div>
+                            <small class="form-help">Color to set when this condition is triggered.</small>
+                        </div>
+                        <div class="form-group" id="condBrightnessGroup" style="display:none">
+                            <label for="condBrightness">Brightness: <span id="condBrightnessVal">50</span>%</label>
+                            <input type="range" id="condBrightness" min="1" max="100" value="50"
+                                   oninput="document.getElementById('condBrightnessVal').textContent=this.value">
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="condEnabled" checked>
+                        <span>Enable this condition immediately</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('conditionModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="condSaveBtn">Add Condition</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <taucho-footer></taucho-footer>
+
+    <script>
+    // =============================================
+    // Sample data (replace with API calls)
+    // =============================================
+    const CHANNELS = [
+        {
+            id: 'gaming-stream',
+            name: 'Gaming Stream',
+            platform: 'youtube',
+            channelId: '@GamingStream',
+            active: true,
+            status: 'live',
+            lastStream: 'Live now',
+            conditions: [
+                { id: 'c1', name: 'Keyword Alert: hype', type: 'comment', filter: 'hype', enabled: true, lastTriggered: 'May 25, 14:08' },
+                { id: 'c2', name: 'Super Chat Received', type: 'superchat', filter: '', enabled: true, lastTriggered: 'May 24, 19:41' },
+                { id: 'c3', name: 'Super Sticker', type: 'sticker', filter: '', enabled: false, lastTriggered: 'Never' },
+            ]
+        },
+        {
+            id: 'creative-session',
+            name: 'Creative Session',
+            platform: 'youtube',
+            channelId: '@CreativeSession',
+            active: true,
+            status: 'offline',
+            lastStream: 'May 23, 2025',
+            conditions: [
+                { id: 'c4', name: 'Any Comment', type: 'comment', filter: '', enabled: true, lastTriggered: 'May 23, 21:12' },
+            ]
+        },
+        {
+            id: 'main-broadcast',
+            name: 'Main Broadcast',
+            platform: 'twitch',
+            channelId: 'mainbroadcast',
+            active: true,
+            status: 'offline',
+            lastStream: 'May 24, 2025',
+            conditions: [
+                { id: 'c5', name: 'New Follower', type: 'follow', filter: '', enabled: true, lastTriggered: 'May 23, 21:05' },
+                { id: 'c6', name: 'Cheer (Bits)', type: 'cheer', filter: '', enabled: true, lastTriggered: 'May 22, 18:33' },
+                { id: 'c7', name: 'Hype Train Start', type: 'hype_train', filter: '', enabled: false, lastTriggered: 'Never' },
+            ]
+        },
+        {
+            id: 'niconico-live-1',
+            name: 'Live #1',
+            platform: 'niconico',
+            channelId: 'lv12345678',
+            active: false,
+            status: 'paused',
+            lastStream: 'May 20, 2025',
+            conditions: [
+                { id: 'c8', name: 'Comment Received', type: 'comment', filter: '', enabled: true, lastTriggered: 'May 20, 16:00' },
+                { id: 'c9', name: 'Emotion Effect (Nicoru)', type: 'nicoru', filter: '', enabled: true, lastTriggered: 'May 20, 16:22' },
+            ]
+        },
+    ];
+
+    // Platform-specific event types
+    const PLATFORM_EVENTS = {
+        youtube: [
+            { value: 'comment',   label: '💬 Comment received' },
+            { value: 'superchat', label: '🎁 Super Chat (gift)' },
+            { value: 'sticker',   label: '🖼 Super Sticker' },
+            { value: 'member',    label: '💖 New member / subscriber' },
+            { value: 'stream_start', label: '▶ Stream starts' },
+            { value: 'stream_end',   label: '⏹ Stream ends' },
+        ],
+        twitch: [
+            { value: 'comment',    label: '💬 Chat message received' },
+            { value: 'cheer',      label: '🎁 Cheer (Bits) received' },
+            { value: 'follow',     label: '💖 New follower' },
+            { value: 'sub',        label: '⭐ New subscription' },
+            { value: 'hype_train', label: '🚂 Hype Train starts' },
+            { value: 'raid',       label: '⚡ Raid received' },
+            { value: 'stream_start', label: '▶ Stream starts' },
+            { value: 'stream_end',   label: '⏹ Stream ends' },
+        ],
+        niconico: [
+            { value: 'comment',   label: '💬 Comment received' },
+            { value: 'nicoru',    label: '✨ Emotion effect (Nicoru)' },
+            { value: 'gift',      label: '🎁 Gift item received' },
+            { value: 'follow',    label: '💖 New follower' },
+            { value: 'stream_start', label: '▶ Stream starts' },
+            { value: 'stream_end',   label: '⏹ Stream ends' },
+        ],
+    };
+
+    // Maps event type value → CSS badge class
+    const EVENT_BADGE_CLASS = {
+        comment: 'comment',
+        superchat: 'gift', sticker: 'gift', cheer: 'gift', gift: 'gift',
+        member: 'follow', follow: 'follow', sub: 'follow',
+        nicoru: 'effect',
+        hype_train: 'stream', raid: 'stream', stream_start: 'stream', stream_end: 'stream',
+    };
+
+    const PLATFORM_META = {
+        youtube:  { icon: '▶',  label: 'YouTube' },
+        twitch:   { icon: '🟣', label: 'Twitch' },
+        niconico: { icon: '🔵', label: 'NicoNico' },
+    };
+
+    // =============================================
+    // Router
+    // =============================================
+    let currentChannel = null;
+
+    function route() {
+        const path = window.location.pathname;
+        const m = path.match(/^\/monitors\/([^\/]+)(\/conditions)?/);
+        if (m) {
+            const ch = CHANNELS.find(c => c.id === m[1]);
+            if (!ch) { navigate('/monitors'); return; }
+            currentChannel = ch;
+            if (m[2]) {
+                showView('view-conditions');
+                renderConditionsView();
+            } else {
+                showView('view-channel');
+                renderChannelDetailView();
+            }
+        } else {
+            currentChannel = null;
+            showView('view-list');
+            renderChannelListView();
+        }
+        window.scrollTo(0, 0);
+    }
+
+    function navigate(path) {
+        history.pushState(null, '', path);
+        route();
+    }
+
+    window.addEventListener('popstate', route);
+
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+        document.getElementById(id).style.display = 'block';
+    }
+
+    // =============================================
+    // View: Channel List
+    // =============================================
+    function renderChannelListView() {
+        document.title = 'Watched Channels - TauchoPortal';
+        const active = CHANNELS.filter(c => c.active).length;
+        const live   = CHANNELS.filter(c => c.status === 'live').length;
+        const paused = CHANNELS.filter(c => !c.active).length;
+
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat-card active"><span class="stat-number">${active}</span><span class="stat-label">Watching</span></div>
+            <div class="stat-card paused"><span class="stat-number">${paused}</span><span class="stat-label">Paused</span></div>
+            <div class="stat-card live"><span class="stat-number">${live}</span><span class="stat-label">Live Now</span></div>
+            <div class="stat-card"><span class="stat-number">${CHANNELS.length}</span><span class="stat-label">Total</span></div>
+        `;
+
+        if (CHANNELS.length === 0) {
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('channelsList').style.display = 'none';
+            return;
+        }
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('channelsList').style.display = 'flex';
+        document.getElementById('channelsList').innerHTML = CHANNELS.map(ch => {
+            const p = PLATFORM_META[ch.platform];
+            const statusBadge = ch.status === 'live'
+                ? '<span class="live-badge">🔴 Live</span>'
+                : (ch.active ? '<span class="offline-badge">Offline</span>' : '<span class="paused-badge">Paused</span>');
+            const condCount = ch.conditions.length;
+            return `
+            <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}">
+                <div class="channel-main">
+                    <div class="platform-icon ${ch.platform}">${p.icon}</div>
+                    <div class="channel-info" style="cursor:pointer" onclick="navigate('/monitors/${ch.id}')">
+                        <div class="channel-name">${ch.name}</div>
+                        <div class="channel-meta">
+                            <span class="platform-tag ${ch.platform}">${p.label}</span>
+                            <span class="channel-id">${ch.channelId}</span>
+                        </div>
+                    </div>
+                    <div class="channel-status-group">
+                        ${statusBadge}
+                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">Watch</span>
+                        <label class="toggle-switch" title="${ch.active ? 'Watching' : 'Paused'}">
+                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="channel-footer">
+                    <div class="footer-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Last stream:</span>
+                            <span class="meta-value">${ch.lastStream}</span>
+                        </div>
+                        <div class="meta-item rules-link">
+                            <span class="meta-label">Conditions:</span>
+                            <span class="meta-value">
+                                <a href="/monitors/${ch.id}/conditions"
+                                   onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                                   ${condCount} rule${condCount !== 1 ? 's' : ''}
+                                </a>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="channel-actions">
+                        <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // =============================================
+    // View: Channel Detail
+    // =============================================
+    function renderChannelDetailView() {
+        const ch = currentChannel;
+        document.title = ch.name + ' — TauchoPortal';
+        const p = PLATFORM_META[ch.platform];
+        const statusBadge = ch.status === 'live'
+            ? '<span class="live-badge">🔴 Live now</span>'
+            : (ch.active ? '<span class="offline-badge">Offline</span>' : '<span class="paused-badge">Paused</span>');
+        const condCount = ch.conditions.length;
+
+        const previewRows = condCount === 0
+            ? '<p class="no-conditions-msg">No conditions yet.</p>'
+            : ch.conditions.slice(0, 3).map(cond => {
+                const badgeClass = EVENT_BADGE_CLASS[cond.type] || 'stream';
+                const label = getEventLabel(cond.type, ch.platform);
+                return `<div class="condition-preview-row">
+                    <span class="event-badge ${badgeClass}">${label}</span>
+                    <span class="cond-preview-name">${cond.name}</span>
+                    <span class="rule-status ${cond.enabled ? 'enabled' : 'disabled'}">${cond.enabled ? 'On' : 'Off'}</span>
+                </div>`;
+            }).join('') + (condCount > 3 ? `<div class="more-conditions-link">
+                <a href="/monitors/${ch.id}/conditions" onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                    + ${condCount - 3} more...
+                </a></div>` : '');
+
+        document.getElementById('view-channel').innerHTML = `
+            <div class="page-header">
+                <nav class="breadcrumb">
+                    <a href="/monitors" onclick="navigate('/monitors'); return false;">📡 Watched Channels</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <span>${ch.name}</span>
+                </nav>
+            </div>
+            <div class="channel-detail-card">
+                <div class="channel-detail-header">
+                    <div class="platform-icon ${ch.platform} large">${p.icon}</div>
+                    <div class="channel-detail-info">
+                        <h1>${ch.name}</h1>
+                        <div class="channel-meta">
+                            <span class="platform-tag ${ch.platform}">${p.label}</span>
+                            <span class="channel-id">${ch.channelId}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    <div class="channel-detail-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
+                    </div>
+                </div>
+                <div class="channel-detail-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Last stream</span>
+                        <span class="meta-value">${ch.lastStream}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Platform ID</span>
+                        <span class="meta-value mono">${ch.channelId}</span>
+                    </div>
+                </div>
+                <div class="channel-detail-actions-row">
+                    <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit Channel</button>
+                    <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑 Remove</button>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div>
+                        <h2>⚙️ Conditions <span class="conditions-count-badge">${condCount}</span></h2>
+                        <p>Events to react to on <strong>${ch.name}</strong> — comments, gifts, effects, follows, etc.</p>
+                    </div>
+                    <a class="btn btn-primary"
+                       href="/monitors/${ch.id}/conditions"
+                       onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                        Manage Conditions →
+                    </a>
+                </div>
+                <div class="conditions-preview">${previewRows}</div>
+            </div>`;
+    }
+
+    // =============================================
+    // View: Conditions List
+    // =============================================
+    function renderConditionsView() {
+        const ch = currentChannel;
+        document.title = ch.name + ' Conditions — TauchoPortal';
+        const p = PLATFORM_META[ch.platform];
+
+        const allTypes = [...new Set(ch.conditions.map(c => c.type))];
+        const filterTabs = allTypes.map(type => {
+            const count = ch.conditions.filter(c => c.type === type).length;
+            const label = getEventLabel(type, ch.platform);
+            return `<button class="filter-tab" data-type="${type}" onclick="filterConds('${type}', this)">${label} <span class="tab-count">${count}</span></button>`;
+        }).join('');
+
+        const condCards = ch.conditions.length === 0
+            ? `<div class="empty-state">
+                <div class="empty-icon">⚙️</div>
+                <h2>No conditions yet</h2>
+                <p>Add a condition to define when to trigger an action on ${ch.name}.</p>
+                <button class="btn btn-primary" onclick="openAddConditionModal()">+ Add First Condition</button>
+               </div>`
+            : ch.conditions.map(cond => renderCondCard(cond, ch)).join('');
+
+        document.getElementById('view-conditions').innerHTML = `
+            <div class="page-header">
+                <nav class="breadcrumb">
+                    <a href="/monitors" onclick="navigate('/monitors'); return false;">📡 Watched Channels</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <a href="/monitors/${ch.id}" onclick="navigate('/monitors/${ch.id}'); return false;">${ch.name}</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <span>Conditions</span>
+                </nav>
+                <div class="page-header-top">
+                    <div>
+                        <h1><span class="platform-icon-sm ${ch.platform}">${p.icon}</span> ${ch.name} — Conditions</h1>
+                        <p>Events on <strong>${p.label}</strong> that will trigger an external action when met.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddConditionModal()">+ Add Condition</button>
+                </div>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" onclick="filterConds('all', this)">
+                        All <span class="tab-count">${ch.conditions.length}</span>
+                    </button>
+                    ${filterTabs}
+                </div>
+            </div>
+            <div class="conditions-list" id="conditionsList">${condCards}</div>`;
+    }
+
+    function renderCondCard(cond, ch) {
+        const badgeClass = EVENT_BADGE_CLASS[cond.type] || 'stream';
+        const label = getEventLabel(cond.type, ch.platform);
+        const filterDetail = cond.filter
+            ? ` containing <code>"${cond.filter}"</code>`
+            : '';
+        return `
+        <div class="rule-card" data-type="${cond.type}" data-cond-id="${cond.id}">
+            <div class="rule-header">
+                <div class="rule-title-group">
+                    <span class="event-badge ${badgeClass}">${label}</span>
+                    <h3 class="rule-name">${cond.name}</h3>
+                    <span class="rule-status ${cond.enabled ? 'enabled' : 'disabled'}">${cond.enabled ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="rule-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${cond.enabled ? 'checked' : ''} onchange="toggleCondition('${cond.id}', this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <button class="action-btn edit" onclick="openEditConditionModal('${cond.id}')">✏️ Edit</button>
+                    <button class="action-btn delete" onclick="deleteCondition('${cond.id}')">🗑</button>
+                </div>
+            </div>
+            <div class="rule-body">
+                <div class="rule-detail-row">
+                    <div class="rule-detail">
+                        <span class="detail-label">Event</span>
+                        <span class="detail-value">${label}${filterDetail}</span>
+                    </div>
+                    <div class="rule-detail">
+                        <span class="detail-label">External API</span>
+                        <span class="detail-value"><span class="api-not-configured">⚠ Not configured yet</span></span>
+                    </div>
+                    <div class="rule-detail">
+                        <span class="detail-label">Last triggered</span>
+                        <span class="detail-value">${cond.lastTriggered}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function filterConds(type, btn) {
+        document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('#conditionsList .rule-card').forEach(card => {
+            card.style.display = (type === 'all' || card.dataset.type === type) ? 'block' : 'none';
+        });
+    }
+
+    // =============================================
+    // Channel CRUD
+    // =============================================
+    let editingChannelId = null;
+
+    function openAddChannelModal() {
+        editingChannelId = null;
+        document.getElementById('channelModalTitle').textContent = 'Add Channel';
+        document.getElementById('chSaveBtn').textContent = 'Add Channel';
+        document.getElementById('channelForm').reset();
+        openModal('channelModal');
+    }
+
+    function openEditChannelModal(channelId) {
+        editingChannelId = channelId;
+        const ch = CHANNELS.find(c => c.id === channelId);
+        document.getElementById('channelModalTitle').textContent = 'Edit Channel';
+        document.getElementById('chSaveBtn').textContent = 'Save Changes';
+        document.getElementById('chName').value = ch.name;
+        document.getElementById('chPlatform').value = ch.platform;
+        document.getElementById('chId').value = ch.channelId;
+        document.getElementById('chActive').checked = ch.active;
+        openModal('channelModal');
+    }
+
+    function saveChannel(e) {
+        e.preventDefault();
+        // TODO: call backend API
+        closeModal('channelModal');
+        renderChannelListView();
+    }
+
+    function toggleChannel(channelId, checkbox) {
+        const ch = CHANNELS.find(c => c.id === channelId);
+        if (ch) ch.active = checkbox.checked;
+        // TODO: call backend API
+    }
+
+    function deleteChannel(channelId) {
+        if (confirm('Remove this channel from monitoring?\n\nAll conditions for this channel will also be removed.')) {
+            // TODO: call backend API
+            navigate('/monitors');
+        }
+    }
+
+    // =============================================
+    // Condition CRUD
+    // =============================================
+    let editingConditionId = null;
+
+    function openAddConditionModal() {
+        editingConditionId = null;
+        document.getElementById('condModalTitle').textContent = 'Add Condition';
+        document.getElementById('condModalSubtitle').textContent = 'Define when to trigger an action on ' + currentChannel.name + '.';
+        document.getElementById('condSaveBtn').textContent = 'Add Condition';
+        document.getElementById('conditionForm').reset();
+        document.getElementById('condFilterGroup').style.display = 'none';
+        populateEventSelect(currentChannel.platform);
+        openModal('conditionModal');
+    }
+
+    function openEditConditionModal(condId) {
+        editingConditionId = condId;
+        const cond = currentChannel.conditions.find(c => c.id === condId);
+        document.getElementById('condModalTitle').textContent = 'Edit Condition';
+        document.getElementById('condModalSubtitle').textContent = 'Update this condition for ' + currentChannel.name + '.';
+        document.getElementById('condSaveBtn').textContent = 'Save Changes';
+        document.getElementById('condName').value = cond.name;
+        populateEventSelect(currentChannel.platform);
+        document.getElementById('condEventType').value = cond.type;
+        updateCondEventFields();
+        document.getElementById('condFilter').value = cond.filter;
+        document.getElementById('condEnabled').checked = cond.enabled;
+        openModal('conditionModal');
+    }
+
+    function populateEventSelect(platform) {
+        const events = PLATFORM_EVENTS[platform] || [];
+        document.getElementById('condEventType').innerHTML =
+            '<option value="">Select event type...</option>' +
+            events.map(e => `<option value="${e.value}">${e.label}</option>`).join('');
+    }
+
+    function updateCondEventFields() {
+        const type = document.getElementById('condEventType').value;
+        const showFilter = (type === 'comment');
+        document.getElementById('condFilterGroup').style.display = showFilter ? 'block' : 'none';
+    }
+
+    function saveCondition(e) {
+        e.preventDefault();
+        // TODO: call backend API
+        closeModal('conditionModal');
+        renderConditionsView();
+    }
+
+    function toggleCondition(condId, checkbox) {
+        const cond = currentChannel.conditions.find(c => c.id === condId);
+        if (cond) cond.enabled = checkbox.checked;
+        const card = document.querySelector(`[data-cond-id="${condId}"]`);
+        if (card) {
+            const badge = card.querySelector('.rule-status');
+            badge.textContent = checkbox.checked ? 'Enabled' : 'Disabled';
+            badge.className = 'rule-status ' + (checkbox.checked ? 'enabled' : 'disabled');
+        }
+        // TODO: call backend API
+    }
+
+    function deleteCondition(condId) {
+        if (confirm('Delete this condition?\n\nThis event will no longer trigger any actions.')) {
+            currentChannel.conditions = currentChannel.conditions.filter(c => c.id !== condId);
+            renderConditionsView();
+            // TODO: call backend API
+        }
+    }
+
+    // =============================================
+    // Device Action (condition modal)
+    // =============================================
+    const MOCK_DEVICES = [
+        { id: 'd1', name: 'Living Room LED', model: 'Govee H6159', brand: 'Govee', actions: ['power', 'color', 'brightness', 'scene'] },
+        { id: 'd2', name: 'Desk Lamp',       model: 'Philips Hue White & Color', brand: 'Philips Hue', actions: ['power', 'color', 'brightness'] },
+        { id: 'd3', name: 'Studio Bulb',     model: 'LIFX Color 1000', brand: 'LIFX', actions: ['power', 'color', 'brightness', 'infrared'] },
+        { id: 'd4', name: 'PC Monitor Backlight', model: 'WLED 0.14', brand: 'WLED', actions: ['power', 'color', 'brightness', 'effect'] },
+        { id: 'd5', name: 'Smart Plug (Recording Rig)', model: 'TP-Link Kasa EP25', brand: 'TP-Link Kasa', actions: ['power', 'schedule'] },
+    ];
+
+    function toggleDeviceAction(checkbox) {
+        document.getElementById('deviceActionFields').style.display = checkbox.checked ? 'block' : 'none';
+        if (checkbox.checked) populateDeviceDropdown();
+    }
+
+    function populateDeviceDropdown() {
+        const sel = document.getElementById('condDeviceSelect');
+        while (sel.options.length > 1) sel.remove(1);
+        MOCK_DEVICES.forEach(d => {
+            const o = new Option(`${d.name} — ${d.model}`, d.id);
+            sel.add(o);
+        });
+    }
+
+    function updateCondActionSelect() {
+        const sel = document.getElementById('condDeviceSelect');
+        const device = MOCK_DEVICES.find(d => d.id === sel.value);
+        const group = document.getElementById('condActionSelectGroup');
+        if (!device) { group.style.display = 'none'; return; }
+        group.style.display = 'block';
+        const aSel = document.getElementById('condActionSelect');
+        while (aSel.options.length > 1) aSel.remove(1);
+        const ACTION_LABELS = { power: '⏻ Power On/Off', color: '🎨 Set Color', brightness: '☀️ Set Brightness',
+            scene: '✨ Scene Mode', effect: '🌈 LED Effect', infrared: '💡 Infrared', schedule: '⏰ Schedule' };
+        device.actions.forEach(a => {
+            const o = new Option(ACTION_LABELS[a] || a, a);
+            aSel.add(o);
+        });
+        updateCondActionParams();
+    }
+
+    function updateCondActionParams() {
+        const action = document.getElementById('condActionSelect').value;
+        document.getElementById('condColorGroup').style.display      = action === 'color'      ? 'block' : 'none';
+        document.getElementById('condBrightnessGroup').style.display = action === 'brightness' ? 'block' : 'none';
+    }
+
+    function selectCondColor(btn) {
+        document.querySelectorAll('.color-preset').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    }
+
+    // =============================================
+    // Helpers
+    // =============================================
+    function getEventLabel(type, platform) {
+        const events = PLATFORM_EVENTS[platform] || [];
+        const ev = events.find(e => e.value === type);
+        return ev ? ev.label : type;
+    }
+
+    function openModal(id) {
+        document.getElementById(id).style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    window.onclick = function(e) {
+        ['channelModal', 'conditionModal'].forEach(id => {
+            if (e.target === document.getElementById(id)) closeModal(id);
+        });
+    };
+
+    // =============================================
+    // Init
+    // =============================================
+    requireAuth();
+    route();
+    </script>
+</body>
+</html>

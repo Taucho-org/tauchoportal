@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Devices - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/devices.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
+</head>
+<body>
+    <taucho-header></taucho-header>
+
+    <div class="devices-container">
+        <div class="page-header">
+            <div class="page-header-top">
+                <div>
+                    <h1>🔌 My Devices</h1>
+                    <p>Register and configure smart home devices. Once set up, conditions on your
+                       <a href="/monitors">Watched Channels</a> can trigger actions on these devices.</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Add Device</button>
+            </div>
+            <div class="stats-row" id="statsRow"></div>
+        </div>
+
+        <div id="brandFilterTabs"></div>
+        <div class="devices-list" id="devicesList"></div>
+
+        <div class="empty-state" id="emptyState" style="display:none">
+            <div class="empty-icon">🔌</div>
+            <h2>No devices yet</h2>
+            <p>Add a smart home device to get started. Configured devices can be triggered by stream event conditions.</p>
+            <button class="btn btn-primary" onclick="openAddModal()">+ Add First Device</button>
+        </div>
+    </div>
+
+    <!-- Add / Edit Device Modal (2-step) -->
+    <div id="deviceModal" class="modal">
+        <div class="modal-content modal-wide">
+            <span class="close" onclick="closeModal()">&times;</span>
+
+            <!-- Step 1: Choose Brand -->
+            <div id="step1">
+                <div class="modal-header">
+                    <h2>Add Device — Step 1: Choose Brand</h2>
+                    <p>Select the manufacturer of your smart home device.</p>
+                </div>
+                <div class="brand-grid" id="brandGrid"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="step1NextBtn" onclick="goToStep2()" disabled>Next →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Device Details -->
+            <div id="step2" style="display:none">
+                <div class="modal-header">
+                    <div id="step2BrandBadge"></div>
+                    <h2 id="step2Title">Configure Device</h2>
+                    <p>Fill in the details and API credentials for your device.</p>
+                </div>
+                <form id="deviceForm" onsubmit="saveDevice(event)">
+                    <div class="form-group">
+                        <label for="devName">Display Name</label>
+                        <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
+                        <small class="form-help">A friendly name to identify this device.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="devProduct">Product Model</label>
+                        <select id="devProduct" required>
+                            <option value="">Select product model...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
+                        <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
+                    </div>
+                    <fieldset class="form-section">
+                        <legend>API Credentials</legend>
+                        <div id="credFields"></div>
+                        <div id="credDocsLink"></div>
+                    </fieldset>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
+                        <button type="submit" class="btn btn-primary" id="devSaveBtn">Add Device</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <taucho-footer></taucho-footer>
+
+    <script>
+    // =============================================
+    // Brand & Product Catalog
+    // =============================================
+    const BRANDS = [
+        { id: 'govee',    name: 'Govee',            icon: '💡', color: '#9c27b0', type: 'Lights & Strips' },
+        { id: 'hue',      name: 'Philips Hue',      icon: '💡', color: '#1565c0', type: 'Lights & Switches' },
+        { id: 'kasa',     name: 'TP-Link Kasa',     icon: '🔌', color: '#2e7d32', type: 'Plugs & Switches' },
+        { id: 'lifx',     name: 'LIFX',             icon: '💡', color: '#e65100', type: 'Smart Lights' },
+        { id: 'tuya',     name: 'Tuya / Smart Life', icon: '🔌', color: '#1976d2', type: 'Generic Smart Devices' },
+        { id: 'nanoleaf', name: 'Nanoleaf',          icon: '🔺', color: '#388e3c', type: 'Light Panels' },
+        { id: 'yeelight', name: 'Yeelight',          icon: '💡', color: '#f9a825', type: 'Smart Lights' },
+        { id: 'wled',     name: 'WLED',              icon: '🌈', color: '#c2185b', type: 'LED Controllers' },
+        { id: 'wyze',     name: 'Wyze',              icon: '🔌', color: '#0277bd', type: 'Plugs & Bulbs' },
+        { id: 'amazon',   name: 'Amazon Smart',      icon: '🔵', color: '#00838f', type: 'Smart Plugs' },
+    ];
+
+    const PRODUCTS = {
+        govee: [
+            { id: 'govee-h6159', name: 'RGBIC LED Strip (H6159)',   type: 'light',  actions: ['on','off','color','brightness','scene','flash'] },
+            { id: 'govee-h6052', name: 'Smart Bulb RGBW (H6052)',   type: 'light',  actions: ['on','off','color','brightness','color_temp'] },
+            { id: 'govee-h7021', name: 'Smart Floor Lamp (H7021)',  type: 'light',  actions: ['on','off','color','brightness'] },
+            { id: 'govee-h5080', name: 'Smart Power Strip (H5080)', type: 'switch', actions: ['on','off','toggle'] },
+        ],
+        hue: [
+            { id: 'hue-color', name: 'Color Bulb (E27)',    type: 'light',  actions: ['on','off','color','brightness','color_temp','scene'] },
+            { id: 'hue-white', name: 'White Ambiance Bulb', type: 'light',  actions: ['on','off','brightness','color_temp'] },
+            { id: 'hue-strip', name: 'Lightstrip Plus',     type: 'light',  actions: ['on','off','color','brightness','scene'] },
+            { id: 'hue-plug',  name: 'Smart Plug',          type: 'switch', actions: ['on','off','toggle'] },
+        ],
+        kasa: [
+            { id: 'kasa-ep10',  name: 'Smart Plug Mini (EP10)',    type: 'switch', actions: ['on','off','toggle'] },
+            { id: 'kasa-ep40',  name: 'Outdoor Smart Plug (EP40)', type: 'switch', actions: ['on','off','toggle'] },
+            { id: 'kasa-lb130', name: 'Smart Bulb Color (LB130)',  type: 'light',  actions: ['on','off','color','brightness'] },
+        ],
+        lifx: [
+            { id: 'lifx-color', name: 'LIFX Color Bulb', type: 'light', actions: ['on','off','color','brightness','color_temp','scene'] },
+            { id: 'lifx-mini',  name: 'LIFX Mini White', type: 'light', actions: ['on','off','brightness','color_temp'] },
+            { id: 'lifx-strip', name: 'LIFX Z Strip',    type: 'light', actions: ['on','off','color','brightness','scene'] },
+        ],
+        tuya: [
+            { id: 'tuya-bulb',  name: 'Generic Smart Bulb', type: 'light',  actions: ['on','off','color','brightness'] },
+            { id: 'tuya-plug',  name: 'Generic Smart Plug', type: 'switch', actions: ['on','off','toggle'] },
+            { id: 'tuya-strip', name: 'Generic LED Strip',  type: 'light',  actions: ['on','off','color','brightness'] },
+        ],
+        nanoleaf: [
+            { id: 'nano-shapes', name: 'Shapes Hexagons', type: 'light', actions: ['on','off','color','brightness','scene'] },
+            { id: 'nano-lines',  name: 'Lines',           type: 'light', actions: ['on','off','color','brightness','scene'] },
+            { id: 'nano-canvas', name: 'Canvas Squares',  type: 'light', actions: ['on','off','color','brightness','scene'] },
+        ],
+        yeelight: [
+            { id: 'yee-color', name: 'Color LED Bulb', type: 'light', actions: ['on','off','color','brightness','color_temp'] },
+            { id: 'yee-strip', name: 'LED Strip 1S',   type: 'light', actions: ['on','off','color','brightness'] },
+            { id: 'yee-desk',  name: 'LED Desk Lamp',  type: 'light', actions: ['on','off','brightness','color_temp'] },
+        ],
+        wled: [
+            { id: 'wled-ctrl', name: 'WLED Controller (custom)', type: 'light', actions: ['on','off','color','brightness','scene','flash'] },
+        ],
+        wyze: [
+            { id: 'wyze-plug', name: 'Wyze Plug',       type: 'switch', actions: ['on','off','toggle'] },
+            { id: 'wyze-bulb', name: 'Wyze Bulb Color', type: 'light',  actions: ['on','off','color','brightness','color_temp'] },
+        ],
+        amazon: [
+            { id: 'amz-plug',  name: 'Amazon Smart Plug',    type: 'switch', actions: ['on','off','toggle'] },
+            { id: 'echo-flex', name: 'Echo Flex Smart Plug',  type: 'switch', actions: ['on','off','toggle'] },
+        ],
+    };
+
+    // Per-brand API credential fields + docs
+    const BRAND_CREDS = {
+        govee: {
+            fields: [
+                { id: 'apiKey', label: 'Govee API Key', type: 'password',
+                  help: 'Get in Govee Home app → Profile → About Us → Request API Key' },
+                { id: 'devId',  label: 'Device ID',     type: 'text',
+                  help: 'Found in Govee Home app → device → device info, or via GET /v1/devices' },
+            ],
+            docsUrl: 'https://developer.govee.com', docsLabel: 'Govee Developer API Docs',
+        },
+        hue: {
+            fields: [
+                { id: 'bridgeIp', label: 'Hue Bridge IP',        type: 'text',
+                  help: 'Philips Hue app → Settings → My Hue system → Hue Bridges → (i)' },
+                { id: 'apiKey',   label: 'API Token (Username)',  type: 'password',
+                  help: 'Press bridge button, then POST /api with {"devicetype":"taucho"} to generate' },
+                { id: 'lightId',  label: 'Light ID',             type: 'text',
+                  help: 'GET /api/{username}/lights — find your light\'s number in the response' },
+            ],
+            docsUrl: 'https://developers.meethue.com', docsLabel: 'Philips Hue Developer Docs',
+        },
+        kasa: {
+            fields: [
+                { id: 'deviceIp', label: 'Device Local IP', type: 'text',
+                  help: 'Find in your router DHCP table, or Kasa app → device → Settings → Device Info' },
+            ],
+            docsUrl: 'https://github.com/python-kasa/python-kasa', docsLabel: 'TP-Link Kasa Local API',
+        },
+        lifx: {
+            fields: [
+                { id: 'apiKey',   label: 'Personal Access Token', type: 'password',
+                  help: 'Generate at cloud.lifx.com → Settings → Generate New Token' },
+                { id: 'selector', label: 'Light Selector',        type: 'text',
+                  help: 'e.g., "id:d073d5xxxxxx" or "label:Desk Lamp" — see LIFX API docs' },
+            ],
+            docsUrl: 'https://api.developer.lifx.com', docsLabel: 'LIFX HTTP Remote API Docs',
+        },
+        tuya: {
+            fields: [
+                { id: 'clientId',     label: 'Client ID',     type: 'text',
+                  help: 'Tuya IoT Platform → Project → Authorization Key → Access ID' },
+                { id: 'clientSecret', label: 'Client Secret', type: 'password',
+                  help: 'Tuya IoT Platform → Project → Authorization Key → Access Secret' },
+                { id: 'devId',        label: 'Device ID',     type: 'text',
+                  help: 'Tuya IoT Platform → Devices → Device ID column' },
+                { id: 'region',       label: 'Region',        type: 'text',
+                  help: 'us, eu, cn, or in — must match your Tuya account data center' },
+            ],
+            docsUrl: 'https://developer.tuya.com/en/docs/iot', docsLabel: 'Tuya IoT Platform Docs',
+        },
+        nanoleaf: {
+            fields: [
+                { id: 'deviceIp', label: 'Device IP Address', type: 'text',
+                  help: 'Nanoleaf app → device → ⚙ → Device Info → IP Address' },
+                { id: 'apiKey',   label: 'Auth Token',        type: 'password',
+                  help: 'Hold power button 5–7 sec until white flash, then POST /api/v1/new within 30 sec' },
+            ],
+            docsUrl: 'https://forum.nanoleaf.me/docs', docsLabel: 'Nanoleaf OpenAPI Docs',
+        },
+        yeelight: {
+            fields: [
+                { id: 'deviceIp', label: 'Device IP Address', type: 'text',
+                  help: 'Enable "LAN Control" in Yeelight app → device Settings. IP shown in router DHCP.' },
+            ],
+            docsUrl: 'https://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf',
+            docsLabel: 'Yeelight LAN Control Spec',
+        },
+        wled: {
+            fields: [
+                { id: 'deviceIp', label: 'WLED Device IP', type: 'text',
+                  help: 'The local IP of your WLED device (e.g. 192.168.1.100). Set static IP in WLED WiFi settings.' },
+            ],
+            docsUrl: 'https://kno.wled.ge/interfaces/json-api/', docsLabel: 'WLED JSON API Docs',
+        },
+        wyze: {
+            fields: [
+                { id: 'apiKey',   label: 'Wyze API Key', type: 'password',
+                  help: 'Generate at wyze.com → Account → Developer API Key' },
+                { id: 'apiKeyId', label: 'API Key ID',   type: 'text',
+                  help: 'The Key ID shown alongside your API key on the Wyze developer page' },
+                { id: 'devMac',   label: 'Device MAC',   type: 'text',
+                  help: 'Wyze app → Device → Device Info → MAC Address' },
+            ],
+            docsUrl: 'https://wyze-developer-site.vercel.app', docsLabel: 'Wyze Developer API Docs',
+        },
+        amazon: {
+            fields: [
+                { id: 'info', label: '', type: 'info',
+                  help: 'Amazon Alexa integration requires an Alexa Smart Home Skill with AWS Lambda. See the documentation below for full setup instructions.' },
+                { id: 'endpointId', label: 'Endpoint ID', type: 'text',
+                  help: 'The device endpoint ID from your Alexa Smart Home skill discovery response.' },
+            ],
+            docsUrl: 'https://developer.amazon.com/en-US/docs/alexa/smarthome/understand-the-smart-home-skill-api.html',
+            docsLabel: 'Alexa Smart Home Skill API Docs',
+        },
+    };
+
+    const ACTION_META = {
+        on:         { label: 'Turn On',              icon: '🔆' },
+        off:        { label: 'Turn Off',             icon: '🔅' },
+        toggle:     { label: 'Toggle On/Off',        icon: '🔄' },
+        color:      { label: 'Set Color',            icon: '🎨' },
+        brightness: { label: 'Set Brightness',       icon: '✦' },
+        color_temp: { label: 'Color Temperature',    icon: '🌡' },
+        scene:      { label: 'Play Scene / Effect',  icon: '✨' },
+        flash:      { label: 'Flash Alert',          icon: '⚡' },
+    };
+
+    // Sample registered devices (replace with API call)
+    let MY_DEVICES = [
+        { id: 'dev-1', name: 'Gaming Room Strip', brand: 'govee',    productId: 'govee-h6159', room: 'Gaming Room', status: 'online',  configured: true },
+        { id: 'dev-2', name: 'Desk Lamp',         brand: 'govee',    productId: 'govee-h6052', room: 'Office',      status: 'online',  configured: true },
+        { id: 'dev-3', name: 'Living Room Light', brand: 'hue',      productId: 'hue-color',   room: 'Living Room', status: 'offline', configured: true },
+        { id: 'dev-4', name: 'Stream PC Plug',    brand: 'kasa',     productId: 'kasa-ep10',   room: 'Office',      status: 'online',  configured: true },
+        { id: 'dev-5', name: 'LED Matrix',        brand: 'wled',     productId: 'wled-ctrl',   room: 'Gaming Room', status: 'online',  configured: false },
+    ];
+
+    // =============================================
+    // Render
+    // =============================================
+    let activeFilter = 'all';
+
+    function renderPage() {
+        renderStats();
+        renderFilterTabs();
+        renderDeviceList();
+    }
+
+    function renderStats() {
+        const online  = MY_DEVICES.filter(d => d.status === 'online').length;
+        const offline = MY_DEVICES.filter(d => d.status === 'offline').length;
+        const notConf = MY_DEVICES.filter(d => !d.configured).length;
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat-card"><span class="stat-number">${MY_DEVICES.length}</span><span class="stat-label">Total</span></div>
+            <div class="stat-card online"><span class="stat-number">${online}</span><span class="stat-label">Online</span></div>
+            <div class="stat-card offline"><span class="stat-number">${offline}</span><span class="stat-label">Offline</span></div>
+            <div class="stat-card warn"><span class="stat-number">${notConf}</span><span class="stat-label">Setup Incomplete</span></div>
+        `;
+    }
+
+    function renderFilterTabs() {
+        const presentBrands = [...new Set(MY_DEVICES.map(d => d.brand))];
+        const tabs = presentBrands.map(brandId => {
+            const b = BRANDS.find(x => x.id === brandId);
+            const count = MY_DEVICES.filter(d => d.brand === brandId).length;
+            return `<button class="filter-tab ${activeFilter === brandId ? 'active' : ''}"
+                onclick="filterByBrand('${brandId}', this)">${b ? b.icon + ' ' + b.name : brandId} <span class="tab-count">${count}</span></button>`;
+        }).join('');
+        document.getElementById('brandFilterTabs').innerHTML = `
+            <div class="filter-tabs">
+                <button class="filter-tab ${activeFilter === 'all' ? 'active' : ''}" onclick="filterByBrand('all', this)">
+                    All <span class="tab-count">${MY_DEVICES.length}</span>
+                </button>
+                ${tabs}
+            </div>`;
+    }
+
+    function filterByBrand(brandId, btn) {
+        activeFilter = brandId;
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        renderDeviceList();
+    }
+
+    function renderDeviceList() {
+        const filtered = activeFilter === 'all' ? MY_DEVICES : MY_DEVICES.filter(d => d.brand === activeFilter);
+
+        if (MY_DEVICES.length === 0) {
+            document.getElementById('emptyState').style.display = 'flex';
+            document.getElementById('devicesList').innerHTML = '';
+            return;
+        }
+        document.getElementById('emptyState').style.display = 'none';
+
+        if (filtered.length === 0) {
+            document.getElementById('devicesList').innerHTML = '<p class="no-filter-msg">No devices for this brand yet.</p>';
+            return;
+        }
+
+        document.getElementById('devicesList').innerHTML = filtered.map(renderDeviceCard).join('');
+    }
+
+    function renderDeviceCard(dev) {
+        const brand      = BRANDS.find(b => b.id === dev.brand);
+        const product    = (PRODUCTS[dev.brand] || []).find(p => p.id === dev.productId);
+        const brandColor = brand ? brand.color : '#888';
+
+        const statusBadge = dev.status === 'online'
+            ? '<span class="status-badge online">🟢 Online</span>'
+            : '<span class="status-badge offline">🔴 Offline</span>';
+
+        const configBadge = !dev.configured
+            ? '<span class="status-badge warn">⚠ Setup incomplete</span>'
+            : '';
+
+        const chips = product ? product.actions.slice(0, 5).map(a => {
+            const m = ACTION_META[a];
+            return `<span class="action-chip">${m ? m.icon : ''} ${m ? m.label : a}</span>`;
+        }).join('') + (product.actions.length > 5 ? `<span class="action-chip more">+${product.actions.length - 5}</span>` : '') : '';
+
+        return `
+        <div class="device-card" data-id="${dev.id}">
+            <div class="device-accent" style="background:${brandColor}"></div>
+            <div class="device-body">
+                <div class="device-brand">
+                    <span class="device-brand-icon">${brand ? brand.icon : '🔌'}</span>
+                    <span class="device-brand-label">${brand ? brand.name : dev.brand}</span>
+                </div>
+                <div class="device-info">
+                    <div class="device-name">${dev.name}</div>
+                    <div class="device-model">${product ? product.name : dev.productId}</div>
+                    <div class="device-badges">${statusBadge} ${configBadge} ${dev.room ? `<span class="device-room">🏠 ${dev.room}</span>` : ''}</div>
+                    <div class="device-action-chips">${chips}</div>
+                </div>
+                <div class="device-ctrl">
+                    <button class="action-btn test" onclick="testDevice('${dev.id}')">⚡ Test</button>
+                    <button class="action-btn edit" onclick="openEditModal('${dev.id}')">✏️ Edit</button>
+                    <button class="action-btn delete" onclick="deleteDevice('${dev.id}')">🗑</button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // =============================================
+    // Modal
+    // =============================================
+    let selectedBrand = null;
+    let editingId = null;
+
+    function openAddModal() {
+        editingId = null;
+        selectedBrand = null;
+        renderBrandGrid();
+        document.getElementById('step1NextBtn').disabled = true;
+        showStep(1);
+        document.getElementById('deviceModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function openEditModal(devId) {
+        editingId = devId;
+        const dev = MY_DEVICES.find(d => d.id === devId);
+        selectedBrand = dev.brand;
+        const brand = BRANDS.find(b => b.id === dev.brand);
+        setStep2Brand(brand);
+        populateProductSelect(dev.brand);
+        renderCredFields(dev.brand);
+        document.getElementById('devName').value = dev.name;
+        document.getElementById('devProduct').value = dev.productId;
+        document.getElementById('devRoom').value = dev.room || '';
+        document.getElementById('devSaveBtn').textContent = 'Save Changes';
+        showStep(2);
+        document.getElementById('deviceModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        document.getElementById('deviceModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    function showStep(n) {
+        document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+    }
+
+    function renderBrandGrid() {
+        document.getElementById('brandGrid').innerHTML = BRANDS.map(b => `
+            <div class="brand-card ${selectedBrand === b.id ? 'selected' : ''}"
+                 style="--brand-color:${b.color}"
+                 onclick="selectBrand('${b.id}', this)">
+                <div class="brand-card-icon">${b.icon}</div>
+                <div class="brand-card-name">${b.name}</div>
+                <div class="brand-card-type">${b.type}</div>
+            </div>`).join('');
+    }
+
+    function selectBrand(brandId, card) {
+        selectedBrand = brandId;
+        document.querySelectorAll('.brand-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('step1NextBtn').disabled = false;
+    }
+
+    function goToStep2() {
+        if (!selectedBrand) return;
+        const brand = BRANDS.find(b => b.id === selectedBrand);
+        setStep2Brand(brand);
+        populateProductSelect(selectedBrand);
+        renderCredFields(selectedBrand);
+        document.getElementById('deviceForm').reset();
+        document.getElementById('devSaveBtn').textContent = 'Add Device';
+        showStep(2);
+    }
+
+    function goToStep1() {
+        renderBrandGrid();
+        showStep(1);
+    }
+
+    function setStep2Brand(brand) {
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
+        document.getElementById('step2BrandBadge').innerHTML =
+            `<span class="brand-step-badge" style="background:${brand.color}18;border-color:${brand.color};color:${brand.color}">${brand.icon} ${brand.name}</span>`;
+    }
+
+    function populateProductSelect(brandId) {
+        const products = PRODUCTS[brandId] || [];
+        document.getElementById('devProduct').innerHTML =
+            '<option value="">Select product model...</option>' +
+            products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    function renderCredFields(brandId) {
+        const creds = BRAND_CREDS[brandId];
+        if (!creds) { document.getElementById('credFields').innerHTML = ''; return; }
+
+        document.getElementById('credFields').innerHTML = creds.fields.map(f => {
+            if (f.type === 'info') return `<div class="cred-info"><p>${f.help}</p></div>`;
+            const isPwd = f.type === 'password';
+            return `
+            <div class="form-group">
+                <label for="cred_${f.id}">${f.label}</label>
+                <div class="cred-input-row">
+                    <input type="${isPwd ? 'password' : 'text'}" id="cred_${f.id}"
+                           ${isPwd ? 'placeholder="••••••••••••••••"' : ''} autocomplete="off">
+                    ${isPwd ? `<button type="button" class="show-hide-btn" onclick="toggleCredVis('cred_${f.id}',this)">Show</button>` : ''}
+                </div>
+                <small class="form-help">${f.help}</small>
+            </div>`;
+        }).join('');
+
+        document.getElementById('credDocsLink').innerHTML = creds.docsUrl
+            ? `<a href="${creds.docsUrl}" target="_blank" rel="noopener" class="docs-link">📖 ${creds.docsLabel} ↗</a>`
+            : '';
+    }
+
+    function toggleCredVis(inputId, btn) {
+        const el = document.getElementById(inputId);
+        el.type = el.type === 'password' ? 'text' : 'password';
+        btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
+    }
+
+    // =============================================
+    // CRUD
+    // =============================================
+    function saveDevice(e) {
+        e.preventDefault();
+        // TODO: call backend API
+        closeModal();
+        renderPage();
+    }
+
+    function deleteDevice(devId) {
+        const dev = MY_DEVICES.find(d => d.id === devId);
+        if (confirm(`Remove "${dev.name}"?\n\nConditions using this device will lose their action.`)) {
+            MY_DEVICES = MY_DEVICES.filter(d => d.id !== devId);
+            renderPage();
+            // TODO: call backend API
+        }
+    }
+
+    function testDevice(devId) {
+        const dev = MY_DEVICES.find(d => d.id === devId);
+        if (!dev.configured) { alert('Complete device setup before testing.'); return; }
+        alert(`Sending test command to "${dev.name}"...\n\n(Will flash or ping the device briefly.)\n\n[Backend API not yet connected]`);
+        // TODO: POST /api/devices/{devId}/test
+    }
+
+    window.onclick = e => {
+        if (e.target === document.getElementById('deviceModal')) closeModal();
+    };
+
+    requireAuth();
+    renderPage();
+    </script>
+</body>
+</html>

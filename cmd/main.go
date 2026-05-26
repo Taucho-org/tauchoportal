@@ -119,6 +119,9 @@ func (r *Router) ServeStatic(w http.ResponseWriter, req *http.Request) {
 	// Normalize path
 	if path == "/" {
 		path = "/index.html"
+	} else if strings.HasPrefix(path, "/monitors/") {
+		// SPA prefix routing: all /monitors/* sub-paths are handled by monitors.html
+		path = "/monitors.html"
 	} else if !strings.Contains(path, ".") {
 		// If no file extension, try with .html
 		path = path + ".html"

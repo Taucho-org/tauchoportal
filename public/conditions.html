@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Rules - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/conditions.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
+</head>
+<body>
+    <taucho-header></taucho-header>
+
+    <div class="conditions-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-top">
+                <div>
+                    <h1>⚙️ Event Rules</h1>
+                    <p>
+                        Define what happens when specific events occur on your
+                        <a href="/monitors">watched channels</a>.
+                        When a condition is met, the configured external API will be called.
+                    </p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Add Rule</button>
+            </div>
+
+            <!-- Filter / Condition Type Tabs -->
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab active" onclick="filterByType('all', this)">All <span class="tab-count">5</span></button>
+                <button class="filter-tab" onclick="filterByType('comment', this)">💬 Comments <span class="tab-count">2</span></button>
+                <button class="filter-tab" onclick="filterByType('gift', this)">🎁 Gifts <span class="tab-count">1</span></button>
+                <button class="filter-tab" onclick="filterByType('effect', this)">✨ Effects <span class="tab-count">1</span></button>
+                <button class="filter-tab" onclick="filterByType('follow', this)">💖 Follows <span class="tab-count">1</span></button>
+                <button class="filter-tab" onclick="filterByType('stream', this)">▶ Stream Start/End <span class="tab-count">0</span></button>
+            </div>
+        </div>
+
+        <!-- Rules List -->
+        <div class="rules-list" id="rulesList">
+
+            <!-- Rule: Comment with keyword -->
+            <div class="rule-card" data-type="comment" data-id="rule-1">
+                <div class="rule-header">
+                    <div class="rule-title-group">
+                        <span class="event-badge comment">💬 Comment</span>
+                        <h3 class="rule-name">Keyword Alert: "hype"</h3>
+                        <span class="rule-status enabled">Enabled</span>
+                    </div>
+                    <div class="rule-controls">
+                        <label class="toggle-switch" title="Enable/Disable">
+                            <input type="checkbox" checked onchange="toggleRule('rule-1', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="action-btn edit" onclick="openEditModal('rule-1')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteRule('rule-1')">🗑</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="rule-detail-row">
+                        <div class="rule-detail">
+                            <span class="detail-label">Condition</span>
+                            <span class="detail-value">Comment received containing <code>"hype"</code></span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Applies to</span>
+                            <span class="detail-value channel-list">
+                                <span class="channel-chip youtube">Gaming Stream</span>
+                                <span class="channel-chip twitch">Main Broadcast</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rule-detail-row">
+                        <div class="rule-detail api-stub">
+                            <span class="detail-label">External API</span>
+                            <span class="detail-value api-placeholder">
+                                <span class="api-not-configured">⚠ Not configured yet</span>
+                            </span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Last triggered</span>
+                            <span class="detail-value">May 25, 14:08</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule: Any comment -->
+            <div class="rule-card" data-type="comment" data-id="rule-2">
+                <div class="rule-header">
+                    <div class="rule-title-group">
+                        <span class="event-badge comment">💬 Comment</span>
+                        <h3 class="rule-name">Log All Comments</h3>
+                        <span class="rule-status enabled">Enabled</span>
+                    </div>
+                    <div class="rule-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="toggleRule('rule-2', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="action-btn edit" onclick="openEditModal('rule-2')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteRule('rule-2')">🗑</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="rule-detail-row">
+                        <div class="rule-detail">
+                            <span class="detail-label">Condition</span>
+                            <span class="detail-value">Any comment received</span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Applies to</span>
+                            <span class="detail-value">
+                                <span class="all-channels-chip">All watched channels</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rule-detail-row">
+                        <div class="rule-detail api-stub">
+                            <span class="detail-label">External API</span>
+                            <span class="detail-value api-placeholder">
+                                <span class="api-not-configured">⚠ Not configured yet</span>
+                            </span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Last triggered</span>
+                            <span class="detail-value">May 25, 14:12</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule: Gift received -->
+            <div class="rule-card" data-type="gift" data-id="rule-3">
+                <div class="rule-header">
+                    <div class="rule-title-group">
+                        <span class="event-badge gift">🎁 Gift</span>
+                        <h3 class="rule-name">Gift Received Alert</h3>
+                        <span class="rule-status enabled">Enabled</span>
+                    </div>
+                    <div class="rule-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="toggleRule('rule-3', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="action-btn edit" onclick="openEditModal('rule-3')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteRule('rule-3')">🗑</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="rule-detail-row">
+                        <div class="rule-detail">
+                            <span class="detail-label">Condition</span>
+                            <span class="detail-value">Gift / Super Chat received</span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Applies to</span>
+                            <span class="detail-value channel-list">
+                                <span class="channel-chip youtube">Gaming Stream</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rule-detail-row">
+                        <div class="rule-detail api-stub">
+                            <span class="detail-label">External API</span>
+                            <span class="detail-value api-placeholder">
+                                <span class="api-not-configured">⚠ Not configured yet</span>
+                            </span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Last triggered</span>
+                            <span class="detail-value">May 24, 19:41</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule: Emotion effect -->
+            <div class="rule-card" data-type="effect" data-id="rule-4">
+                <div class="rule-header">
+                    <div class="rule-title-group">
+                        <span class="event-badge effect">✨ Effect</span>
+                        <h3 class="rule-name">Emotion Effect Triggered</h3>
+                        <span class="rule-status disabled">Disabled</span>
+                    </div>
+                    <div class="rule-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="toggleRule('rule-4', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="action-btn edit" onclick="openEditModal('rule-4')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteRule('rule-4')">🗑</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="rule-detail-row">
+                        <div class="rule-detail">
+                            <span class="detail-label">Condition</span>
+                            <span class="detail-value">Any emotion / visual effect triggered by viewers</span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Applies to</span>
+                            <span class="detail-value">
+                                <span class="all-channels-chip">All watched channels</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rule-detail-row">
+                        <div class="rule-detail api-stub">
+                            <span class="detail-label">External API</span>
+                            <span class="detail-value api-placeholder">
+                                <span class="api-not-configured">⚠ Not configured yet</span>
+                            </span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Last triggered</span>
+                            <span class="detail-value">Never</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule: New follower -->
+            <div class="rule-card" data-type="follow" data-id="rule-5">
+                <div class="rule-header">
+                    <div class="rule-title-group">
+                        <span class="event-badge follow">💖 Follow</span>
+                        <h3 class="rule-name">New Follower / Subscriber</h3>
+                        <span class="rule-status enabled">Enabled</span>
+                    </div>
+                    <div class="rule-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="toggleRule('rule-5', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="action-btn edit" onclick="openEditModal('rule-5')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="deleteRule('rule-5')">🗑</button>
+                    </div>
+                </div>
+                <div class="rule-body">
+                    <div class="rule-detail-row">
+                        <div class="rule-detail">
+                            <span class="detail-label">Condition</span>
+                            <span class="detail-value">New follower or subscriber during live stream</span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Applies to</span>
+                            <span class="detail-value channel-list">
+                                <span class="channel-chip twitch">Main Broadcast</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="rule-detail-row">
+                        <div class="rule-detail api-stub">
+                            <span class="detail-label">External API</span>
+                            <span class="detail-value api-placeholder">
+                                <span class="api-not-configured">⚠ Not configured yet</span>
+                            </span>
+                        </div>
+                        <div class="rule-detail">
+                            <span class="detail-label">Last triggered</span>
+                            <span class="detail-value">May 23, 21:05</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Empty state (hidden) -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">⚙️</div>
+            <h2>No rules yet</h2>
+            <p>Add a rule to define what happens when events occur on your <a href="/monitors">watched channels</a>.</p>
+            <button class="btn btn-primary" onclick="openAddModal()">+ Add First Rule</button>
+        </div>
+    </div>
+
+    <!-- Add / Edit Rule Modal -->
+    <div id="ruleModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Event Rule</h2>
+                <p id="modalSubtitle">Define a condition and what should happen when it's met on a live stream.</p>
+            </div>
+            <form id="ruleForm" onsubmit="saveRule(event)">
+
+                <div class="form-group">
+                    <label for="ruleName">Rule Name</label>
+                    <input type="text" id="ruleName" required placeholder="e.g., Keyword Alert: hype">
+                </div>
+
+                <!-- Condition Section -->
+                <fieldset class="form-section">
+                    <legend>Condition</legend>
+
+                    <div class="form-group">
+                        <label for="eventType">Event Type</label>
+                        <select id="eventType" required onchange="updateEventTypeFields()">
+                            <option value="">Select event type...</option>
+                            <optgroup label="Viewer Interactions">
+                                <option value="comment">💬 Comment received</option>
+                                <option value="gift">🎁 Gift / Super Chat received</option>
+                                <option value="effect">✨ Emotion / Visual effect triggered</option>
+                                <option value="follow">💖 New follower / subscriber</option>
+                            </optgroup>
+                            <optgroup label="Stream Events">
+                                <option value="stream_start">▶ Stream starts</option>
+                                <option value="stream_end">⏹ Stream ends</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic filter field (shown for comment/gift/effect types) -->
+                    <div class="form-group" id="filterGroup" style="display: none;">
+                        <label for="eventFilter" id="filterLabel">Filter <span class="optional-label">(optional)</span></label>
+                        <input type="text" id="eventFilter" placeholder="">
+                        <small class="form-help" id="filterHelp"></small>
+                    </div>
+                </fieldset>
+
+                <!-- Applies To Section -->
+                <fieldset class="form-section">
+                    <legend>Applies To</legend>
+                    <div class="form-group">
+                        <label for="appliesTo">Channels</label>
+                        <select id="appliesTo" onchange="updateChannelSelect()">
+                            <option value="all">All watched channels</option>
+                            <option value="specific">Specific channels...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="channelSelectGroup" style="display: none;">
+                        <label>Select Channels</label>
+                        <div class="channel-checkboxes">
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-gaming"> ▶ Gaming Stream (YouTube)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-creative"> ▶ Creative Session (YouTube)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="twitch-main"> 🟣 Main Broadcast (Twitch)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="nico-live1"> 🔵 Live #1 (NicoNico)</label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- External API Section (stub) -->
+                <fieldset class="form-section api-stub-section">
+                    <legend>External API <span class="coming-soon-badge">Coming Soon</span></legend>
+                    <p class="section-note">
+                        Configure which external endpoint to call when this condition is met.
+                        This section will be fully configurable in a future update.
+                    </p>
+                    <div class="form-group">
+                        <label for="apiEndpoint">API Endpoint (stub)</label>
+                        <input type="url" id="apiEndpoint" placeholder="https://your-api.example.com/webhook" disabled>
+                        <small class="form-help">This field is not yet functional — leave empty for now.</small>
+                    </div>
+                </fieldset>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="ruleEnabled" checked>
+                        <span>Enable this rule immediately</span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Add Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <taucho-footer></taucho-footer>
+
+    <script>
+        let editingId = null;
+
+        // Filter rules by event type
+        function filterByType(type, btn) {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.rule-card').forEach(card => {
+                card.style.display = (type === 'all' || card.dataset.type === type) ? 'block' : 'none';
+            });
+        }
+
+        // Toggle rule enabled/disabled
+        function toggleRule(ruleId, checkbox) {
+            const card = document.querySelector(`[data-id="${ruleId}"]`);
+            const badge = card.querySelector('.rule-status');
+            if (checkbox.checked) {
+                badge.textContent = 'Enabled';
+                badge.className = 'rule-status enabled';
+            } else {
+                badge.textContent = 'Disabled';
+                badge.className = 'rule-status disabled';
+            }
+        }
+
+        // Delete a rule
+        function deleteRule(ruleId) {
+            if (confirm('Delete this rule?\n\nThis condition will no longer trigger any actions.')) {
+                document.querySelector(`[data-id="${ruleId}"]`).remove();
+                // TODO: call backend API
+            }
+        }
+
+        // Modal open/close
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Add Event Rule';
+            document.getElementById('modalSubtitle').textContent = 'Define a condition and what should happen when it\'s met on a live stream.';
+            document.getElementById('saveBtn').textContent = 'Add Rule';
+            document.getElementById('ruleForm').reset();
+            document.getElementById('filterGroup').style.display = 'none';
+            document.getElementById('channelSelectGroup').style.display = 'none';
+            document.getElementById('ruleModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function openEditModal(ruleId) {
+            editingId = ruleId;
+            document.getElementById('modalTitle').textContent = 'Edit Event Rule';
+            document.getElementById('modalSubtitle').textContent = 'Update this event rule.';
+            document.getElementById('saveBtn').textContent = 'Save Changes';
+            // TODO: populate form from backend data
+            document.getElementById('ruleModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('ruleModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Show/hide filter field based on event type
+        function updateEventTypeFields() {
+            const type = document.getElementById('eventType').value;
+            const filterGroup = document.getElementById('filterGroup');
+            const filterLabel = document.getElementById('filterLabel');
+            const filterHelp  = document.getElementById('filterHelp');
+            const filterInput = document.getElementById('eventFilter');
+
+            const filterConfig = {
+                comment: {
+                    label: 'Keyword filter',
+                    placeholder: 'e.g., hype (leave empty for any comment)',
+                    help: 'Only trigger when a comment contains this keyword. Leave empty to match all comments.'
+                },
+                gift: {
+                    label: 'Minimum amount filter',
+                    placeholder: 'e.g., 500 (leave empty for any gift)',
+                    help: 'Only trigger for gifts above this value. Leave empty to match all gifts.'
+                },
+                effect: {
+                    label: 'Effect name filter',
+                    placeholder: 'e.g., confetti (leave empty for any effect)',
+                    help: 'Only trigger for a specific effect name. Leave empty to match all effects.'
+                }
+            };
+
+            if (filterConfig[type]) {
+                const cfg = filterConfig[type];
+                filterLabel.innerHTML = `${cfg.label} <span class="optional-label">(optional)</span>`;
+                filterInput.placeholder = cfg.placeholder;
+                filterHelp.textContent = cfg.help;
+                filterGroup.style.display = 'block';
+            } else {
+                filterGroup.style.display = 'none';
+            }
+        }
+
+        function updateChannelSelect() {
+            const val = document.getElementById('appliesTo').value;
+            document.getElementById('channelSelectGroup').style.display = val === 'specific' ? 'block' : 'none';
+        }
+
+        function saveRule(e) {
+            e.preventDefault();
+            // TODO: call backend API
+            alert(editingId ? 'Rule updated.' : 'Rule added.');
+            closeModal();
+        }
+
+        window.onclick = function(e) {
+            if (e.target === document.getElementById('ruleModal')) closeModal();
+        };
+
+        requireAuth();
+    </script>
+</body>
+</html>

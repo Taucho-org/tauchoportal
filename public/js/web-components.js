@@ -35,6 +35,8 @@ class TauchoHeader extends HTMLElement {
             <ul>
               <li><a href="/dashboard">${t('nav.dashboard', currentLang)}</a></li>
               <li><a href="/streams">${t('nav.streams', currentLang)}</a></li>
+              <li><a href="/monitors">📡 Watched Channels</a></li>
+              <li><a href="/devices">🔌 My Devices</a></li>
               <li><a href="/settings">${t('nav.settings', currentLang)}</a></li>
             </ul>
           </nav>
