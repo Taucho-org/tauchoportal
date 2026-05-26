@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,7 +15,7 @@
         <!-- Header -->
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <h1>ðŸ"¡ <span data-i18n="streams.title">Stream Management</span></h1>
+                <h1>📡 <span data-i18n="streams.title">Stream Management</span></h1>
                 <select id="language-selector" style="padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background-color: white; cursor: pointer;">
                     <option value="en">🇬🇧 English</option>
                     <option value="ja">🇯🇵 日本語</option>
@@ -42,17 +42,17 @@
                     <!-- YouTube -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('youtube')">
-                            <span class="provider-icon">â–¶</span>
-                            <span class="provider-name">ðŸ”´ YouTube</span>
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🔴 YouTube</span>
                             <span class="provider-count">(2)</span>
                         </div>
                         <div class="streams-in-provider" id="youtube-streams">
                             <div class="stream-item active" onclick="selectStream(1)">
-                                <span class="status-badge live">ðŸ“¡</span>
+                                <span class="status-badge live">📡</span>
                                 <span class="stream-title">Gaming Stream</span>
                             </div>
                             <div class="stream-item" onclick="selectStream(2)">
-                                <span class="status-badge offline">âšª</span>
+                                <span class="status-badge offline">⚪</span>
                                 <span class="stream-title">Creative Session</span>
                             </div>
                         </div>
@@ -61,13 +61,13 @@
                     <!-- Twitch -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('twitch')">
-                            <span class="provider-icon">â–¶</span>
-                            <span class="provider-name">ðŸŸ£ Twitch</span>
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🟣 Twitch</span>
                             <span class="provider-count">(1)</span>
                         </div>
                         <div class="streams-in-provider" id="twitch-streams">
                             <div class="stream-item" onclick="selectStream(3)">
-                                <span class="status-badge live">ðŸ“¡</span>
+                                <span class="status-badge live">📡</span>
                                 <span class="stream-title">Main Broadcast</span>
                             </div>
                         </div>
@@ -76,13 +76,13 @@
                     <!-- NicoNico -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('niconico')">
-                            <span class="provider-icon">â–¶</span>
-                            <span class="provider-name">ðŸ”µ NicoNico</span>
+                            <span class="provider-icon">▶</span>
+                            <span class="provider-name">🔵 NicoNico</span>
                             <span class="provider-count">(1)</span>
                         </div>
                         <div class="streams-in-provider" id="niconico-streams">
                             <div class="stream-item" onclick="selectStream(4)">
-                                <span class="status-badge ended">â¹ï¸</span>
+                                <span class="status-badge ended">⏹️</span>
                                 <span class="stream-title">Live #1</span>
                             </div>
                         </div>
@@ -98,12 +98,12 @@
                         <div class="stream-title-section">
                             <h2 id="streamTitle">Gaming Stream</h2>
                             <span id="streamProvider" class="provider-badge">YouTube</span>
-                            <span id="streamStatus" class="status-badge live">â— LIVE</span>
+                            <span id="streamStatus" class="status-badge live">● LIVE</span>
                         </div>
                         <div class="stream-actions">
-                            <button class="action-btn pause" onclick="pauseStream()" data-i18n="stream.pause">â¸ Pause</button>
-                            <button class="action-btn stop" onclick="stopStream()" data-i18n="stream.stop">â¹ Stop</button>
-                            <button class="action-btn settings" onclick="editStream()" data-i18n="stream.settings">âš™ï¸ Settings</button>
+                            <button class="action-btn pause" onclick="pauseStream()" data-i18n="stream.pause">⏸ Pause</button>
+                            <button class="action-btn stop" onclick="stopStream()" data-i18n="stream.stop">⏹ Stop</button>
+                            <button class="action-btn settings" onclick="editStream()" data-i18n="stream.settings">⚙️ Settings</button>
                         </div>
                     </div>
 
@@ -121,7 +121,7 @@
                         </div>
                         <div class="metric-card">
                             <div class="metric-label" data-i18n="stream.healthStatus">Health Status</div>
-                            <div class="metric-value healthy" id="metricHealth">âœ… Excellent</div>
+                            <div class="metric-value healthy" id="metricHealth">✅ Excellent</div>
                             <div class="metric-trend" data-i18n="metrics.trendSystemsNormal">All systems normal</div>
                         </div>
                         <div class="metric-card">
@@ -148,12 +148,12 @@
                             <div class="info-item">
                                 <span class="info-label">RTMP URL:</span>
                                 <span class="info-value" id="streamUrl">rtmp://live.youtube.com/rtmp/...</span>
-                                <button class="copy-btn" onclick="copyToClipboard('streamUrl')">ðŸ“‹</button>
+                                <button class="copy-btn" onclick="copyToClipboard('streamUrl')">📋</button>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Stream Key:</span>
-                                <span class="info-value masked" id="streamKey">â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢</span>
-                                <button class="copy-btn" onclick="toggleStreamKeyVisibility()">ðŸ‘</button>
+                                <span class="info-value masked" id="streamKey">••••••••••••••••</span>
+                                <button class="copy-btn" onclick="toggleStreamKeyVisibility()">👁</button>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Started:</span>
@@ -165,7 +165,7 @@
                             <h3>Recent Issues</h3>
                             <div id="issuesList">
                                 <div class="issue-item success">
-                                    <span class="issue-icon">âœ…</span>
+                                    <span class="issue-icon">✅</span>
                                     <span class="issue-text">No issues detected</span>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@
                     <div class="chart-section">
                         <h3>Viewer Count (Last Hour)</h3>
                         <div class="chart-placeholder">
-                            <p>ðŸ“Š Chart will display viewer trends here</p>
+                            <p>📊 Chart will display viewer trends here</p>
                         </div>
                     </div>
                 </div>
@@ -197,7 +197,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeAddStreamModal()">&times;</span>
             <div class="modal-header">
-                <h2 data-i18n="modal.addNewStream">âž• Add New Stream</h2>
+                <h2 data-i18n="modal.addNewStream">➕ Add New Stream</h2>
             </div>
             <form id="addStreamForm">
                 <div class="form-group">
@@ -300,18 +300,18 @@
             document.getElementById('streamProvider').textContent = stream.provider;
             
             const statusEl = document.getElementById('streamStatus');
-            statusEl.textContent = 'â— ' + stream.status.toUpperCase();
+            statusEl.textContent = '● ' + stream.status.toUpperCase();
             statusEl.className = 'status-badge ' + stream.status;
 
             document.getElementById('metricViewers').textContent = stream.viewers;
             document.getElementById('metricUptime').textContent = stream.uptime;
-            document.getElementById('metricHealth').textContent = 'âœ… ' + stream.health;
+            document.getElementById('metricHealth').textContent = '✅ ' + stream.health;
             document.getElementById('metricBitrate').textContent = stream.bitrate;
             document.getElementById('metricFps').textContent = stream.fps;
             document.getElementById('metricResolution').textContent = stream.resolution;
 
             document.getElementById('streamUrl').textContent = stream.url;
-            document.getElementById('streamKey').textContent = 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢';
+            document.getElementById('streamKey').textContent = '••••••••••••••••';
             document.getElementById('streamStarted').textContent = stream.started;
 
             // Update sidebar highlighting
@@ -353,11 +353,11 @@
         function toggleStreamKeyVisibility() {
             const element = document.getElementById('streamKey');
             const stream = streams[currentStreamId];
-            if (element.textContent === 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢') {
+            if (element.textContent === '••••••••••••••••') {
                 element.textContent = stream.key;
                 element.classList.remove('masked');
             } else {
-                element.textContent = 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢';
+                element.textContent = '••••••••••••••••';
                 element.classList.add('masked');
             }
         }

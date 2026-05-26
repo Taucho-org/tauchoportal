@@ -87,6 +87,35 @@ const TRANSLATIONS = {
     'footer.terms': 'Terms of Service',
     'footer.contact': 'Contact',
     'footer.copyright': '© 2026 TauchoPortal. All rights reserved.',
+
+    // Stream Triggers
+    'triggers.title': 'Stream Triggers',
+    'triggers.subtitle': 'Set up automated actions that trigger when your streams go live',
+    'triggers.addTrigger': '+ Create Trigger',
+    'triggers.yourAccounts': 'Your Accounts',
+    'triggers.selectAccount': 'Select an Account',
+    'triggers.selectAccountToView': 'Choose an account from the sidebar to view and manage its triggers',
+    'triggers.noTriggersForAccount': 'No triggers set up for this account yet',
+    'triggers.addForAccount': '+ Add Trigger',
+    'triggers.createNewTrigger': 'Create New Trigger',
+    'triggers.triggerSaved': 'Trigger saved successfully!',
+
+    // Trigger Details
+    'trigger.name': 'Trigger Name',
+    'trigger.account': 'Account',
+    'trigger.enabled': 'Status',
+    'trigger.enabledLabel': 'Enabled',
+    'trigger.actions': 'Actions',
+    'trigger.actionsHelp': 'Add one or more actions that will execute when the stream starts',
+    'trigger.addAction': '+ Add Action',
+    'trigger.edit': '✏️ Edit',
+    'trigger.delete': '🗑 Delete',
+    'trigger.createdOn': 'Created on',
+    'trigger.lastTriggered': 'Last triggered',
+
+    // Buttons
+    'button.cancel': 'Cancel',
+    'button.save': 'Save Trigger',
   },
 
   ja: {
@@ -172,6 +201,35 @@ const TRANSLATIONS = {
     'footer.terms': '利用規約',
     'footer.contact': 'お問い合わせ',
     'footer.copyright': '© 2026 TauchoPortal. All rights reserved.',
+
+    // ストリームトリガー
+    'triggers.title': 'ストリームトリガー',
+    'triggers.subtitle': 'ストリームがライブになったときにトリガーされる自動化されたアクションを設定します',
+    'triggers.addTrigger': '+ トリガーを作成',
+    'triggers.yourAccounts': 'あなたのアカウント',
+    'triggers.selectAccount': 'アカウントを選択',
+    'triggers.selectAccountToView': 'サイドバーからアカウントを選択して、そのトリガーを表示および管理します',
+    'triggers.noTriggersForAccount': 'このアカウントにはまだトリガーが設定されていません',
+    'triggers.addForAccount': '+ トリガーを追加',
+    'triggers.createNewTrigger': '新しいトリガーを作成',
+    'triggers.triggerSaved': 'トリガーが正常に保存されました!',
+
+    // トリガーの詳細
+    'trigger.name': 'トリガー名',
+    'trigger.account': 'アカウント',
+    'trigger.enabled': 'ステータス',
+    'trigger.enabledLabel': '有効',
+    'trigger.actions': 'アクション',
+    'trigger.actionsHelp': 'ストリームが開始されたときに実行される1つ以上のアクションを追加します',
+    'trigger.addAction': '+ アクションを追加',
+    'trigger.edit': '✏️ 編集',
+    'trigger.delete': '🗑 削除',
+    'trigger.createdOn': '作成日時',
+    'trigger.lastTriggered': '最後にトリガーされた',
+
+    // ボタン
+    'button.cancel': 'キャンセル',
+    'button.save': 'トリガーを保存',
   },
 
   de: {
@@ -243,6 +301,47 @@ const TRANSLATIONS = {
     'metrics.trendTarget': 'Ziel: ',
     'metrics.frameRate': 'Bildrate',
     'metrics.fullHd': 'Full HD',
+
+    // Fußzeile
+    'footer.description': 'Stream-Verwaltung leicht gemacht',
+    'footer.quickLinks': 'Quick Links',
+    'footer.about': 'Über uns',
+    'footer.help': 'Hilfe & Support',
+    'footer.status': 'Systemstatus',
+    'footer.legal': 'Rechtlich',
+    'footer.privacy': 'Datenschutzrichtlinie',
+    'footer.terms': 'Nutzungsbedingungen',
+    'footer.contact': 'Kontakt',
+    'footer.copyright': '© 2026 TauchoPortal. Alle Rechte vorbehalten.',
+
+    // Stream-Auslöser
+    'triggers.title': 'Stream-Auslöser',
+    'triggers.subtitle': 'Richten Sie automatisierte Aktionen ein, die ausgelöst werden, wenn Ihre Streams live gehen',
+    'triggers.addTrigger': '+ Auslöser erstellen',
+    'triggers.yourAccounts': 'Ihre Konten',
+    'triggers.selectAccount': 'Konto auswählen',
+    'triggers.selectAccountToView': 'Wählen Sie ein Konto aus der Seitenleiste aus, um seine Auslöser anzuzeigen und zu verwalten',
+    'triggers.noTriggersForAccount': 'Für dieses Konto sind noch keine Auslöser eingerichtet',
+    'triggers.addForAccount': '+ Auslöser hinzufügen',
+    'triggers.createNewTrigger': 'Neuen Auslöser erstellen',
+    'triggers.triggerSaved': 'Auslöser erfolgreich gespeichert!',
+
+    // Auslöser-Details
+    'trigger.name': 'Triggername',
+    'trigger.account': 'Konto',
+    'trigger.enabled': 'Status',
+    'trigger.enabledLabel': 'Aktiviert',
+    'trigger.actions': 'Aktionen',
+    'trigger.actionsHelp': 'Fügen Sie eine oder mehrere Aktionen hinzu, die ausgeführt werden, wenn der Stream startet',
+    'trigger.addAction': '+ Aktion hinzufügen',
+    'trigger.edit': '✏️ Bearbeiten',
+    'trigger.delete': '🗑 Löschen',
+    'trigger.createdOn': 'Erstellt am',
+    'trigger.lastTriggered': 'Zuletzt ausgelöst',
+
+    // Schaltflächen
+    'button.cancel': 'Abbrechen',
+    'button.save': 'Auslöser speichern',
   },
 
   fr: {
@@ -314,6 +413,47 @@ const TRANSLATIONS = {
     'metrics.trendTarget': 'Cible: ',
     'metrics.frameRate': 'Fréquence d\'images',
     'metrics.fullHd': 'Haute définition',
+
+    // Pied de page
+    'footer.description': 'Gestion de flux facilitée',
+    'footer.quickLinks': 'Liens rapides',
+    'footer.about': 'À propos',
+    'footer.help': 'Aide et support',
+    'footer.status': 'État du système',
+    'footer.legal': 'Légal',
+    'footer.privacy': 'Politique de confidentialité',
+    'footer.terms': 'Conditions d\'utilisation',
+    'footer.contact': 'Contact',
+    'footer.copyright': '© 2026 TauchoPortal. Tous droits réservés.',
+
+    // Déclencheurs de flux
+    'triggers.title': 'Déclencheurs de flux',
+    'triggers.subtitle': 'Configurez des actions automatisées qui se déclenchent quand vos flux deviennent actifs',
+    'triggers.addTrigger': '+ Créer un déclencheur',
+    'triggers.yourAccounts': 'Vos comptes',
+    'triggers.selectAccount': 'Sélectionner un compte',
+    'triggers.selectAccountToView': 'Choisissez un compte dans la barre latérale pour afficher et gérer ses déclencheurs',
+    'triggers.noTriggersForAccount': 'Aucun déclencheur configuré pour ce compte',
+    'triggers.addForAccount': '+ Ajouter un déclencheur',
+    'triggers.createNewTrigger': 'Créer un nouveau déclencheur',
+    'triggers.triggerSaved': 'Déclencheur enregistré avec succès!',
+
+    // Détails du déclencheur
+    'trigger.name': 'Nom du déclencheur',
+    'trigger.account': 'Compte',
+    'trigger.enabled': 'Statut',
+    'trigger.enabledLabel': 'Activé',
+    'trigger.actions': 'Actions',
+    'trigger.actionsHelp': 'Ajoutez une ou plusieurs actions qui s\'exécuteront au démarrage du flux',
+    'trigger.addAction': '+ Ajouter une action',
+    'trigger.edit': '✏️ Modifier',
+    'trigger.delete': '🗑 Supprimer',
+    'trigger.createdOn': 'Créé le',
+    'trigger.lastTriggered': 'Déclenché en dernier',
+
+    // Boutons
+    'button.cancel': 'Annuler',
+    'button.save': 'Enregistrer le déclencheur',
   },
 
   es: {
@@ -385,6 +525,47 @@ const TRANSLATIONS = {
     'metrics.trendTarget': 'Objetivo: ',
     'metrics.frameRate': 'Velocidad de fotogramas',
     'metrics.fullHd': 'Definición completa',
+
+    // Pie de página
+    'footer.description': 'Gestión de transmisiones hecha fácil',
+    'footer.quickLinks': 'Enlaces rápidos',
+    'footer.about': 'Acerca de',
+    'footer.help': 'Ayuda y soporte',
+    'footer.status': 'Estado del sistema',
+    'footer.legal': 'Legal',
+    'footer.privacy': 'Política de privacidad',
+    'footer.terms': 'Términos de servicio',
+    'footer.contact': 'Contacto',
+    'footer.copyright': '© 2026 TauchoPortal. Todos los derechos reservados.',
+
+    // Disparadores de transmisión
+    'triggers.title': 'Disparadores de transmisión',
+    'triggers.subtitle': 'Configure acciones automatizadas que se activen cuando sus transmisiones estén en directo',
+    'triggers.addTrigger': '+ Crear disparador',
+    'triggers.yourAccounts': 'Sus cuentas',
+    'triggers.selectAccount': 'Seleccionar cuenta',
+    'triggers.selectAccountToView': 'Elija una cuenta en la barra lateral para ver y gestionar sus disparadores',
+    'triggers.noTriggersForAccount': 'No hay disparadores configurados para esta cuenta',
+    'triggers.addForAccount': '+ Añadir disparador',
+    'triggers.createNewTrigger': 'Crear nuevo disparador',
+    'triggers.triggerSaved': '¡Disparador guardado con éxito!',
+
+    // Detalles del disparador
+    'trigger.name': 'Nombre del disparador',
+    'trigger.account': 'Cuenta',
+    'trigger.enabled': 'Estado',
+    'trigger.enabledLabel': 'Activado',
+    'trigger.actions': 'Acciones',
+    'trigger.actionsHelp': 'Agregue una o más acciones que se ejecutarán cuando comience la transmisión',
+    'trigger.addAction': '+ Añadir acción',
+    'trigger.edit': '✏️ Editar',
+    'trigger.delete': '🗑 Eliminar',
+    'trigger.createdOn': 'Creado el',
+    'trigger.lastTriggered': 'Último disparo',
+
+    // Botones
+    'button.cancel': 'Cancelar',
+    'button.save': 'Guardar disparador',
   },
 };
 

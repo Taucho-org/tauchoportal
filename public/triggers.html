@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Triggers - TauchoPortal</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/triggers.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/translations.js"></script>
+    <script src="/js/localization.js"></script>
+    <script src="/js/web-components.js"></script>
+</head>
+<body>
+    <!-- Header Navigation -->
+    <taucho-header></taucho-header>
+
+    <div class="triggers-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h1>⚡ <span data-i18n="triggers.title">Stream Triggers</span></h1>
+                <select id="language-selector" class="language-selector">
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="es">🇪🇸 Español</option>
+                </select>
+            </div>
+            <p data-i18n="triggers.subtitle">Set up automated actions that trigger when your streams go live</p>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openAddTriggerModal()" data-i18n="triggers.addTrigger">+ Create Trigger</button>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <!-- Accounts Sidebar -->
+            <aside class="accounts-sidebar">
+                <div class="sidebar-header">
+                    <h2 data-i18n="triggers.yourAccounts">Your Accounts</h2>
+                    <span class="account-count" id="accountCount">(4)</span>
+                </div>
+
+                <div class="accounts-list" id="accountsList">
+                    <!-- YouTube Account -->
+                    <div class="account-item active" onclick="selectAccount('youtube-gaming')">
+                        <div class="account-icon">🔴</div>
+                        <div class="account-info">
+                            <div class="account-name">Gaming Stream</div>
+                            <div class="account-platform">YouTube</div>
+                        </div>
+                        <span class="trigger-count">2</span>
+                    </div>
+
+                    <!-- YouTube Account 2 -->
+                    <div class="account-item" onclick="selectAccount('youtube-creative')">
+                        <div class="account-icon">🔴</div>
+                        <div class="account-info">
+                            <div class="account-name">Creative Session</div>
+                            <div class="account-platform">YouTube</div>
+                        </div>
+                        <span class="trigger-count">0</span>
+                    </div>
+
+                    <!-- Twitch Account -->
+                    <div class="account-item" onclick="selectAccount('twitch-main')">
+                        <div class="account-icon">🟣</div>
+                        <div class="account-info">
+                            <div class="account-name">Main Broadcast</div>
+                            <div class="account-platform">Twitch</div>
+                        </div>
+                        <span class="trigger-count">1</span>
+                    </div>
+
+                    <!-- NicoNico Account -->
+                    <div class="account-item" onclick="selectAccount('niconico-live')">
+                        <div class="account-icon">🔵</div>
+                        <div class="account-info">
+                            <div class="account-name">Live #1</div>
+                            <div class="account-platform">NicoNico</div>
+                        </div>
+                        <span class="trigger-count">1</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Account Details Card -->
+                <div class="account-details-card">
+                    <div class="account-header">
+                        <div class="account-title-section">
+                            <h2 id="accountTitle">Gaming Stream</h2>
+                            <span id="accountPlatform" class="platform-badge">YouTube</span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="openAddTriggerForAccountModal()" data-i18n="triggers.addForAccount">+ Add Trigger</button>
+                    </div>
+
+                    <!-- Triggers List -->
+                    <div class="triggers-list" id="triggersList">
+                        <!-- Trigger Item 1 -->
+                        <div class="trigger-item">
+                            <div class="trigger-header">
+                                <div class="trigger-title-section">
+                                    <h3>Notify Discord on Stream Start</h3>
+                                    <span class="trigger-status enabled">Enabled</span>
+                                </div>
+                                <div class="trigger-actions">
+                                    <button class="action-btn edit" onclick="editTrigger('trigger-1')" data-i18n="trigger.edit">✏️ Edit</button>
+                                    <button class="action-btn delete" onclick="deleteTrigger('trigger-1')" data-i18n="trigger.delete">🗑 Delete</button>
+                                </div>
+                            </div>
+
+                            <div class="trigger-details">
+                                <div class="trigger-section">
+                                    <h4 data-i18n="trigger.actions">Actions</h4>
+                                    <div class="action-chain">
+                                        <div class="action-item">
+                                            <span class="action-type">POST Webhook</span>
+                                            <span class="action-config">→ https://discord.com/api/webhooks/...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="trigger-meta">
+                                    <span class="meta-item">
+                                        <span class="meta-label" data-i18n="trigger.createdOn">Created on</span>
+                                        <span class="meta-value">May 20, 2026</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <span class="meta-label" data-i18n="trigger.lastTriggered">Last triggered</span>
+                                        <span class="meta-value">May 21, 14:32</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trigger Item 2 -->
+                        <div class="trigger-item">
+                            <div class="trigger-header">
+                                <div class="trigger-title-section">
+                                    <h3>Log Stream Event to Database</h3>
+                                    <span class="trigger-status enabled">Enabled</span>
+                                </div>
+                                <div class="trigger-actions">
+                                    <button class="action-btn edit" onclick="editTrigger('trigger-2')" data-i18n="trigger.edit">✏️ Edit</button>
+                                    <button class="action-btn delete" onclick="deleteTrigger('trigger-2')" data-i18n="trigger.delete">🗑 Delete</button>
+                                </div>
+                            </div>
+
+                            <div class="trigger-details">
+                                <div class="trigger-section">
+                                    <h4 data-i18n="trigger.actions">Actions</h4>
+                                    <div class="action-chain">
+                                        <div class="action-item">
+                                            <span class="action-type">POST Webhook</span>
+                                            <span class="action-config">→ http://localhost:8081/api/events/log</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="trigger-meta">
+                                    <span class="meta-item">
+                                        <span class="meta-label" data-i18n="trigger.createdOn">Created on</span>
+                                        <span class="meta-value">May 18, 2026</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <span class="meta-label" data-i18n="trigger.lastTriggered">Last triggered</span>
+                                        <span class="meta-value">Never</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="empty-state" id="emptyTriggers" style="display: none;">
+                        <div class="empty-state-content">
+                            <p data-i18n="triggers.noTriggersForAccount">No triggers set up for this account yet</p>
+                            <button class="btn btn-primary" onclick="openAddTriggerForAccountModal()" data-i18n="triggers.addTrigger">Create First Trigger</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Account Selected -->
+                <div class="no-account-state" id="noAccountState" style="display: none;">
+                    <div class="no-account-content">
+                        <h2 data-i18n="triggers.selectAccount">Select an Account</h2>
+                        <p data-i18n="triggers.selectAccountToView">Choose an account from the sidebar to view and manage its triggers</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Trigger Modal -->
+    <div id="triggerModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeTriggerModal()">&times;</span>
+            <div class="modal-header">
+                <h2 id="triggerModalTitle" data-i18n="triggers.createNewTrigger">Create New Trigger</h2>
+            </div>
+            <form id="triggerForm">
+                <div class="form-group">
+                    <label for="triggerName" data-i18n="trigger.name">Trigger Name</label>
+                    <input type="text" id="triggerName" required placeholder="e.g., Notify Discord on stream start">
+                </div>
+
+                <div class="form-group">
+                    <label for="triggerAccount" data-i18n="trigger.account">Account</label>
+                    <select id="triggerAccount" required>
+                        <option value="">Select an account...</option>
+                        <option value="youtube-gaming">🔴 Gaming Stream (YouTube)</option>
+                        <option value="youtube-creative">🔴 Creative Session (YouTube)</option>
+                        <option value="twitch-main">🟣 Main Broadcast (Twitch)</option>
+                        <option value="niconico-live">🔵 Live #1 (NicoNico)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="triggerEnabled" data-i18n="trigger.enabled">Status</label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="triggerEnabled" checked>
+                        <span data-i18n="trigger.enabledLabel">Enabled</span>
+                    </label>
+                </div>
+
+                <div class="form-section">
+                    <h3 data-i18n="trigger.actions">Actions</h3>
+                    <p class="form-help" data-i18n="trigger.actionsHelp">Add one or more actions that will execute when the stream starts</p>
+
+                    <div id="actionsList"></div>
+
+                    <button type="button" class="btn btn-secondary" onclick="addAction()" data-i18n="trigger.addAction">+ Add Action</button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTriggerModal()" data-i18n="button.cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="button.save">Save Trigger</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <taucho-footer></taucho-footer>
+
+    <script>
+        let currentAccountId = 'youtube-gaming';
+        let actionCounter = 0;
+
+        const accounts = {
+            'youtube-gaming': {
+                name: 'Gaming Stream',
+                platform: 'YouTube',
+                icon: '🔴',
+                triggers: 2
+            },
+            'youtube-creative': {
+                name: 'Creative Session',
+                platform: 'YouTube',
+                icon: '🔴',
+                triggers: 0
+            },
+            'twitch-main': {
+                name: 'Main Broadcast',
+                platform: 'Twitch',
+                icon: '🟣',
+                triggers: 1
+            },
+            'niconico-live': {
+                name: 'Live #1',
+                platform: 'NicoNico',
+                icon: '🔵',
+                triggers: 1
+            }
+        };
+
+        function selectAccount(accountId) {
+            currentAccountId = accountId;
+            const account = accounts[accountId];
+
+            // Update sidebar highlighting
+            document.querySelectorAll('.account-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.account-item').classList.add('active');
+
+            // Update main content
+            document.getElementById('accountTitle').textContent = account.name;
+            document.getElementById('accountPlatform').textContent = account.platform;
+
+            // Show/hide content based on triggers
+            if (account.triggers > 0) {
+                document.getElementById('triggersList').style.display = 'block';
+                document.getElementById('emptyTriggers').style.display = 'none';
+            } else {
+                document.getElementById('triggersList').style.display = 'none';
+                document.getElementById('emptyTriggers').style.display = 'block';
+            }
+
+            document.getElementById('noAccountState').style.display = 'none';
+        }
+
+        function openAddTriggerModal() {
+            document.getElementById('triggerModalTitle').textContent = 'Create New Trigger';
+            document.getElementById('triggerForm').reset();
+            document.getElementById('triggerAccount').value = currentAccountId;
+            document.getElementById('actionsList').innerHTML = '';
+            actionCounter = 0;
+            addAction(); // Start with one empty action
+            document.getElementById('triggerModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function openAddTriggerForAccountModal() {
+            openAddTriggerModal();
+            document.getElementById('triggerAccount').value = currentAccountId;
+            document.getElementById('triggerAccount').disabled = true;
+        }
+
+        function closeTriggerModal() {
+            document.getElementById('triggerModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function addAction() {
+            const actionId = actionCounter++;
+            const actionHtml = `
+                <div class="action-item-form" id="action-${actionId}">
+                    <div class="form-group">
+                        <label for="actionType${actionId}">Action Type</label>
+                        <select id="actionType${actionId}" required onchange="updateActionTypeHelp(${actionId})">
+                            <option value="">Select action type...</option>
+                            <option value="webhook">POST Webhook</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="actionUrl${actionId}">Webhook URL</label>
+                        <input type="url" id="actionUrl${actionId}" placeholder="https://..." required>
+                        <small class="form-help">The endpoint that will receive a POST request</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="actionPayload${actionId}">Payload (JSON)</label>
+                        <textarea id="actionPayload${actionId}" rows="3" placeholder='{"event":"stream_started"}'></textarea>
+                        <small class="form-help">Optional. Will be merged with stream info</small>
+                    </div>
+
+                    <button type="button" class="btn btn-danger btn-small" onclick="removeAction(${actionId})">Remove Action</button>
+                </div>
+            `;
+            document.getElementById('actionsList').insertAdjacentHTML('beforeend', actionHtml);
+        }
+
+        function removeAction(actionId) {
+            const actionElement = document.getElementById(`action-${actionId}`);
+            if (actionElement) {
+                actionElement.remove();
+            }
+        }
+
+        function updateActionTypeHelp(actionId) {
+            // Can add dynamic help text based on action type
+        }
+
+        function editTrigger(triggerId) {
+            alert('Edit trigger: ' + triggerId);
+            // TODO: Populate form with trigger data
+            openAddTriggerModal();
+        }
+
+        function deleteTrigger(triggerId) {
+            if (confirm('Are you sure you want to delete this trigger?')) {
+                alert('Trigger deleted: ' + triggerId);
+                // TODO: Delete from backend
+            }
+        }
+
+        // Language selector
+        document.getElementById('language-selector').addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+
+        document.getElementById('triggerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const lang = getCurrentLanguage();
+            alert(t('triggers.triggerSaved', lang));
+            closeTriggerModal();
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('triggerModal');
+            if (event.target == modal) {
+                closeTriggerModal();
+            }
+        }
+
+        // Initialize
+        initLocalization();
+        requireAuth();
+        selectAccount('youtube-gaming');
+    </script>
+</body>
+</html>
