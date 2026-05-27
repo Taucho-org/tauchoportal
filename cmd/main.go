@@ -33,16 +33,24 @@ func main() {
 		log.Fatalf("invalid API_URL %q: %v", apiURL, err)
 	}
 
+	// Use API_AUDIENCE as the token audience if set (needed when the Cloud Run
+	// service URL differs from the API_URL custom domain).
+	// Falls back to API_URL if not set.
+	apiAudience := os.Getenv("API_AUDIENCE")
+	if apiAudience == "" {
+		apiAudience = apiURL
+	}
+
 	// Try to create a Google identity token source for service-to-service auth.
 	// This works on Cloud Run (uses the metadata server automatically).
 	// Falls back to nil on local dev — no auth header is added then.
 	var tokenSource oauth2.TokenSource
-	ts, err := idtoken.NewTokenSource(ctx, apiURL)
+	ts, err := idtoken.NewTokenSource(ctx, apiAudience)
 	if err != nil {
 		log.Printf("Identity token source unavailable (local dev?): %v", err)
 	} else {
 		tokenSource = ts
-		log.Printf("Identity token source initialized for audience: %s", apiURL)
+		log.Printf("Identity token source initialized for audience: %s", apiAudience)
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
@@ -86,6 +94,7 @@ func main() {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, "<h2>API Debug</h2>")
 		fmt.Fprintf(w, "<p><b>Resolved API URL:</b> %s</p>", htmlEscape(apiURL))
+		fmt.Fprintf(w, "<p><b>Token audience:</b> %s</p>", htmlEscape(apiAudience))
 		fmt.Fprintf(w, "<p><b>Identity token source:</b> %v</p>", tokenSource != nil)
 
 		var authHeader string

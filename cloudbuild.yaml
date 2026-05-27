@@ -29,7 +29,7 @@ steps:
   - --add-cloudsql-instances
   - ${_CLOUDSQL_INSTANCE}
   - --set-env-vars
-  - GOOGLE_CLOUD_PROJECT=$PROJECT_ID,API_URL=https://api.taucho.org
+  - GOOGLE_CLOUD_PROJECT=$PROJECT_ID,API_URL=https://api.taucho.org,API_AUDIENCE=${_API_AUDIENCE}
   - --set-secrets
   - DATABASE_URL=DATABASE_URL:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,GOOGLE_REDIRECT_URL=GOOGLE_REDIRECT_URL:latest
 
@@ -37,3 +37,4 @@ substitutions:
   _SERVICE: tauchoportal
   _REGION: asia-northeast1
   _CLOUDSQL_INSTANCE: tauchopostgres-prod:asia-northeast1:tauchodb
+  _API_AUDIENCE: https://tauchoapis-w7tb2uu4fq-an.a.run.app
