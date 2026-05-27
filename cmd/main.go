@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"context"
@@ -14,6 +14,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"google.golang.org/api/idtoken"
+	"golang.org/x/oauth2"
 )
 
 func main() {
@@ -25,77 +28,87 @@ func main() {
 		apiURL = "http://localhost:8081"
 	}
 
-	// Get the API token for service-to-service authentication
-	apiToken := os.Getenv("API_TOKEN")
-	if apiToken == "" {
-		apiToken = "dev-token-change-in-production"
-	}
-
 	target, err := url.Parse(apiURL)
 	if err != nil {
 		log.Fatalf("invalid API_URL %q: %v", apiURL, err)
 	}
-	proxy := httputil.NewSingleHostReverseProxy(target)
 
-	// Create a custom director that strips /api prefix AND adds the auth token
+	// Try to create a Google identity token source for service-to-service auth.
+	// This works on Cloud Run (uses the metadata server automatically).
+	// Falls back to nil on local dev — no auth header is added then.
+	var tokenSource oauth2.TokenSource
+	ts, err := idtoken.NewTokenSource(ctx, apiURL)
+	if err != nil {
+		log.Printf("Identity token source unavailable (local dev?): %v", err)
+	} else {
+		tokenSource = ts
+		log.Printf("Identity token source initialized for audience: %s", apiURL)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Director = func(r *http.Request) {
-		// Strip the /api prefix from the path
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
 		if r.URL.RawPath != "" {
 			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, "/api")
 		}
-		
-		// Set the target scheme and host
 		r.URL.Scheme = target.Scheme
 		r.URL.Host = target.Host
-		
-		// Update the Host header to match the target
 		r.Host = target.Host
-		r.RequestURI = "" // Clear RequestURI as it's only valid for client requests
-		
-		// Add the API token for service-to-service authentication
-		r.Header.Set("X-API-Token", apiToken)
-		
-		// Log for debugging
-		log.Printf("Proxying request: %s %s -> %s://%s%s", r.Method, r.RequestURI, r.URL.Scheme, r.URL.Host, r.URL.Path)
+		r.RequestURI = ""
+
+		// Attach Google identity token for Cloud Run IAM auth
+		if tokenSource != nil {
+			if tok, err := tokenSource.Token(); err != nil {
+				log.Printf("Warning: failed to get identity token: %v", err)
+			} else {
+				r.Header.Set("Authorization", "Bearer "+tok.AccessToken)
+			}
+		}
+
+		log.Printf("Proxying: %s %s -> %s://%s%s", r.Method, r.RequestURI, r.URL.Scheme, r.URL.Host, r.URL.Path)
 	}
 
 	router := NewRouter()
 	mux := http.NewServeMux()
 
-	// Proxy /api/* to the API server
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		proxy.ServeHTTP(w, r)
 	})
 
-	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// Debug endpoint: tests API connectivity and shows config (remove after diagnosing)
+	// Debug endpoint: tests API connectivity and shows config
 	mux.HandleFunc("/debug/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, "<h2>API Debug</h2>")
-		fmt.Fprintf(w, "<p><b>API_URL env:</b> %s</p>", htmlEscape(os.Getenv("API_URL")))
 		fmt.Fprintf(w, "<p><b>Resolved API URL:</b> %s</p>", htmlEscape(apiURL))
-		tokenSet := os.Getenv("API_TOKEN") != ""
-		fmt.Fprintf(w, "<p><b>API_TOKEN set:</b> %v</p>", tokenSet)
+		fmt.Fprintf(w, "<p><b>Identity token source:</b> %v</p>", tokenSource != nil)
 
-		// Test connectivity to each important endpoint
+		var authHeader string
+		if tokenSource != nil {
+			if tok, err := tokenSource.Token(); err != nil {
+				fmt.Fprintf(w, "<p>❌ <b>Token fetch error:</b> %v</p>", err)
+			} else {
+				authHeader = "Bearer " + tok.AccessToken
+				fmt.Fprintf(w, "<p>✅ <b>Identity token obtained</b> (expires: %s)</p>", tok.Expiry.Format(time.RFC3339))
+			}
+		}
+
 		endpoints := []string{"/auth/user", "/oauth/login?provider=google"}
 		client := &http.Client{Timeout: 5 * time.Second}
 		for _, ep := range endpoints {
-			testURL := apiURL + ep
-			req, err := http.NewRequest("GET", testURL, nil)
+			req, err := http.NewRequest("GET", apiURL+ep, nil)
 			if err != nil {
-				fmt.Fprintf(w, "<p>❌ <b>%s</b>: failed to build request: %v</p>", ep, err)
+				fmt.Fprintf(w, "<p>❌ <b>%s</b>: failed to build request: %v</p>", htmlEscape(ep), err)
 				continue
 			}
-			req.Header.Set("X-API-Token", apiToken)
-			// Forward cookies from browser so session-based endpoints respond correctly
+			if authHeader != "" {
+				req.Header.Set("Authorization", authHeader)
+			}
 			req.Header.Set("Cookie", r.Header.Get("Cookie"))
 			resp, err := client.Do(req)
 			if err != nil {
@@ -109,7 +122,6 @@ func main() {
 		}
 	})
 
-	// Static files with clean URLs (no .html extension)
 	mux.HandleFunc("/", router.ServeStatic)
 
 	port := os.Getenv("PORT")
@@ -130,45 +142,30 @@ func main() {
 	}()
 
 	log.Printf("UI server starting on :%s (proxying API to %s)", port, apiURL)
-	log.Printf("Open http://localhost:%s in your browser", port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
 	}
 }
 
-// Router handles clean URLs by serving HTML files without extension
 type Router struct {
 	publicDir string
 }
 
-// NewRouter creates a new router
 func NewRouter() *Router {
-	return &Router{
-		publicDir: "public",
-	}
+	return &Router{publicDir: "public"}
 }
 
-// ServeStatic serves static files with clean URLs
 func (r *Router) ServeStatic(w http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
-
-	// Normalize path
 	if path == "/" {
 		path = "/index.html"
 	} else if strings.HasPrefix(path, "/monitors/") {
-		// SPA prefix routing: all /monitors/* sub-paths are handled by monitors.html
 		path = "/monitors.html"
 	} else if !strings.Contains(path, ".") {
-		// If no file extension, try with .html
 		path = path + ".html"
 	}
-
-	// Clean the path to prevent directory traversal
 	path = filepath.Clean(path)
-	filePath := filepath.Join(r.publicDir, path)
-
-	// Serve the file
-	http.ServeFile(w, req, filePath)
+	http.ServeFile(w, req, filepath.Join(r.publicDir, path))
 }
 
 func statusEmoji(code int) string {
