@@ -48,6 +48,29 @@ Unique constraint: `(provider, provider_user_id)` — one account per provider.
 | Already logged in, provider not yet linked | Add `oauth_connections` row to current user |
 | Already logged in, provider already linked to a **different** account | Return error `409 Conflict` |
 
+### OAuth redirect URI setup
+
+The portal handles the OAuth callback — Google redirects the user's browser to the **portal**, which proxies the request to the API.
+
+**Callback path:** `{PORTAL_BASE_URL}/auth/callback/{provider}`  
+e.g. `http://localhost:8080/auth/callback/google` (local) · `https://taucho.org/auth/callback/google` (prod)
+
+**What the API must do:**
+1. `GET /oauth/login?provider=X` — build the auth URL using `GOOGLE_REDIRECT_URL` (or `{provider}_REDIRECT_URL`) from env, return `{ auth_url }`.
+2. `GET /auth/callback/google?code=...&state=...` — exchange code, create session, set cookie, **redirect to `{PORTAL_BASE_URL}/dashboard`**.
+
+**Required env vars on the API server:**
+| Env var | Local value | Production value |
+|---------|------------|-----------------|
+| `GOOGLE_REDIRECT_URL` | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
+| `PORTAL_BASE_URL` | `http://localhost:8080` | `https://taucho.org` |
+
+**Google Cloud Console — Authorized redirect URIs** (OAuth 2.0 Client settings):
+- `http://localhost:8080/auth/callback/google`
+- `https://taucho.org/auth/callback/google`
+
+> ⚠️ Currently the API has `GOOGLE_REDIRECT_URL` hardcoded to `localhost:8080`. This must be an env var so production deployments use the correct URL.
+
 ### Email+password endpoints
 | Method | Path | Body | Description |
 |--------|------|------|-------------|

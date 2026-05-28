@@ -111,9 +111,24 @@ func main() {
 		log.Printf("Proxying: %s -> %s://%s%s", r.Method, r.URL.Scheme, r.URL.Host, r.URL.Path)
 	}
 
+	// callbackProxy forwards /auth/callback/* to the API unchanged (no prefix stripping).
+	// Google redirects the user's browser to the portal after OAuth; we relay it to the API.
+	callbackProxy := httputil.NewSingleHostReverseProxy(target)
+	callbackProxy.Director = func(r *http.Request) {
+		r.URL.Scheme = target.Scheme
+		r.URL.Host = target.Host
+		r.Host = target.Host
+		r.RequestURI = ""
+		attachIdentityToken(r, tokenSource)
+		log.Printf("OAuth callback: %s -> %s://%s%s", r.Method, r.URL.Scheme, r.URL.Host, r.URL.Path)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		proxy.ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/auth/callback/", func(w http.ResponseWriter, r *http.Request) {
+		callbackProxy.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
