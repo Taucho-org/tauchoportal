@@ -28,7 +28,7 @@ type PageData struct {
 }
 
 type UserProfile struct {
-	ID       string `json:"id"`
+	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Picture  string `json:"picture"`
