@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 WORKDIR /app
 COPY --from=builder /out/tauchoportal /app/tauchoportal
 COPY public ./public
+COPY pages ./pages
+COPY templates ./templates
 
 USER 65532:65532
 ENTRYPOINT ["/app/tauchoportal"]
