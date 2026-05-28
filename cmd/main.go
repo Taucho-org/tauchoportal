@@ -187,7 +187,7 @@ func main() {
 
 func loadTemplates() map[string]*template.Template {
 	result := make(map[string]*template.Template)
-	pages, err := filepath.Glob(filepath.Join("templates", "pages", "*.gohtml"))
+	pages, err := filepath.Glob(filepath.Join("pages", "*.gohtml"))
 	if err != nil {
 		log.Fatalf("failed to list templates: %v", err)
 	}
