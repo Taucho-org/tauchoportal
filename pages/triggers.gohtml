@@ -26,7 +26,7 @@
                 <div class="accounts-list" id="accountsList">
                     <!-- YouTube Account -->
                     <div class="account-item active" onclick="selectAccount('youtube-gaming')">
-                        <div class="account-icon">🔴</div>
+                        <div class="account-icon">{{platformIcon "youtube"}}</div>
                         <div class="account-info">
                             <div class="account-name">Gaming Stream</div>
                             <div class="account-platform">YouTube</div>
@@ -36,7 +36,7 @@
 
                     <!-- YouTube Account 2 -->
                     <div class="account-item" onclick="selectAccount('youtube-creative')">
-                        <div class="account-icon">🔴</div>
+                        <div class="account-icon">{{platformIcon "youtube"}}</div>
                         <div class="account-info">
                             <div class="account-name">Creative Session</div>
                             <div class="account-platform">YouTube</div>
@@ -46,7 +46,7 @@
 
                     <!-- Twitch Account -->
                     <div class="account-item" onclick="selectAccount('twitch-main')">
-                        <div class="account-icon">🟣</div>
+                        <div class="account-icon">{{platformIcon "twitch"}}</div>
                         <div class="account-info">
                             <div class="account-name">Main Broadcast</div>
                             <div class="account-platform">Twitch</div>
@@ -56,7 +56,7 @@
 
                     <!-- NicoNico Account -->
                     <div class="account-item" onclick="selectAccount('niconico-live')">
-                        <div class="account-icon">🔵</div>
+                        <div class="account-icon">{{platformIcon "niconico"}}</div>
                         <div class="account-info">
                             <div class="account-name">Live #1</div>
                             <div class="account-platform">NicoNico</div>
@@ -192,10 +192,10 @@
                     <label for="triggerAccount">{{.I18n.T "trigger.account"}}</label>
                     <select id="triggerAccount" required>
                         <option value="">Select an account...</option>
-                        <option value="youtube-gaming">🔴 Gaming Stream (YouTube)</option>
-                        <option value="youtube-creative">🔴 Creative Session (YouTube)</option>
-                        <option value="twitch-main">🟣 Main Broadcast (Twitch)</option>
-                        <option value="niconico-live">🔵 Live #1 (NicoNico)</option>
+                        <option value="youtube-gaming">YouTube — Gaming Stream</option>
+                        <option value="youtube-creative">YouTube — Creative Session</option>
+                        <option value="twitch-main">Twitch — Main Broadcast</option>
+                        <option value="niconico-live">NicoNico — Live #1</option>
                     </select>
                 </div>
 
@@ -229,29 +229,30 @@
         let currentAccountId = 'youtube-gaming';
         let actionCounter = 0;
 
+        const PI = window.__platformIcons || {};
         const accounts = {
             'youtube-gaming': {
                 name: 'Gaming Stream',
                 platform: 'YouTube',
-                icon: '🔴',
+                icon: PI.youtube || '▶',
                 triggers: 2
             },
             'youtube-creative': {
                 name: 'Creative Session',
                 platform: 'YouTube',
-                icon: '🔴',
+                icon: PI.youtube || '▶',
                 triggers: 0
             },
             'twitch-main': {
                 name: 'Main Broadcast',
                 platform: 'Twitch',
-                icon: '🟣',
+                icon: PI.twitch || '🟣',
                 triggers: 1
             },
             'niconico-live': {
                 name: 'Live #1',
                 platform: 'NicoNico',
-                icon: '🔵',
+                icon: PI.niconico || '🔵',
                 triggers: 1
             }
         };

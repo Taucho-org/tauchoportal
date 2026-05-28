@@ -20,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
 	"tauchoportal/internal/i18n"
+	"tauchoportal/internal/icons"
 )
 
 type PageData struct {
@@ -256,6 +257,8 @@ func loadTemplates() map[string]*template.Template {
 			}
 			return t.JS()
 		},
+		"platformIcon":     icons.Get,
+		"platformIconsJSON": icons.AllJSON,
 	}
 
 	for _, pagePath := range pages {

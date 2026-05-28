@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/css/main.css">
   {{block "head" .}}{{end}}
   <script src="/js/auth.js"></script>
-  <script>window.__user = {{userJSON .User}}; window.__i18n = {{i18nJSON .I18n}};</script>
+  <script>window.__user = {{userJSON .User}}; window.__i18n = {{i18nJSON .I18n}}; window.__platformIcons = {{platformIconsJSON}};</script>
 </head>
 <body>
   {{if .User}}{{template "header" .}}{{end}}

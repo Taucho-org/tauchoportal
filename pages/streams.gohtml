@@ -29,8 +29,8 @@
                     <!-- YouTube -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('youtube')">
-                            <span class="provider-icon">▶</span>
-                            <span class="provider-name">🔴 YouTube</span>
+                            <span class="provider-icon">{{platformIcon "youtube"}}</span>
+                            <span class="provider-name">YouTube</span>
                             <span class="provider-count">(2)</span>
                         </div>
                         <div class="streams-in-provider" id="youtube-streams">
@@ -48,8 +48,8 @@
                     <!-- Twitch -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('twitch')">
-                            <span class="provider-icon">▶</span>
-                            <span class="provider-name">🟣 Twitch</span>
+                            <span class="provider-icon">{{platformIcon "twitch"}}</span>
+                            <span class="provider-name">Twitch</span>
                             <span class="provider-count">(1)</span>
                         </div>
                         <div class="streams-in-provider" id="twitch-streams">
@@ -63,8 +63,8 @@
                     <!-- NicoNico -->
                     <div class="provider-group">
                         <div class="provider-header" onclick="toggleProvider('niconico')">
-                            <span class="provider-icon">▶</span>
-                            <span class="provider-name">🔵 NicoNico</span>
+                            <span class="provider-icon">{{platformIcon "niconico"}}</span>
+                            <span class="provider-name">NicoNico</span>
                             <span class="provider-count">(1)</span>
                         </div>
                         <div class="streams-in-provider" id="niconico-streams">
@@ -273,6 +273,7 @@
                 twitch: { label: 'Twitch' },
                 niconico: { label: 'NicoNico' }
             };
+            const PI = window.__platformIcons || {};
             const container = document.querySelector('.providers-list');
             if (!container) return;
             if (streamsList.length === 0) {
@@ -292,7 +293,7 @@
                 }).join('');
                 return `<div class="provider-group">
                     <div class="provider-header" onclick="toggleProvider('${platform}')">
-                        <span class="provider-icon">▶</span>
+                        <span class="provider-icon">${PI[platform] || '▶'}</span>
                         <span class="provider-name">${meta.label}</span>
                         <span class="provider-count">(${list.length})</span>
                     </div>

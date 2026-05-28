@@ -1,7 +1,7 @@
 {
   "nav.dashboard": "Dashboard",
   "nav.myStreams": "My Streams",
-  "nav.monitors": "Watched Channels",
+  "nav.monitors": "Channels",
   "nav.devices": "My Devices",
   "nav.conditions": "Conditions",
   "nav.triggers": "Triggers",

@@ -125,14 +125,14 @@ body {
     font-size: 1.2em;
 }
 
-.google-btn {
-    border-color: #4285f4;
-    color: #4285f4;
+.youtube-btn {
+    border-color: #FF0000;
+    color: #FF0000;
 }
 
-.google-btn:hover {
-    background: #f1f5ff;
-    border-color: #4285f4;
+.youtube-btn:hover {
+    background: #fff5f5;
+    border-color: #FF0000;
 }
 
 .github-btn {

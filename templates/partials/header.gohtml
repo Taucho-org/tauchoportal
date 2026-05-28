@@ -7,12 +7,8 @@
 
     <nav class="header-nav">
       <ul>
-        <li><a href="/dashboard" {{if eq .Page "dashboard"}}class="active"{{end}}>{{.I18n.T "nav.dashboard"}}</a></li>
-        <li><a href="/streams" {{if eq .Page "streams"}}class="active"{{end}}>{{.I18n.T "nav.myStreams"}}</a></li>
         <li><a href="/monitors" {{if eq .Page "monitors"}}class="active"{{end}}>&#128225; {{.I18n.T "nav.monitors"}}</a></li>
         <li><a href="/devices" {{if eq .Page "devices"}}class="active"{{end}}>&#128268; {{.I18n.T "nav.devices"}}</a></li>
-        <li><a href="/conditions" {{if eq .Page "conditions"}}class="active"{{end}}>&#9881;&#65039; {{.I18n.T "nav.conditions"}}</a></li>
-        <li><a href="/triggers" {{if eq .Page "triggers"}}class="active"{{end}}>&#9889; {{.I18n.T "nav.triggers"}}</a></li>
       </ul>
     </nav>
 

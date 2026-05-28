@@ -27,7 +27,7 @@
                 <button class="filter-tab" onclick="filterByType('gift', this)">🎁 Gifts <span class="tab-count">1</span></button>
                 <button class="filter-tab" onclick="filterByType('effect', this)">✨ Effects <span class="tab-count">1</span></button>
                 <button class="filter-tab" onclick="filterByType('follow', this)">💖 Follows <span class="tab-count">1</span></button>
-                <button class="filter-tab" onclick="filterByType('stream', this)">▶ Stream Start/End <span class="tab-count">0</span></button>
+                <button class="filter-tab" onclick="filterByType('stream', this)">Stream Start/End <span class="tab-count">0</span></button>
             </div>
         </div>
 
@@ -301,7 +301,7 @@
                                 <option value="follow">💖 New follower / subscriber</option>
                             </optgroup>
                             <optgroup label="Stream Events">
-                                <option value="stream_start">▶ Stream starts</option>
+                                <option value="stream_start">Stream starts</option>
                                 <option value="stream_end">⏹ Stream ends</option>
                             </optgroup>
                         </select>
@@ -328,10 +328,10 @@
                     <div class="form-group" id="channelSelectGroup" style="display: none;">
                         <label>Select Channels</label>
                         <div class="channel-checkboxes">
-                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-gaming"> ▶ Gaming Stream (YouTube)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-creative"> ▶ Creative Session (YouTube)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="channels" value="twitch-main"> 🟣 Main Broadcast (Twitch)</label>
-                            <label class="checkbox-label"><input type="checkbox" name="channels" value="nico-live1"> 🔵 Live #1 (NicoNico)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-gaming"> {{platformIcon "youtube"}} Gaming Stream (YouTube)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="yt-creative"> {{platformIcon "youtube"}} Creative Session (YouTube)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="twitch-main"> {{platformIcon "twitch"}} Main Broadcast (Twitch)</label>
+                            <label class="checkbox-label"><input type="checkbox" name="channels" value="nico-live1"> {{platformIcon "niconico"}} Live #1 (NicoNico)</label>
                         </div>
                     </div>
                 </fieldset>

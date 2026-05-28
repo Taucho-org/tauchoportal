@@ -150,7 +150,8 @@ p {
     text-align: center;
 }
 
-.platform-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+.platform-icon { font-size: 1.8rem; margin-bottom: 0.4rem; display: flex; align-items: center; justify-content: center; }
+.platform-icon svg { width: 2rem; height: 2rem; }
 .platform-card strong { display: block; margin-bottom: 0.6rem; color: #333; font-size: 1rem; }
 
 .platform-card ul {

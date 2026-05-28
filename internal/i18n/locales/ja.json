@@ -1,7 +1,7 @@
 {
   "nav.dashboard": "ダッシュボード",
   "nav.myStreams": "マイストリーム",
-  "nav.monitors": "視聴チャンネル",
+  "nav.monitors": "配信チャンネル",
   "nav.devices": "マイデバイス",
   "nav.conditions": "条件",
   "nav.triggers": "トリガー",
