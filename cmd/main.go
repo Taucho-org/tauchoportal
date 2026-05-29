@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -45,16 +46,17 @@ type pageConfig struct {
 }
 
 var pageRoutes = map[string]pageConfig{
-	"/":           {Name: "index", Title: "Home", RequireAuth: false},
-	"/login":      {Name: "login", Title: "Login", RequireAuth: false},
-	"/register":   {Name: "register", Title: "Register", RequireAuth: false},
-	"/dashboard":  {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
-	"/monitors":   {Name: "monitors", Title: "Watched Channels", RequireAuth: true},
-	"/devices":    {Name: "devices", Title: "My Devices", RequireAuth: true},
-	"/streams":    {Name: "streams", Title: "My Streams", RequireAuth: true},
-	"/conditions": {Name: "conditions", Title: "Conditions", RequireAuth: true},
-	"/triggers":   {Name: "triggers", Title: "Triggers", RequireAuth: true},
-	"/about":      {Name: "about", Title: "About", RequireAuth: false},
+	"/":                    {Name: "index", Title: "Home", RequireAuth: false},
+	"/login":               {Name: "login", Title: "Login", RequireAuth: false},
+	"/register":            {Name: "register", Title: "Register", RequireAuth: false},
+	"/dashboard":           {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
+	"/monitors":            {Name: "monitors", Title: "Watched Channels", RequireAuth: true},
+	"/devices":             {Name: "devices", Title: "My Devices", RequireAuth: true},
+	"/streams":             {Name: "streams", Title: "My Streams", RequireAuth: true},
+	"/conditions":          {Name: "conditions", Title: "Conditions", RequireAuth: true},
+	"/triggers":            {Name: "triggers", Title: "Triggers", RequireAuth: true},
+	"/about":               {Name: "about", Title: "About", RequireAuth: false},
+	"/account-settings":    {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
 }
 
 type Server struct {
@@ -114,6 +116,15 @@ func main() {
 		r.Host = target.Host
 		r.RequestURI = ""
 		attachIdentityToken(r, tokenSource)
+		// Inject X-User-ID so the API can resolve user ownership without
+		// re-parsing the session cookie on every resource request.
+		// The portal is the trusted proxy: it validates the cookie via
+		// fetchUser before injecting this header. The API should trust
+		// X-User-ID only from requests that also carry a valid identity token
+		// (Authorization: Bearer ...) or when running in a trusted network.
+		if user := server.fetchUser(r); user != nil {
+			r.Header.Set("X-User-ID", strconv.Itoa(user.ID))
+		}
 		log.Printf("Proxying: %s -> %s://%s%s", r.Method, r.URL.Scheme, r.URL.Host, r.URL.Path)
 	}
 

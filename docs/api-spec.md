@@ -33,10 +33,15 @@ One email account is the master identity. OAuth logins are children of that acco
   "user_id": "integer (FK → users.id, CASCADE DELETE)",
   "provider": "google | twitch | niconico | instagram | tiktok | kick | facebook | x | bilibili",
   "oauth_id": "string (provider's user ID — unique per provider)",
+  "provider_email": "string (email from the OAuth provider, nullable)",
+  "provider_username": "string (display name / handle from the OAuth provider, nullable — e.g. 'Don Taucho', 'don_twitch')",
+  "provider_channel_name": "string (channel/stream name on the platform, nullable — may differ from username on YouTube/Twitch)",
   "created_at": "timestamp"
 }
 ```
 Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one account per provider per user.
+
+> **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
 > NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
@@ -93,11 +98,12 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 |--------|------|------|-------------|
 | POST | `/auth/register` | `{ email, password, username }` | Creates `users` row with bcrypt hash. `username` must be unique. |
 | POST | `/auth/login` | `{ identifier, password }` | `identifier` = username **or** email. Tries email first; falls back to username. Verifies bcrypt hash, creates session. |
+| PATCH | `/auth/password` | `{ current_password, new_password }` | Change password. Requires `current_password` to match existing hash. Returns `204` on success. Returns `400` if `current_password` is wrong or `new_password` is too short. Returns `409` if the account has no password yet (OAuth-only account -- use a different flow to set initial password). |
 
 ### Auth/connections endpoints
 | Method | Path | Response | Description |
 |--------|------|----------|-------------|
-| GET | `/auth/connections` | `[{ provider, provider_email, connected_at }]` | List linked OAuth providers |
+| GET | `/auth/connections` | `[{ provider, provider_email, provider_username, provider_channel_name, connected_at }]` | List linked OAuth providers. Fields `provider_email`, `provider_username`, `provider_channel_name` are nullable. |
 | DELETE | `/auth/connections/:provider` | `204` | Unlink provider (must keep ≥1 login method) |
 
 ---
@@ -134,6 +140,13 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | GET | `/auth/callback/google` | OAuth callback (proxied by portal after Google redirects here) |
 | GET | `/auth/connections` | List all OAuth providers linked to the current account |
 | DELETE | `/auth/connections/:provider` | Unlink an OAuth provider from the current account |
+
+### Account Settings (`/auth/...`) -- not yet implemented
+| Method | Path | Description |
+|--------|------|-------------|
+| PATCH | `/auth/user` | Update profile: `username` and/or `picture` (partially implemented -- see Known Limitations) |
+| PATCH | `/auth/password` | Change password: `{ current_password, new_password }`. Returns `409` for OAuth-only accounts. |
+| DELETE | `/auth/user` | Delete account + clear session cookie |
 
 ### Watched Channels (`/watches/...`)
 | Method | Path | Description |
@@ -201,7 +214,7 @@ Each channel has per-platform event conditions (see Conditions below).
 **Watch object:**
 ```json
 {
-  "id": "integer",
+  "id": "string (nano-time ID, e.g. \"watch_1748500000000\")",
   "user_id": "integer",
   "name": "string",
   "platform": "youtube | twitch | niconico | instagram | tiktok | kick | facebook | x | bilibili",
@@ -230,13 +243,13 @@ stream event, it can trigger a device action.
 **Condition object:**
 ```json
 {
-  "id": "integer",
-  "watch_id": "integer",
+  "id": "string (nano-time ID, e.g. \"cond_1748500000000\")",
+  "watch_id": "string (FK → watches.id)",
   "name": "string",
   "event_type": "comment | superchat | sticker | member | follow | sub | cheer | gift | nicoru | like | hype_train | raid | stream_start | stream_end",
   "filter": "string (optional keyword; empty = match all)",
   "is_enabled": true,
-  "device_id": "integer | null",
+  "device_id": "string | null (FK → devices.id)",
   "device_action": "on | off | toggle | color | brightness | color_temp | scene | flash | null",
   "device_action_params": {
     "color": "#ff0000",
@@ -277,7 +290,7 @@ Registered smart home devices. Credentials are stored per-brand.
 **Device object:**
 ```json
 {
-  "id": "integer",
+  "id": "string (nano-time ID, e.g. \"device_1748500000000\")",
   "user_id": "integer",
   "name": "string",
   "brand": "govee | hue | kasa | lifx | tuya | nanoleaf | yeelight | wled | wyze | amazon",
@@ -326,7 +339,7 @@ Distinct from **watched channels** (which are channels they monitor *for events*
 **Stream object:**
 ```json
 {
-  "id": "integer",
+  "id": "string (nano-time ID, e.g. \"stream_1748500000000\")",
   "user_id": "integer",
   "name": "string",
   "platform": "youtube | twitch | niconico | instagram | tiktok | kick | facebook | x | bilibili",
@@ -387,10 +400,56 @@ All routes are now registered **without** `/api/` prefix, matching the portal pr
 
 ---
 
-## Known Limitations / TODOs
+## ID Type Convention
+
+Two different ID types are used depending on the resource:
+
+| Field | Type | Example | Reason |
+|-------|------|---------|--------|
+| `users.id` | integer | `42` | PostgreSQL `SERIAL` — auto-increment PK |
+| `oauth_accounts.id` | integer | `7` | Same — DB-managed |
+| `watch.id`, `device.id`, `condition.id`, `stream_account.id` | **string** | `"watch_1748500000000"` | Nano-time identifiers — opaque like UUIDs. Prevents enumeration attacks. Stored as `TEXT PRIMARY KEY` in the DB. |
+| `user_id` (FK in all resource tables) | **integer** | `42` | References `users.id` (SERIAL) |
+
+**Portal note:** treat resource IDs as opaque strings — never `parseInt()` them, never assume they are numeric. `user_id` fields are always integers matching the logged-in user's account ID.
+
+---
+
 
 - **OAuth providers**: Only Google (YouTube) and Twitch OAuth are currently wired up. NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili provider values are reserved — login buttons show on the portal but the flows are stubs.
 - **Device test stub**: `POST /devices/test?id=` acknowledges the request but doesn't call the actual device SDK. Each `brand` needs its own implementation.
 - **Stream metrics**: `GET /streams/get` returns the full stream account but not live metrics (viewers/bitrate/fps). A separate polling integration or `GET /streams/metrics?id=` would be needed.
 - **oauth_accounts table name**: The spec uses `oauth_connections` as the logical concept name, but the database table may be named `oauth_accounts` internally. The API endpoints and behaviour are the same.
-- **User ownership**: All watches, conditions, devices, and stream accounts have a `user_id` FK. Handlers must read user ID from the session cookie (`sessionMgr.GetUserIDFromCookie()`), not from an `X-User-ID` header.
+- **User ownership**: All watches, conditions, devices, and stream accounts have a `user_id` FK. The portal proxy injects an `X-User-ID` header (integer, matching `users.id`) on every forwarded request so the API can resolve ownership without re-parsing the session cookie. See the **X-User-ID Header** section below.
+
+---
+
+## X-User-ID Header
+
+The portal server acts as a **trusted reverse proxy**. On every request forwarded to the API under `/api/`, the portal:
+
+1. Reads the session cookie from the browser request
+2. Calls `GET /auth/user` to validate the cookie and retrieve the user profile
+3. Injects `X-User-ID: <integer>` into the forwarded request header
+
+### What the API should do
+
+For all resource endpoints (`/watches`, `/devices`, `/conditions`, `/streams`, etc.), the API should read the user ID from the `X-User-ID` header rather than re-parsing the session cookie:
+
+```
+X-User-ID: 42
+```
+
+**Auth endpoints** (`/auth/user`, `/auth/login`, `/auth/logout`, `/auth/connections`, `/oauth/login`, `/auth/callback/*`) still use the session cookie directly — the portal does not inject `X-User-ID` on auth calls where the user may not be known yet.
+
+### Security note
+
+`X-User-ID` is injected by the portal proxy, not by the browser. The API should trust this header **only** from requests that arrive via the portal proxy. In production (Cloud Run), the API is not publicly reachable — all traffic comes through the portal. In local development the API is on localhost:8081, similarly only reachable from the portal process.
+
+If the API is ever exposed publicly, it should validate that `X-User-ID` is only trusted when the request also carries a valid `Authorization: Bearer <identity-token>` (the Cloud Run identity token the portal attaches).
+
+### Why this approach
+
+- Avoids the API needing its own session store or cookie parser on every resource request
+- The portal's `fetchUser()` call is already happening for page renders — on API proxy calls it adds one extra `/auth/user` round-trip per request (acceptable for now; can be optimised later with a short-lived cache keyed by session cookie)
+- `user_id` FK filtering at the DB layer ensures data isolation even if the header is somehow wrong

@@ -1,0 +1,256 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/account-settings.css">
+{{end}}
+
+{{define "content"}}
+<div class="settings-container">
+    <h1 class="settings-page-title">⚙️ Account Settings</h1>
+
+    <div class="settings-layout">
+
+        <!-- Sidebar navigation -->
+        <nav class="settings-sidebar">
+            <ul>
+                <li><a href="#" class="nav-item active" data-section="connections">🔗 Connected Accounts</a></li>
+                <li><a href="#" class="nav-item" data-section="profile">👤 Profile</a></li>
+                <li><a href="#" class="nav-item" data-section="security">🔒 Password &amp; Security</a></li>
+                <li><a href="#" class="nav-item danger-nav" data-section="danger">⚠️ Danger Zone</a></li>
+            </ul>
+        </nav>
+
+        <!-- Content area -->
+        <div class="settings-content">
+
+            <!-- ── Connected Accounts (functional) ─────────────────────── -->
+            <section id="section-connections" class="settings-section active">
+                <div class="section-header">
+                    <h2>Connected Accounts</h2>
+                    <p>Link or unlink OAuth providers. Connected providers can be used to log in to this account.</p>
+                </div>
+                <div id="connectionsMsg" class="status-msg">Loading…</div>
+                <div id="providersList" class="providers-list"></div>
+                <p class="section-note">Only Google and Twitch OAuth are active. Other providers are reserved for future integration.</p>
+            </section>
+
+            <!-- ── Profile (stub) ──────────────────────────────────────── -->
+            <section id="section-profile" class="settings-section">
+                <div class="section-header">
+                    <h2>Profile</h2>
+                    <p>Update your username and avatar.</p>
+                </div>
+                <div class="stub-notice">🚧 Profile editing will be available in a future update.</div>
+                <div class="settings-card stub-card">
+                    <div class="form-row">
+                        <label>Username</label>
+                        <input type="text" value="{{if .User}}{{.User.Username}}{{end}}" disabled>
+                    </div>
+                    <div class="form-row">
+                        <label>Email</label>
+                        <input type="email" value="{{if .User}}{{.User.Email}}{{end}}" disabled>
+                    </div>
+                    <div class="form-row">
+                        <label>Avatar URL</label>
+                        <input type="url" value="{{if .User}}{{.User.Picture}}{{end}}" disabled placeholder="https://…">
+                    </div>
+                    <button type="button" class="btn-primary" disabled>Save Profile</button>
+                </div>
+            </section>
+
+            <!-- ── Password & Security (stub) ─────────────────────────── -->
+            <section id="section-security" class="settings-section">
+                <div class="section-header">
+                    <h2>Password &amp; Security</h2>
+                    <p>Change your account password.</p>
+                </div>
+                <div class="stub-notice">🚧 Password change will be available in a future update.</div>
+                <div class="settings-card stub-card">
+                    <div class="form-row">
+                        <label>Current Password</label>
+                        <input type="password" disabled placeholder="••••••••">
+                    </div>
+                    <div class="form-row">
+                        <label>New Password</label>
+                        <input type="password" disabled placeholder="••••••••">
+                    </div>
+                    <div class="form-row">
+                        <label>Confirm New Password</label>
+                        <input type="password" disabled placeholder="••••••••">
+                    </div>
+                    <button type="button" class="btn-primary" disabled>Change Password</button>
+                </div>
+            </section>
+
+            <!-- ── Danger Zone (stub) ──────────────────────────────────── -->
+            <section id="section-danger" class="settings-section">
+                <div class="section-header">
+                    <h2>Danger Zone</h2>
+                    <p>Irreversible and destructive actions.</p>
+                </div>
+                <div class="danger-card">
+                    <div class="danger-card-info">
+                        <strong>Delete Account</strong>
+                        <p>Permanently delete your account and all associated data. This cannot be undone.</p>
+                    </div>
+                    <button type="button" class="btn-danger" disabled title="Coming soon">Delete Account</button>
+                </div>
+            </section>
+
+        </div><!-- /settings-content -->
+    </div><!-- /settings-layout -->
+</div><!-- /settings-container -->
+
+<script>
+    // ── Provider definitions ──────────────────────────────────────────────
+    const PROVIDERS = [
+        { id: 'google',    name: 'YouTube',     icon: 'youtube'   },
+        { id: 'twitch',    name: 'Twitch',      icon: 'twitch'    },
+        { id: 'niconico',  name: 'NicoNico',    icon: 'niconico'  },
+        { id: 'instagram', name: 'Instagram',   icon: 'instagram' },
+        { id: 'tiktok',    name: 'TikTok',      icon: 'tiktok'    },
+        { id: 'kick',      name: 'Kick',        icon: 'kick'      },
+        { id: 'facebook',  name: 'Facebook',    icon: 'facebook'  },
+        { id: 'x',         name: 'X (Twitter)', icon: 'x'         },
+        { id: 'bilibili',  name: 'Bilibili',    icon: 'bilibili'  },
+    ];
+    const WIRED = new Set(['google', 'twitch']);
+
+    let connections = [];
+
+    // ── Sidebar navigation ────────────────────────────────────────────────
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', e => {
+            e.preventDefault();
+            const id = item.dataset.section;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+            item.classList.add('active');
+            document.getElementById('section-' + id).classList.add('active');
+        });
+    });
+
+    // ── API helper ────────────────────────────────────────────────────────
+    async function apiRequest(method, path, body) {
+        const opts = { method, credentials: 'include', headers: {} };
+        if (body !== undefined) {
+            opts.headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body);
+        }
+        const r = await fetch('/api' + path, opts);
+        if (!r.ok) {
+            const t = await r.text();
+            throw new Error(t || String(r.status));
+        }
+        return r.status === 204 ? null : r.json();
+    }
+
+    // ── Load & render connections ──────────────────────────────────────────
+    async function loadConnections() {
+        const msgEl = document.getElementById('connectionsMsg');
+        try {
+            connections = await apiRequest('GET', '/auth/connections');
+            msgEl.style.display = 'none';
+        } catch (e) {
+            connections = [];
+            msgEl.textContent = 'Failed to load connections: ' + e.message;
+            msgEl.className = 'status-msg error-msg';
+            return;
+        }
+        renderProviders();
+    }
+
+    function renderProviders() {
+        const icons = window.__platformIcons || {};
+        const connMap = {};
+        connections.forEach(c => { connMap[c.provider] = c; });
+
+        const html = PROVIDERS.map(p => {
+            const conn = connMap[p.id];
+            const isConnected = !!conn;
+            const isWired = WIRED.has(p.id);
+            const svgIcon = icons[p.icon] || `<span style="font-size:1.4rem">🔗</span>`;
+
+            const badge = isConnected
+                ? `<span class="badge connected">Connected</span>`
+                : `<span class="badge disconnected">Not connected</span>`;
+
+            let subParts = [];
+            if (isConnected) {
+                // Primary identity: channel name or display name or email
+                const channelName   = conn.provider_channel_name ? esc(conn.provider_channel_name) : '';
+                const displayName   = conn.provider_username     ? esc(conn.provider_username)     : '';
+                const email         = conn.provider_email        ? esc(conn.provider_email)        : '';
+                const since         = conn.connected_at
+                    ? new Date(conn.connected_at).toLocaleDateString() : '';
+
+                // Show channel name on its own line if it differs from display name
+                if (channelName) subParts.push(`<span class="sub-channel">📺 ${channelName}</span>`);
+                if (displayName && displayName !== channelName) subParts.push(`<span class="sub-name">@${displayName}</span>`);
+                if (email) subParts.push(`<span class="sub-email">${email}</span>`);
+                if (since) subParts.push(`<span class="sub-since">since ${since}</span>`);
+                if (subParts.length === 0) subParts.push(`<span class="sub-email">Account linked</span>`);
+            } else if (!isWired) {
+                subParts.push(`<span class="sub-coming-soon">OAuth coming soon</span>`);
+            }
+
+            let btn = '';
+            if (isConnected) {
+                btn = `<button class="btn-disconnect" onclick="disconnectProvider('${p.id}','${esc(p.name)}')">Disconnect</button>`;
+            } else if (isWired) {
+                btn = `<button class="btn-connect" onclick="connectProvider('${p.id}')">Connect</button>`;
+            } else {
+                btn = `<button class="btn-connect" disabled title="Coming soon">Connect</button>`;
+            }
+
+            return `
+            <div class="provider-card${isConnected ? ' is-connected' : ''}">
+                <div class="provider-icon">${svgIcon}</div>
+                <div class="provider-info">
+                    <div class="provider-name">${esc(p.name)}&nbsp;${badge}</div>
+                    ${subParts.length ? `<div class="provider-sub">${subParts.join(' <span class="sub-sep">·</span> ')}</div>` : ''}
+                </div>
+                <div class="provider-action">${btn}</div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('providersList').innerHTML = html;
+    }
+
+    async function connectProvider(providerId) {
+        try {
+            const data = await apiRequest('GET', '/oauth/login?provider=' + providerId);
+            if (data && data.auth_url) {
+                window.location.href = data.auth_url;
+            }
+        } catch (e) {
+            alert('Could not start OAuth: ' + e.message);
+        }
+    }
+
+    async function disconnectProvider(providerId, providerName) {
+        // Client-side guard: if this is the only login method, warn before hitting the API
+        if (connections.length <= 1) {
+            alert('Cannot disconnect — this is your only login method.\nAdd a password or connect another provider first.');
+            return;
+        }
+        if (!confirm(`Disconnect ${providerName}?\nYou will no longer be able to log in using this account.`)) return;
+        try {
+            await apiRequest('DELETE', '/auth/connections/' + providerId);
+            await loadConnections();
+        } catch (e) {
+            alert('Failed to disconnect: ' + e.message);
+        }
+    }
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    loadConnections();
+</script>
+{{end}}
