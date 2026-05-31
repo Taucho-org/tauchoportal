@@ -87,5 +87,13 @@
   "trigger.lastTriggered": "最後にトリガーされた",
 
   "button.cancel": "キャンセル",
-  "button.save": "トリガーを保存"
+  "button.save": "トリガーを保存",
+
+  "nav.privacy": "プライバシーポリシー",
+  "nav.terms": "利用規約",
+  "policy.privacy": "プライバシーポリシー",
+  "policy.terms": "利用規約",
+  "policy.lastUpdated": "最終更新:",
+  "footer.legal": "法務",
+  "footer.policies": "ポリシー"
 }

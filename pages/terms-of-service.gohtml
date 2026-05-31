@@ -1,0 +1,266 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/terms-of-service.css">
+{{end}}
+
+{{define "content"}}
+<div class="policy-page">
+        {{if .User}}{{else}}
+        <nav class="policy-nav">
+            <a href="/" class="policy-logo">🌊 TauchoPortal</a>
+            <div class="policy-nav-links">
+                <a href="/">Home</a>
+                <a href="/login" class="nav-btn">Sign In</a>
+                <a href="/register" class="nav-btn nav-btn-primary">Create Account</a>
+            </div>
+        </nav>
+        {{end}}
+
+        <div class="container">
+            <div class="policy-header">
+                <h1>Terms of Service</h1>
+                <p class="last-updated">Last Updated: May 31, 2026</p>
+            </div>
+
+            <div class="policy-content">
+                <section class="policy-section">
+                    <h2>1. Acceptance of Terms</h2>
+                    <p>By accessing and using TauchoPortal ("Service"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you may not use our Service. TauchoPortal ("Company," "we," "us," "our") reserves the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any changes.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>2. Description of Service</h2>
+                    <p>TauchoPortal is a cloud-based streaming automation platform that monitors your live streaming channels across multiple platforms (YouTube, Twitch, NicoNico) and automatically triggers actions on connected smart devices based on stream events such as comments, donations, reactions, and audience engagement.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>3. User Eligibility and Account Registration</h2>
+                    
+                    <h3>3.1 Age Requirement</h3>
+                    <p>You must be at least 13 years of age to use TauchoPortal. By registering, you represent and warrant that you are at least 13 years old and have the legal authority to enter into this agreement.</p>
+
+                    <h3>3.2 Account Information</h3>
+                    <p>You are responsible for:</p>
+                    <ul>
+                        <li>Providing accurate, current, and complete account information</li>
+                        <li>Maintaining the confidentiality of your password and account credentials</li>
+                        <li>Notifying us immediately of unauthorized access or use</li>
+                        <li>All activities that occur under your account</li>
+                    </ul>
+
+                    <h3>3.3 Account Termination</h3>
+                    <p>We reserve the right to terminate or suspend your account at any time, for any reason, without notice, including for violation of these Terms of Service.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>4. Streaming Platform Integration</h2>
+                    
+                    <h3>4.1 Third-Party Permissions</h3>
+                    <p>To use TauchoPortal, you must authorize the Service to access your streaming platform accounts through OAuth authentication. You grant us permission to:</p>
+                    <ul>
+                        <li>Access your channel information and stream status</li>
+                        <li>Monitor chat messages and viewer interactions</li>
+                        <li>Retrieve stream metrics and analytics</li>
+                        <li>Detect live stream events and interactions</li>
+                    </ul>
+
+                    <h3>4.2 Compliance with Platform Terms</h3>
+                    <p>You are solely responsible for complying with the Terms of Service of all streaming platforms you use (YouTube, Twitch, NicoNico, etc.). We are not liable for any violations of third-party platform terms or policies.</p>
+
+                    <h3>4.3 Revocation of Access</h3>
+                    <p>You may revoke TauchoPortal's access to your streaming accounts at any time through your platform's settings. Upon revocation, we will cease monitoring and cease access to your channel data.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>5. Smart Device Integration</h2>
+                    
+                    <h3>5.1 Device Ownership</h3>
+                    <p>You represent and warrant that you own or have authorization to control all smart devices you register with TauchoPortal. You are solely responsible for ensuring that the use of these devices complies with all applicable laws and regulations.</p>
+
+                    <h3>5.2 Device Control Authorization</h3>
+                    <p>By registering a smart device, you authorize TauchoPortal to send commands to that device based on the conditions and triggers you configure. You acknowledge that we are not responsible for device malfunctions or unintended actions.</p>
+
+                    <h3>5.3 Safety Responsibility</h3>
+                    <p>You are solely responsible for ensuring that automated device triggers do not create safety hazards. This includes ensuring that:</p>
+                    <ul>
+                        <li>Devices do not interfere with essential services or safety systems</li>
+                        <li>Automated actions do not endanger you or others</li>
+                        <li>Device configurations are appropriate for your environment</li>
+                        <li>You have tested and verified device behavior before going live</li>
+                    </ul>
+
+                    <h3>5.4 Third-Party Device Terms</h3>
+                    <p>You must comply with the terms and conditions of all smart device manufacturers and platforms you integrate. We assume no responsibility for device compatibility, performance, or adherence to manufacturer specifications.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>6. Prohibited Activities</h2>
+                    <p>You agree not to use TauchoPortal to:</p>
+                    <ul>
+                        <li>Violate any applicable laws, regulations, or third-party rights</li>
+                        <li>Spam, harass, abuse, or threaten other users</li>
+                        <li>Impersonate or misrepresent yourself or others</li>
+                        <li>Attempt to gain unauthorized access to our systems or other users' accounts</li>
+                        <li>Use automated scripts, bots, or tools to scrape or extract data (except as authorized by our API)</li>
+                        <li>Transmit malware, viruses, or malicious code</li>
+                        <li>Create or distribute phishing content or fraudulent schemes</li>
+                        <li>Circumvent security measures or access restrictions</li>
+                        <li>Interfere with the functionality or performance of the Service</li>
+                        <li>Use the Service for illegal activities or to promote illegal content</li>
+                        <li>Reverse engineer, decompile, or attempt to derive the source code of our Service</li>
+                        <li>Manipulate stream data or automate fake engagement</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>7. User Content and Conduct</h2>
+                    
+                    <h3>7.1 Content Monitoring</h3>
+                    <p>We automatically monitor stream chat messages and viewer interactions to identify trigger conditions. By using our Service, you acknowledge that your streaming content and audience interactions will be processed by our systems.</p>
+
+                    <h3>7.2 User Responsibility</h3>
+                    <p>You are solely responsible for the content you create and share through your streams. We do not monitor or control user-generated content, stream content, or viewer interactions. You must comply with all applicable laws and platform policies regarding your streaming content.</p>
+
+                    <h3>7.3 Content Restrictions</h3>
+                    <p>We reserve the right to suspend or terminate service for streams or conditions that involve:</p>
+                    <ul>
+                        <li>Hate speech, discrimination, or targeted harassment</li>
+                        <li>Sexual exploitation or child safety violations</li>
+                        <li>Violence or dangerous activities</li>
+                        <li>Copyright or intellectual property violations</li>
+                        <li>Fraudulent or deceptive practices</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>8. Intellectual Property Rights</h2>
+                    
+                    <h3>8.1 Our Content</h3>
+                    <p>All content on TauchoPortal, including but not limited to software, documentation, graphics, design, and logos, is owned by or licensed to TauchoPortal and protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, modify, or transmit this content without our express written permission.</p>
+
+                    <h3>8.2 User Content License</h3>
+                    <p>By using TauchoPortal, you grant us a worldwide, royalty-free, non-exclusive license to use, reproduce, modify, and display any data or configurations you input into our Service, solely for the purpose of providing and improving the Service.</p>
+
+                    <h3>8.3 Third-Party Content</h3>
+                    <p>TauchoPortal may contain links to or integrate with third-party services. Intellectual property rights for those services are owned by their respective owners. We claim no rights to third-party content.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>9. Limitation of Liability</h2>
+                    <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, TAUCHOPORTAL AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR:</p>
+                    <ul>
+                        <li>Indirect, incidental, special, or consequential damages</li>
+                        <li>Loss of revenue, profits, data, or business opportunities</li>
+                        <li>Damage to property or equipment</li>
+                        <li>Service interruptions or system failures</li>
+                        <li>Unauthorized access or data breaches (except to the extent caused by our gross negligence)</li>
+                        <li>Actions taken by smart devices or unintended device behavior</li>
+                        <li>Issues with third-party streaming platforms or services</li>
+                    </ul>
+                    <p>This limitation applies even if TauchoPortal has been advised of the possibility of such damages.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>10. Disclaimer of Warranties</h2>
+                    <p>TAUCHOPORTAL IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. SPECIFICALLY, WE DISCLAIM:</p>
+                    <ul>
+                        <li>Any warranty of merchantability or fitness for a particular purpose</li>
+                        <li>Any warranty that the Service will be error-free, uninterrupted, or secure</li>
+                        <li>Any warranty regarding the reliability, accuracy, or completeness of data</li>
+                        <li>Any warranty that devices will function as expected or perform intended actions</li>
+                    </ul>
+                    <p>Your use of TauchoPortal is at your sole risk.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>11. Indemnification</h2>
+                    <p>You agree to defend, indemnify, and hold harmless TauchoPortal, its officers, directors, employees, and agents from and against any claims, damages, losses, and expenses (including reasonable attorneys' fees) arising from or related to:</p>
+                    <ul>
+                        <li>Your use of the Service</li>
+                        <li>Your violation of these Terms of Service</li>
+                        <li>Your violation of any applicable laws or rights of third parties</li>
+                        <li>Smart device configurations and automated actions you create</li>
+                        <li>Your streaming content and audience interactions</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>12. Service Availability and Modifications</h2>
+                    
+                    <h3>12.1 Service Modifications</h3>
+                    <p>We may modify, suspend, or discontinue TauchoPortal or any portion thereof at any time, with or without notice. We are not liable for any harm or damage resulting from such modifications or discontinuation.</p>
+
+                    <h3>12.2 Downtime and Maintenance</h3>
+                    <p>While we strive for 99.5% uptime, we do not guarantee continuous service availability. We may perform maintenance that may cause temporary service interruptions. We will provide advance notice of scheduled maintenance when possible.</p>
+
+                    <h3>12.3 Reliability</h3>
+                    <p>We do not guarantee that:</p>
+                    <ul>
+                        <li>Streams will be detected at all times</li>
+                        <li>All viewer interactions will be captured</li>
+                        <li>Device commands will always execute successfully</li>
+                        <li>The Service will meet your specific needs</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>13. Payment and Billing</h2>
+                    
+                    <h3>13.1 Subscription Terms</h3>
+                    <p>TauchoPortal may offer paid subscriptions with automatic renewal. By subscribing, you authorize us to charge the subscription fee to your payment method on a recurring basis until you cancel.</p>
+
+                    <h3>13.2 Billing Disputes</h3>
+                    <p>You must notify us of any billing disputes or unauthorized charges within 60 days. We will investigate disputed charges in accordance with applicable law.</p>
+
+                    <h3>13.3 Cancellation</h3>
+                    <p>You may cancel your subscription at any time through your account settings. Cancellation takes effect at the end of the current billing period. No refunds will be issued for partial months.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>14. Dispute Resolution</h2>
+                    
+                    <h3>14.1 Informal Resolution</h3>
+                    <p>Before initiating any legal action, you agree to attempt to resolve any dispute by contacting us and describing the issue in detail.</p>
+
+                    <h3>14.2 Arbitration</h3>
+                    <p>Any dispute, claim, or controversy arising from or relating to these Terms of Service or TauchoPortal shall be settled by binding arbitration in accordance with the rules of the American Arbitration Association, rather than in court. The arbitration shall be conducted in English and shall be held in a location mutually agreed upon by the parties.</p>
+
+                    <h3>14.3 Class Action Waiver</h3>
+                    <p>You agree that any arbitration shall be conducted on an individual basis and not as a class action, collective action, or representative action.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>15. Governing Law</h2>
+                    <p>These Terms of Service are governed by and construed in accordance with the laws of the State of California, USA, without regard to its conflict of law principles. Any legal action or proceeding relating to these terms shall be brought exclusively in the state and federal courts located in California, and you consent to the personal jurisdiction of such courts.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>16. Severability</h2>
+                    <p>If any provision of these Terms of Service is found to be invalid, illegal, or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, or if such modification is not possible, the provision shall be severed. The remaining provisions shall continue in full force and effect.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>17. Entire Agreement</h2>
+                    <p>These Terms of Service, together with our Privacy Policy, constitute the entire agreement between you and TauchoPortal regarding your use of the Service and supersede all prior or contemporaneous agreements, communications, and proposals. If there is any conflict between these Terms of Service and our Privacy Policy, these Terms of Service shall prevail.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>18. Contact Information</h2>
+                    <p>If you have questions about these Terms of Service or need to report a violation, please contact us at:</p>
+                    <div class="contact-box">
+                        <p><strong>TauchoPortal Legal Team</strong></p>
+                        <p>Email: legal@tauchoportal.com</p>
+                        <p>Support Portal: <a href="https://support.tauchoportal.com" target="_blank">support.tauchoportal.com</a></p>
+                    </div>
+                    <p>We will respond to your inquiry within 30 days.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>19. Changes to Terms</h2>
+                    <p>We may update these Terms of Service at any time. We will notify you of material changes by updating the "Last Updated" date at the top of this page. Your continued use of TauchoPortal after changes are posted constitutes your acceptance of the modified terms. If you do not agree to the changes, you must stop using the Service and cancel your account.</p>
+                </section>
+            </div>
+        </div>
+</div>
+{{end}}

@@ -87,5 +87,13 @@
   "trigger.lastTriggered": "Last triggered",
 
   "button.cancel": "Cancel",
-  "button.save": "Save Trigger"
+  "button.save": "Save Trigger",
+
+  "nav.privacy": "Privacy Policy",
+  "nav.terms": "Terms of Service",
+  "policy.privacy": "Privacy Policy",
+  "policy.terms": "Terms of Service",
+  "policy.lastUpdated": "Last Updated:",
+  "footer.legal": "Legal",
+  "footer.policies": "Policies"
 }

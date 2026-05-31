@@ -1,0 +1,229 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/privacy-policy.css">
+{{end}}
+
+{{define "content"}}
+<div class="policy-page">
+        {{if .User}}{{else}}
+        <nav class="policy-nav">
+            <a href="/" class="policy-logo">🌊 TauchoPortal</a>
+            <div class="policy-nav-links">
+                <a href="/">Home</a>
+                <a href="/login" class="nav-btn">Sign In</a>
+                <a href="/register" class="nav-btn nav-btn-primary">Create Account</a>
+            </div>
+        </nav>
+        {{end}}
+
+        <div class="container">
+            <div class="policy-header">
+                <h1>Privacy Policy</h1>
+                <p class="last-updated">Last Updated: May 31, 2026</p>
+            </div>
+
+            <div class="policy-content">
+                <section class="policy-section">
+                    <h2>1. Introduction</h2>
+                    <p>TauchoPortal ("we," "us," "our," or "Company") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and otherwise process your information in connection with our streaming automation platform ("Service").</p>
+                    <p>Please read this Privacy Policy carefully. By accessing or using TauchoPortal, you acknowledge that you have read, understood, and agree to be bound by all the terms of this Privacy Policy.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>2. Information We Collect</h2>
+                    
+                    <h3>2.1 Account Information</h3>
+                    <p>When you create a TauchoPortal account, we collect:</p>
+                    <ul>
+                        <li>Email address</li>
+                        <li>Username</li>
+                        <li>Password (encrypted)</li>
+                        <li>Profile information (name, profile picture)</li>
+                        <li>Preferred language and timezone</li>
+                    </ul>
+
+                    <h3>2.2 Streaming Account Credentials</h3>
+                    <p>To monitor your live streams, we collect and securely store OAuth tokens and authentication credentials for:</p>
+                    <ul>
+                        <li>YouTube channels</li>
+                        <li>Twitch channels</li>
+                        <li>NicoNico channels</li>
+                    </ul>
+                    <p>We never store your passwords. We use OAuth authentication to access only the permissions you explicitly grant. You can revoke access at any time through your streaming platform's settings.</p>
+
+                    <h3>2.3 Smart Device Information</h3>
+                    <p>To control your smart devices, we collect:</p>
+                    <ul>
+                        <li>Device names and identifiers</li>
+                        <li>Device types and capabilities</li>
+                        <li>Device authentication tokens (encrypted)</li>
+                        <li>Device location (if applicable)</li>
+                        <li>Network configuration details</li>
+                    </ul>
+
+                    <h3>2.4 Stream Event Data</h3>
+                    <p>We collect data about interactions with your streams:</p>
+                    <ul>
+                        <li>Viewer comments and messages (for condition matching)</li>
+                        <li>Super Chat amounts and text</li>
+                        <li>Donation and gift information</li>
+                        <li>Viewer counts and stream duration</li>
+                        <li>Reaction and emotion data</li>
+                    </ul>
+
+                    <h3>2.5 Usage Data</h3>
+                    <p>We automatically collect information about your use of TauchoPortal:</p>
+                    <ul>
+                        <li>IP address and browser type</li>
+                        <li>Pages visited and features used</li>
+                        <li>Timestamps of your activity</li>
+                        <li>Clicks and interactions within the platform</li>
+                        <li>Device information (operating system, browser)</li>
+                    </ul>
+
+                    <h3>2.6 Communication Data</h3>
+                    <p>If you contact us for support, we collect:</p>
+                    <ul>
+                        <li>Messages and correspondence</li>
+                        <li>Attachments and screenshots</li>
+                        <li>Support ticket information</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>3. How We Use Your Information</h2>
+                    <p>We use the information we collect for the following purposes:</p>
+                    <ul>
+                        <li><strong>Service Delivery:</strong> To provide and maintain the TauchoPortal service, monitor your streams, and control your devices</li>
+                        <li><strong>Authentication:</strong> To verify your identity and prevent fraud</li>
+                        <li><strong>Communication:</strong> To send service updates, respond to inquiries, and provide customer support</li>
+                        <li><strong>Analytics:</strong> To analyze how users interact with our Service and improve functionality</li>
+                        <li><strong>Security:</strong> To detect, prevent, and address security incidents and fraud</li>
+                        <li><strong>Legal Compliance:</strong> To comply with applicable laws and regulations</li>
+                        <li><strong>Marketing:</strong> To send promotional communications (with your consent)</li>
+                    </ul>
+                </section>
+
+                <section class="policy-section">
+                    <h2>4. Data Sharing and Disclosure</h2>
+                    
+                    <h3>4.1 We Do Not Sell Your Data</h3>
+                    <p>TauchoPortal does not sell, trade, or rent your personal information to third parties for their marketing purposes.</p>
+
+                    <h3>4.2 Third-Party Service Providers</h3>
+                    <p>We may share your information with trusted third-party service providers who help us operate our platform, including:</p>
+                    <ul>
+                        <li>Cloud infrastructure providers (for hosting and data storage)</li>
+                        <li>Payment processors (for billing purposes)</li>
+                        <li>Analytics providers (for service improvement)</li>
+                        <li>Smart home device manufacturers (to control your devices)</li>
+                        <li>Streaming platform APIs (YouTube, Twitch, NicoNico)</li>
+                    </ul>
+                    <p>These providers are contractually obligated to use your information only as necessary to provide services to us and are subject to confidentiality obligations.</p>
+
+                    <h3>4.3 Legal Requirements</h3>
+                    <p>We may disclose your information when required by law or when we believe in good faith that disclosure is necessary to:</p>
+                    <ul>
+                        <li>Comply with legal obligations or government requests</li>
+                        <li>Enforce our Terms of Service and other agreements</li>
+                        <li>Protect the security or integrity of our Service</li>
+                        <li>Protect the rights, privacy, safety, or property of users or the public</li>
+                    </ul>
+
+                    <h3>4.4 Business Transfers</h3>
+                    <p>In the event of a merger, acquisition, bankruptcy, or sale of assets, your information may be transferred as part of that transaction. We will provide notice before your information becomes subject to a different privacy policy.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>5. Data Security</h2>
+                    <p>We implement industry-standard security measures to protect your information, including:</p>
+                    <ul>
+                        <li>Encryption of sensitive data in transit (TLS/SSL) and at rest</li>
+                        <li>Secure password hashing using bcrypt</li>
+                        <li>Regular security audits and penetration testing</li>
+                        <li>Access controls and authentication requirements</li>
+                        <li>Secure credential storage for streaming and device tokens</li>
+                        <li>Firewalls and intrusion detection systems</li>
+                    </ul>
+                    <p>However, no method of transmission over the Internet is 100% secure. While we strive to protect your information, we cannot guarantee absolute security. You use our Service at your own risk.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>6. Data Retention</h2>
+                    <p>We retain your information for as long as necessary to provide our Service and fulfill the purposes described in this Privacy Policy. Retention periods vary depending on the type of information:</p>
+                    <ul>
+                        <li><strong>Account Information:</strong> Retained while your account is active, plus 30 days after deletion</li>
+                        <li><strong>Stream Event Data:</strong> Retained for 90 days to maintain historical records</li>
+                        <li><strong>Usage Analytics:</strong> Retained for 12 months</li>
+                        <li><strong>Support Communications:</strong> Retained for 2 years for dispute resolution</li>
+                    </ul>
+                    <p>You can request deletion of your account and associated data at any time through your account settings or by contacting us.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>7. Your Privacy Rights</h2>
+                    
+                    <h3>7.1 Access and Portability</h3>
+                    <p>You have the right to access, download, and receive a copy of your personal information in a structured, commonly used format.</p>
+
+                    <h3>7.2 Correction and Deletion</h3>
+                    <p>You have the right to correct inaccurate information and to request deletion of your data (subject to legal obligations).</p>
+
+                    <h3>7.3 Opt-Out</h3>
+                    <p>You can opt out of promotional communications at any time by clicking the unsubscribe link or adjusting your preferences in your account settings.</p>
+
+                    <h3>7.4 GDPR Rights (EU Residents)</h3>
+                    <p>If you are a resident of the European Union, you have additional rights under the General Data Protection Regulation (GDPR), including the right to object to processing, restrict processing, and withdraw consent.</p>
+
+                    <h3>7.5 CCPA Rights (California Residents)</h3>
+                    <p>If you are a California resident, you have rights under the California Consumer Privacy Act (CCPA) to request disclosure, deletion, and opt-out of the sale of personal information.</p>
+
+                    <p>To exercise any of these rights, please contact us at the address below.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>8. Cookies and Tracking</h2>
+                    <p>TauchoPortal uses cookies to enhance your experience:</p>
+                    <ul>
+                        <li><strong>Session Cookies:</strong> To maintain your login session</li>
+                        <li><strong>Preference Cookies:</strong> To remember your language and settings (taucho_language)</li>
+                        <li><strong>Analytics Cookies:</strong> To understand how you use our Service</li>
+                    </ul>
+                    <p>You can control cookie preferences through your browser settings. Disabling cookies may limit the functionality of our Service.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>9. Third-Party Links</h2>
+                    <p>Our Service may contain links to third-party websites and services. This Privacy Policy applies only to TauchoPortal. We are not responsible for the privacy practices of external sites. Please review their privacy policies before providing your information.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>10. Children's Privacy</h2>
+                    <p>TauchoPortal is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we discover that a child under 13 has provided us with information, we will promptly delete it. If you believe a child has provided us with information, please contact us immediately.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>11. International Data Transfers</h2>
+                    <p>Your information may be transferred to, stored in, and processed in countries other than your country of residence. These countries may have data protection laws that differ from your home country. By using TauchoPortal, you consent to the transfer of your information to countries outside your country of residence, which may not have the same data protection laws.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>12. Changes to This Privacy Policy</h2>
+                    <p>We may update this Privacy Policy periodically to reflect changes in our practices, technology, or legal requirements. We will notify you of material changes by updating the "Last Updated" date and, when appropriate, by sending you an email notification. Your continued use of TauchoPortal following the posting of revised Privacy Policy means you accept and agree to the changes.</p>
+                </section>
+
+                <section class="policy-section">
+                    <h2>13. Contact Us</h2>
+                    <p>If you have questions about this Privacy Policy, would like to exercise your privacy rights, or have concerns about our privacy practices, please contact us at:</p>
+                    <div class="contact-box">
+                        <p><strong>TauchoPortal Privacy Team</strong></p>
+                        <p>Email: privacy@tauchoportal.com</p>
+                        <p>Support Portal: <a href="https://support.tauchoportal.com" target="_blank">support.tauchoportal.com</a></p>
+                    </div>
+                    <p>We will respond to your inquiry within 30 days.</p>
+                </section>
+            </div>
+        </div>
+</div>
+{{end}}

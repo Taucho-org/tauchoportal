@@ -87,5 +87,13 @@
   "trigger.lastTriggered": "Último disparado",
 
   "button.cancel": "Cancelar",
-  "button.save": "Guardar disparador"
+  "button.save": "Guardar disparador",
+
+  "nav.privacy": "Política de privacidad",
+  "nav.terms": "Términos de servicio",
+  "policy.privacy": "Política de privacidad",
+  "policy.terms": "Términos de servicio",
+  "policy.lastUpdated": "Última actualización:",
+  "footer.legal": "Legal",
+  "footer.policies": "Políticas"
 }

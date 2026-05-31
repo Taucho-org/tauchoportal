@@ -87,5 +87,13 @@
   "trigger.lastTriggered": "Zuletzt ausgelöst",
 
   "button.cancel": "Abbrechen",
-  "button.save": "Auslöser speichern"
+  "button.save": "Auslöser speichern",
+
+  "nav.privacy": "Datenschutzrichtlinie",
+  "nav.terms": "Nutzungsbedingungen",
+  "policy.privacy": "Datenschutzrichtlinie",
+  "policy.terms": "Nutzungsbedingungen",
+  "policy.lastUpdated": "Letzte Aktualisierung:",
+  "footer.legal": "Rechtliches",
+  "footer.policies": "Richtlinien"
 }

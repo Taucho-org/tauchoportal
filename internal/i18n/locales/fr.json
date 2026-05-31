@@ -87,5 +87,13 @@
   "trigger.lastTriggered": "Déclenché en dernier",
 
   "button.cancel": "Annuler",
-  "button.save": "Enregistrer le déclencheur"
+  "button.save": "Enregistrer le déclencheur",
+
+  "nav.privacy": "Politique de confidentialité",
+  "nav.terms": "Conditions d'utilisation",
+  "policy.privacy": "Politique de confidentialité",
+  "policy.terms": "Conditions d'utilisation",
+  "policy.lastUpdated": "Dernière mise à jour:",
+  "footer.legal": "Informations juridiques",
+  "footer.policies": "Politiques"
 }
