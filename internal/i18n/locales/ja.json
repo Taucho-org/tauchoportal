@@ -89,11 +89,19 @@
   "button.cancel": "キャンセル",
   "button.save": "トリガーを保存",
 
+  "nav.home": "ホーム",
+  "nav.signIn": "サインイン",
+  "nav.createAccount": "アカウント作成",
   "nav.privacy": "プライバシーポリシー",
   "nav.terms": "利用規約",
-  "policy.privacy": "プライバシーポリシー",
-  "policy.terms": "利用規約",
+
+  "policy.privacyTitle": "プライバシーポリシー",
+  "policy.termsTitle": "利用規約",
   "policy.lastUpdated": "最終更新:",
-  "footer.legal": "法務",
-  "footer.policies": "ポリシー"
+  "policy.tauchoTeam": "Tauco チーム",
+  "policy.responseTime": "30日以内にご返答いたします。",
+  "policy.contactUs": "お問い合わせ",
+  "policy.contact": "お問い合わせ",
+
+  "terms.title": "利用規約"
 }

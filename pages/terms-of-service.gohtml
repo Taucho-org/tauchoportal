@@ -8,7 +8,7 @@
 <div class="policy-page">
         {{if .User}}{{else}}
         <nav class="policy-nav">
-            <a href="/" class="policy-logo">🌊 TauchoPortal</a>
+            <a href="/" class="policy-logo">🌊 Taucho</a>
             <div class="policy-nav-links">
                 <a href="/">Home</a>
                 <a href="/login" class="nav-btn">Sign In</a>
@@ -25,13 +25,13 @@
 
             <div class="policy-content">
                 <section class="policy-section">
-                    <h2>1. Acceptance of Terms</h2>
-                    <p>By accessing and using TauchoPortal ("Service"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you may not use our Service. TauchoPortal ("Company," "we," "us," "our") reserves the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any changes.</p>
+                    <h2>1. {{.I18n.T "policy.acceptanceTerms"}}</h2>
+                    <p>{{.I18n.T "policy.acceptanceTermsText"}}</p>
                 </section>
 
                 <section class="policy-section">
-                    <h2>2. Description of Service</h2>
-                    <p>TauchoPortal is a cloud-based streaming automation platform that monitors your live streaming channels across multiple platforms (YouTube, Twitch, NicoNico) and automatically triggers actions on connected smart devices based on stream events such as comments, donations, reactions, and audience engagement.</p>
+                    <h2>2. {{.I18n.T "policy.descriptionService"}}</h2>
+                    <p>{{.I18n.T "policy.descriptionServiceText"}}</p>
                 </section>
 
                 <section class="policy-section">
@@ -246,12 +246,12 @@
                 </section>
 
                 <section class="policy-section">
-                    <h2>18. Contact Information</h2>
-                    <p>If you have questions about these Terms of Service or need to report a violation, please contact us at:</p>
+                    <h2>18. {{.I18n.T "policy.contactInfo"}}</h2>
+                    <p>{{.I18n.T "policy.contactInfoText"}}</p>
                     <div class="contact-box">
-                        <p><strong>TauchoPortal Legal Team</strong></p>
-                        <p>Email: legal@tauchoportal.com</p>
-                        <p>Support Portal: <a href="https://support.tauchoportal.com" target="_blank">support.tauchoportal.com</a></p>
+                        <p><strong>{{.I18n.T "policy.tauchoTeam"}}</strong></p>
+                        <p>Email: webmaster@taucho.org</p>
+                        <p>Website: <a href="https://taucho.org" target="_blank">taucho.org</a></p>
                     </div>
                     <p>We will respond to your inquiry within 30 days.</p>
                 </section>

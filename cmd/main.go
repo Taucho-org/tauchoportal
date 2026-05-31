@@ -18,10 +18,11 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/oauth2"
-	"google.golang.org/api/idtoken"
 	"tauchoportal/internal/i18n"
 	"tauchoportal/internal/icons"
+
+	"golang.org/x/oauth2"
+	"google.golang.org/api/idtoken"
 )
 
 type PageData struct {
@@ -46,17 +47,19 @@ type pageConfig struct {
 }
 
 var pageRoutes = map[string]pageConfig{
-	"/":                    {Name: "index", Title: "Home", RequireAuth: false},
-	"/login":               {Name: "login", Title: "Login", RequireAuth: false},
-	"/register":            {Name: "register", Title: "Register", RequireAuth: false},
-	"/dashboard":           {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
-	"/monitors":            {Name: "monitors", Title: "Watched Channels", RequireAuth: true},
-	"/devices":             {Name: "devices", Title: "My Devices", RequireAuth: true},
-	"/streams":             {Name: "streams", Title: "My Streams", RequireAuth: true},
-	"/conditions":          {Name: "conditions", Title: "Conditions", RequireAuth: true},
-	"/triggers":            {Name: "triggers", Title: "Triggers", RequireAuth: true},
-	"/about":               {Name: "about", Title: "About", RequireAuth: false},
-	"/account-settings":    {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
+	"/":                 {Name: "index", Title: "Home", RequireAuth: false},
+	"/login":            {Name: "login", Title: "Login", RequireAuth: false},
+	"/register":         {Name: "register", Title: "Register", RequireAuth: false},
+	"/dashboard":        {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
+	"/monitors":         {Name: "monitors", Title: "Watched Channels", RequireAuth: true},
+	"/devices":          {Name: "devices", Title: "My Devices", RequireAuth: true},
+	"/streams":          {Name: "streams", Title: "My Streams", RequireAuth: true},
+	"/conditions":       {Name: "conditions", Title: "Conditions", RequireAuth: true},
+	"/triggers":         {Name: "triggers", Title: "Triggers", RequireAuth: true},
+	"/about":            {Name: "about", Title: "About", RequireAuth: false},
+	"/account-settings": {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
+	"/privacy-policy":   {Name: "privacy-policy", Title: "Privacy Policy", RequireAuth: false},
+	"/terms-of-service": {Name: "terms-of-service", Title: "Terms of Service", RequireAuth: false},
 }
 
 type Server struct {
@@ -268,7 +271,7 @@ func loadTemplates() map[string]*template.Template {
 			}
 			return t.JS()
 		},
-		"platformIcon":     icons.Get,
+		"platformIcon":      icons.Get,
 		"platformIconsJSON": icons.AllJSON,
 	}
 

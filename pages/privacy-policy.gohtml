@@ -8,7 +8,7 @@
 <div class="policy-page">
         {{if .User}}{{else}}
         <nav class="policy-nav">
-            <a href="/" class="policy-logo">🌊 TauchoPortal</a>
+            <a href="/" class="policy-logo">🌊 Taucho</a>
             <div class="policy-nav-links">
                 <a href="/">Home</a>
                 <a href="/login" class="nav-btn">Sign In</a>
@@ -25,25 +25,25 @@
 
             <div class="policy-content">
                 <section class="policy-section">
-                    <h2>1. Introduction</h2>
-                    <p>TauchoPortal ("we," "us," "our," or "Company") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and otherwise process your information in connection with our streaming automation platform ("Service").</p>
-                    <p>Please read this Privacy Policy carefully. By accessing or using TauchoPortal, you acknowledge that you have read, understood, and agree to be bound by all the terms of this Privacy Policy.</p>
+                    <h2>1. {{.I18n.T "policy.introduction"}}</h2>
+                    <p>{{.I18n.T "policy.introductionText"}}</p>
+                    <p>{{.I18n.T "policy.readPrivacy"}}</p>
                 </section>
 
                 <section class="policy-section">
-                    <h2>2. Information We Collect</h2>
+                    <h2>2. {{.I18n.T "policy.informationCollect"}}</h2>
                     
-                    <h3>2.1 Account Information</h3>
-                    <p>When you create a TauchoPortal account, we collect:</p>
+                    <h3>2.1 {{.I18n.T "policy.accountInfo"}}</h3>
+                    <p>{{.I18n.T "policy.whenCreateAccount"}}</p>
                     <ul>
-                        <li>Email address</li>
-                        <li>Username</li>
-                        <li>Password (encrypted)</li>
-                        <li>Profile information (name, profile picture)</li>
-                        <li>Preferred language and timezone</li>
+                        <li>{{.I18n.T "policy.emailAddress"}}</li>
+                        <li>{{.I18n.T "policy.username"}}</li>
+                        <li>{{.I18n.T "policy.passwordEncrypted"}}</li>
+                        <li>{{.I18n.T "policy.profileInfo"}}</li>
+                        <li>{{.I18n.T "policy.languageTimezone"}}</li>
                     </ul>
 
-                    <h3>2.2 Streaming Account Credentials</h3>
+                    <h3>2.2 {{.I18n.T "policy.streamingCredentials"}}</h3>
                     <p>To monitor your live streams, we collect and securely store OAuth tokens and authentication credentials for:</p>
                     <ul>
                         <li>YouTube channels</li>
@@ -214,14 +214,14 @@
                 </section>
 
                 <section class="policy-section">
-                    <h2>13. Contact Us</h2>
-                    <p>If you have questions about this Privacy Policy, would like to exercise your privacy rights, or have concerns about our privacy practices, please contact us at:</p>
+                    <h2>13. {{.I18n.T "policy.contactUs"}}</h2>
+                    <p>{{.I18n.T "policy.contactUsText"}}</p>
                     <div class="contact-box">
-                        <p><strong>TauchoPortal Privacy Team</strong></p>
-                        <p>Email: privacy@tauchoportal.com</p>
-                        <p>Support Portal: <a href="https://support.tauchoportal.com" target="_blank">support.tauchoportal.com</a></p>
+                        <p><strong>{{.I18n.T "policy.tauchoTeam"}}</strong></p>
+                        <p>Email: webmaster@taucho.org</p>
+                        <p>Website: <a href="https://taucho.org" target="_blank">taucho.org</a></p>
                     </div>
-                    <p>We will respond to your inquiry within 30 days.</p>
+                    <p>{{.I18n.T "policy.responseTime"}}</p>
                 </section>
             </div>
         </div>

@@ -89,11 +89,19 @@
   "button.cancel": "Cancelar",
   "button.save": "Guardar disparador",
 
+  "nav.home": "Inicio",
+  "nav.signIn": "Iniciar sesión",
+  "nav.createAccount": "Crear cuenta",
   "nav.privacy": "Política de privacidad",
   "nav.terms": "Términos de servicio",
-  "policy.privacy": "Política de privacidad",
-  "policy.terms": "Términos de servicio",
+
+  "policy.privacyTitle": "Política de privacidad",
+  "policy.termsTitle": "Términos de servicio",
   "policy.lastUpdated": "Última actualización:",
-  "footer.legal": "Legal",
-  "footer.policies": "Políticas"
+  "policy.tauchoTeam": "Equipo de Taucho",
+  "policy.responseTime": "Responderemos dentro de 30 días.",
+  "policy.contactUs": "Contáctenos",
+  "policy.contact": "Contáctenos",
+
+  "terms.title": "Términos de servicio"
 }

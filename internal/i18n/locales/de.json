@@ -89,11 +89,19 @@
   "button.cancel": "Abbrechen",
   "button.save": "Auslöser speichern",
 
+  "nav.home": "Startseite",
+  "nav.signIn": "Anmelden",
+  "nav.createAccount": "Konto erstellen",
   "nav.privacy": "Datenschutzrichtlinie",
   "nav.terms": "Nutzungsbedingungen",
-  "policy.privacy": "Datenschutzrichtlinie",
-  "policy.terms": "Nutzungsbedingungen",
-  "policy.lastUpdated": "Letzte Aktualisierung:",
-  "footer.legal": "Rechtliches",
-  "footer.policies": "Richtlinien"
+
+  "policy.privacyTitle": "Datenschutzrichtlinie",
+  "policy.termsTitle": "Nutzungsbedingungen",
+  "policy.lastUpdated": "Zuletzt aktualisiert:",
+  "policy.tauchoTeam": "Taucho Team",
+  "policy.responseTime": "Wir werden innerhalb von 30 Tagen antworten.",
+  "policy.contactUs": "Kontaktieren Sie uns",
+  "policy.contact": "Kontaktieren Sie uns",
+
+  "terms.title": "Nutzungsbedingungen"
 }
