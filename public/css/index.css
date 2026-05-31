@@ -89,6 +89,7 @@ h1 {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     animation: fadeIn 0.3s ease-in;
+    overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -105,6 +106,7 @@ h1 {
     max-width: 400px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideIn 0.3s ease-out;
+    position: relative;
 }
 
 @keyframes slideIn {
@@ -136,6 +138,8 @@ h1 {
 .modal-header {
     text-align: center;
     margin-bottom: 20px;
+    cursor: move;
+    user-select: none;
 }
 
 .modal-header h2 {
@@ -405,5 +409,51 @@ h1 {
     
     .oauth-btn {
         width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 0;
+    }
+
+    .modal {
+        background-color: white;
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: none;
+        min-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 16px;
+        animation: none;
+    }
+
+    .modal-header {
+        cursor: default;
+    }
+
+    .modal-header p {
+        margin-bottom: 0;
+    }
+
+    .form-group {
+        margin-bottom: 14px;
+    }
+
+    .divider {
+        margin: 16px 0 14px 0;
+    }
+
+    .oauth-buttons {
+        gap: 10px;
+    }
+
+    .modal-footer {
+        margin-top: 14px;
     }
 }

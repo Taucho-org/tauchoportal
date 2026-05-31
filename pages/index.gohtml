@@ -134,12 +134,86 @@
     </div>
     
     <script>
+        let resetLoginModalPosition = null;
+
+        function setupLoginModalDrag() {
+            const modal = document.getElementById('loginModal');
+            const modalContent = modal ? modal.querySelector('.modal-content') : null;
+            const dragHandle = modalContent ? modalContent.querySelector('.modal-header') : null;
+            if (!modal || !modalContent || !dragHandle) return;
+
+            const isPhoneLayout = () => window.matchMedia('(max-width: 600px)').matches;
+            const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+            let dragging = false;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            resetLoginModalPosition = () => {
+                modalContent.style.position = '';
+                modalContent.style.left = '';
+                modalContent.style.top = '';
+                modalContent.style.margin = '';
+                modalContent.style.width = '';
+                modalContent.style.maxWidth = '';
+                modalContent.style.transform = '';
+            };
+
+            const onMouseMove = (event) => {
+                if (!dragging) return;
+
+                const modalRect = modalContent.getBoundingClientRect();
+                const maxLeft = Math.max(0, window.innerWidth - modalRect.width);
+                const maxTop = Math.max(0, window.innerHeight - modalRect.height);
+                const nextLeft = clamp(event.clientX - offsetX, 0, maxLeft);
+                const nextTop = clamp(event.clientY - offsetY, 0, maxTop);
+
+                modalContent.style.left = `${nextLeft}px`;
+                modalContent.style.top = `${nextTop}px`;
+            };
+
+            const stopDrag = () => {
+                dragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', stopDrag);
+            };
+
+            dragHandle.addEventListener('mousedown', (event) => {
+                if (event.button !== 0 || isPhoneLayout()) return;
+
+                const rect = modalContent.getBoundingClientRect();
+                modalContent.style.position = 'fixed';
+                modalContent.style.margin = '0';
+                modalContent.style.left = `${rect.left}px`;
+                modalContent.style.top = `${rect.top}px`;
+                modalContent.style.width = `${rect.width}px`;
+                modalContent.style.maxWidth = `${rect.width}px`;
+                modalContent.style.transform = 'none';
+
+                offsetX = event.clientX - rect.left;
+                offsetY = event.clientY - rect.top;
+                dragging = true;
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', stopDrag);
+                event.preventDefault();
+            });
+
+            window.addEventListener('resize', () => {
+                if (isPhoneLayout() && resetLoginModalPosition) {
+                    resetLoginModalPosition();
+                }
+            });
+        }
+
         function openLoginModal() {
+            if (resetLoginModalPosition) resetLoginModalPosition();
             document.getElementById('loginModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
         
         function closeLoginModal() {
+            if (resetLoginModalPosition) resetLoginModalPosition();
             document.getElementById('loginModal').style.display = 'none';
             document.body.style.overflow = 'auto';
         }
@@ -187,6 +261,7 @@
 
         // If already logged in, go straight to dashboard
         document.addEventListener('DOMContentLoaded', async () => {
+            setupLoginModalDrag();
             const user = window.__user;
             if (user) window.location.replace('/dashboard');
         });
