@@ -31,20 +31,20 @@
                 </div>
                 <div id="connectionsMsg" class="status-msg">Loading…</div>
                 <div id="providersList" class="providers-list"></div>
-                <p class="section-note">Only Google and Twitch OAuth are active. Other providers are reserved for future integration.</p>
+                <p class="section-note">Google (YouTube), Twitch, Instagram, and Facebook OAuth are active. Other providers are reserved for future integration.</p>
             </section>
 
-            <!-- ── Profile (stub) ──────────────────────────────────────── -->
+            <!-- ── Profile ────────────────────────────────────────────── -->
             <section id="section-profile" class="settings-section">
                 <div class="section-header">
                     <h2>Profile</h2>
                     <p>Update your username and avatar.</p>
                 </div>
-                <div class="stub-notice">🚧 Profile editing will be available in a future update.</div>
-                <div class="settings-card stub-card">
+                <div id="profileMsg" class="status-msg" style="display:none"></div>
+                <div class="settings-card">
                     <div class="form-row">
                         <label>Username</label>
-                        <input type="text" value="{{if .User}}{{.User.Username}}{{end}}" disabled>
+                        <input id="profileUsername" type="text" value="{{if .User}}{{.User.Username}}{{end}}" placeholder="your-username">
                     </div>
                     <div class="form-row">
                         <label>Email</label>
@@ -52,37 +52,37 @@
                     </div>
                     <div class="form-row">
                         <label>Avatar URL</label>
-                        <input type="url" value="{{if .User}}{{.User.Picture}}{{end}}" disabled placeholder="https://…">
+                        <input id="profilePicture" type="url" value="{{if .User}}{{.User.Picture}}{{end}}" placeholder="https://…">
                     </div>
-                    <button type="button" class="btn-primary" disabled>Save Profile</button>
+                    <button type="button" class="btn-primary" onclick="saveProfile()">Save Profile</button>
                 </div>
             </section>
 
-            <!-- ── Password & Security (stub) ─────────────────────────── -->
+            <!-- ── Password & Security ────────────────────────────────── -->
             <section id="section-security" class="settings-section">
                 <div class="section-header">
                     <h2>Password &amp; Security</h2>
                     <p>Change your account password.</p>
                 </div>
-                <div class="stub-notice">🚧 Password change will be available in a future update.</div>
-                <div class="settings-card stub-card">
+                <div id="securityMsg" class="status-msg" style="display:none"></div>
+                <div class="settings-card">
                     <div class="form-row">
                         <label>Current Password</label>
-                        <input type="password" disabled placeholder="••••••••">
+                        <input id="currentPassword" type="password" placeholder="••••••••">
                     </div>
                     <div class="form-row">
                         <label>New Password</label>
-                        <input type="password" disabled placeholder="••••••••">
+                        <input id="newPassword" type="password" placeholder="••••••••">
                     </div>
                     <div class="form-row">
                         <label>Confirm New Password</label>
-                        <input type="password" disabled placeholder="••••••••">
+                        <input id="confirmPassword" type="password" placeholder="••••••••">
                     </div>
-                    <button type="button" class="btn-primary" disabled>Change Password</button>
+                    <button type="button" class="btn-primary" onclick="changePassword()">Change Password</button>
                 </div>
             </section>
 
-            <!-- ── Danger Zone (stub) ──────────────────────────────────── -->
+            <!-- ── Danger Zone ──────────────────────────────────────────── -->
             <section id="section-danger" class="settings-section">
                 <div class="section-header">
                     <h2>Danger Zone</h2>
@@ -93,7 +93,7 @@
                         <strong>Delete Account</strong>
                         <p>Permanently delete your account and all associated data. This cannot be undone.</p>
                     </div>
-                    <button type="button" class="btn-danger" disabled title="Coming soon">Delete Account</button>
+                    <button type="button" class="btn-danger" onclick="deleteAccount()">Delete Account</button>
                 </div>
             </section>
 
@@ -114,7 +114,7 @@
         { id: 'x',         name: 'X (Twitter)', icon: 'x'         },
         { id: 'bilibili',  name: 'Bilibili',    icon: 'bilibili'  },
     ];
-    const WIRED = new Set(['google', 'twitch']);
+    const WIRED = new Set(['google', 'twitch', 'instagram', 'facebook']);
 
     let connections = [];
 
@@ -249,6 +249,64 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function showMsg(id, msg, isError) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg;
+        el.className = 'status-msg ' + (isError ? 'error-msg' : 'success-msg');
+        el.style.display = 'block';
+    }
+
+    // ── Profile ───────────────────────────────────────────────────────────
+    async function saveProfile() {
+        const username = document.getElementById('profileUsername').value.trim();
+        const picture  = document.getElementById('profilePicture').value.trim();
+        if (!username) { showMsg('profileMsg', 'Username is required.', true); return; }
+        try {
+            showMsg('profileMsg', 'Saving…', false);
+            await apiRequest('PATCH', '/auth/user', { username, picture });
+            showMsg('profileMsg', '✅ Profile updated.', false);
+        } catch (e) {
+            showMsg('profileMsg', 'Failed: ' + e.message, true);
+        }
+    }
+
+    // ── Password ──────────────────────────────────────────────────────────
+    async function changePassword() {
+        const current  = document.getElementById('currentPassword').value;
+        const newPwd   = document.getElementById('newPassword').value;
+        const confirm  = document.getElementById('confirmPassword').value;
+        if (!current || !newPwd) { showMsg('securityMsg', 'All fields are required.', true); return; }
+        if (newPwd !== confirm)  { showMsg('securityMsg', 'New passwords do not match.', true); return; }
+        if (newPwd.length < 8)   { showMsg('securityMsg', 'New password must be at least 8 characters.', true); return; }
+        try {
+            showMsg('securityMsg', 'Updating…', false);
+            await apiRequest('PATCH', '/auth/password', { current_password: current, new_password: newPwd });
+            showMsg('securityMsg', '✅ Password changed successfully.', false);
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } catch (e) {
+            const msg = e.message.includes('409')
+                ? 'This account uses social login only — no password is set.'
+                : 'Failed: ' + e.message;
+            showMsg('securityMsg', msg, true);
+        }
+    }
+
+    // ── Delete account ────────────────────────────────────────────────────
+    async function deleteAccount() {
+        if (!confirm('Are you sure you want to permanently delete your account?\n\nAll your data will be lost. This cannot be undone.')) return;
+        const typed = prompt('Type DELETE to confirm:');
+        if (typed !== 'DELETE') { alert('Account deletion cancelled.'); return; }
+        try {
+            await apiRequest('DELETE', '/auth/user');
+            window.location.href = '/';
+        } catch (e) {
+            alert('Failed to delete account: ' + e.message);
+        }
     }
 
     loadConnections();

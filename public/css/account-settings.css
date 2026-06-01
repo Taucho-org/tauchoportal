@@ -248,7 +248,8 @@ body { background: #f5f5f5; }
 
 /* ── Status messages ──────────────────────────────────────────────── */
 .status-msg { color: #888; font-size: 0.9rem; padding: 0.75rem 0; }
-.error-msg  { color: #c62828; }
+.error-msg   { color: #c62828; }
+.success-msg { color: #2e7d32; }
 
 /* ── Danger Zone ──────────────────────────────────────────────────── */
 .danger-card {

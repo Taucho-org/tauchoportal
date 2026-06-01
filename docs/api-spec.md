@@ -1,4 +1,4 @@
-﻿# TauchoPortal — API Specification
+# TauchoPortal — API Specification
 
 This document lists every API endpoint the portal UI requires, grouped by resource.
 Use it as a checklist: ✅ = already implemented on API server, 🔲 = not yet implemented.
@@ -44,7 +44,7 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 > **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
-> NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
+> NicoNico, TikTok, Kick, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
 
 ### OAuth login flow
 | Scenario | Behaviour |
@@ -56,24 +56,41 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 
 ### OAuth redirect URI setup
 
-The portal handles the OAuth callback — Google redirects the user's browser to the **portal**, which proxies the request to the API.
+The portal handles the OAuth callback — the provider redirects the user's browser to the **portal** (`taucho.org`), which proxies the request to the API (`api.taucho.org`, not publicly reachable directly).
 
-**Callback path:** `{PORTAL_BASE_URL}/auth/callback/{provider}`  
-e.g. `http://localhost:8080/auth/callback/google` (local) · `https://taucho.org/auth/callback/google` (prod)
+**Callback path:** `{PORTAL_BASE_URL}/auth/callback/{provider}`
 
-**Google Cloud Console — Authorized redirect URIs** (OAuth 2.0 Client settings):
-- `http://localhost:8080/auth/callback/google`
-- `https://taucho.org/auth/callback/google`
+| Provider | Local callback URL | Production callback URL |
+|----------|--------------------|------------------------|
+| Google | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
+| Twitch | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| Instagram | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
+| Facebook | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 
-**What the API must do:**
-1. `GET /oauth/login?provider=X` — build the auth URL using `GOOGLE_REDIRECT_URL` from env, return `{ auth_url }`.
-2. `GET /auth/callback/google?code=...&state=...` — portal proxies this from the user's browser; exchange code, create session, set cookie, **redirect to `{PORTAL_BASE_URL}/dashboard`**.
+**Where to register each redirect URI:**
+- **Google** — Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client → Authorized redirect URIs
+- **Twitch** — Twitch Developer Console → your app → OAuth Redirect URLs
+- **Instagram** — Meta App Dashboard → Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings → OAuth Redirect URIs
+- **Facebook** — Same Meta App Dashboard → Facebook Login → Settings → Valid OAuth Redirect URIs
 
-**Required env vars on the API server:**
+**What the API does:**
+1. `GET /oauth/login?provider=X` — builds the auth URL using `{PROVIDER}_REDIRECT_URL` from env, returns `{ auth_url }`.
+2. `GET /auth/callback/{provider}?code=...&state=...` — portal proxies this; API exchanges code, creates session, sets cookie, **redirects to `{PORTAL_BASE_URL}/dashboard`**.
+
+**Required env vars on the API server (`api.taucho.org`):**
 | Env var | Local value | Production value |
 |---------|------------|-----------------|
 | `PORTAL_BASE_URL` | `http://localhost:8080` | `https://taucho.org` |
 | `GOOGLE_REDIRECT_URL` | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
+| `TWITCH_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| `INSTAGRAM_REDIRECT_URL` | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
+| `FACEBOOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
+
+> ⚠️ **Instagram credentials** — `INSTAGRAM_CLIENT_ID` and `INSTAGRAM_CLIENT_SECRET` are the **Instagram App ID / Instagram App Secret** found in Meta App Dashboard → Instagram → API setup with Instagram login → Business login settings. These are **not** the same as the main Facebook App ID shown under App Settings → Basic.
+
+> ⚠️ **Facebook credentials** — `FACEBOOK_CLIENT_ID` and `FACEBOOK_CLIENT_SECRET` are the **App ID / App Secret** found in Meta App Dashboard → App Settings → Basic.
+
+> ⚠️ **Facebook credentials** — `FACEBOOK_CLIENT_ID` and `FACEBOOK_CLIENT_SECRET` are the **main App ID / App Secret** from the same Meta app (App Settings → Basic). These are the same across Facebook and Instagram products on one Meta app — just use the top-level ones for Facebook Login.
 
 ---
 
@@ -136,15 +153,18 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | POST | `/auth/login` | Email/username + password login, sets session cookie |
 | POST | `/auth/register` | Create new email+password account |
 | POST | `/auth/logout` | Log out, clear session |
-| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google` or `twitch` (others are stubs) |
-| GET | `/auth/callback/google` | OAuth callback (proxied by portal after Google redirects here) |
+| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook` |
+| GET | `/auth/callback/google` | Google OAuth callback (proxied by portal) |
+| GET | `/auth/callback/twitch` | Twitch OAuth callback (proxied by portal) |
+| GET | `/auth/callback/instagram` | Instagram OAuth callback (proxied by portal) |
+| GET | `/auth/callback/facebook` | Facebook OAuth callback (proxied by portal) |
 | GET | `/auth/connections` | List all OAuth providers linked to the current account |
 | DELETE | `/auth/connections/:provider` | Unlink an OAuth provider from the current account |
 
-### Account Settings (`/auth/...`) -- not yet implemented
+### Account Settings (`/auth/...`)
 | Method | Path | Description |
 |--------|------|-------------|
-| PATCH | `/auth/user` | Update profile: `username` and/or `picture` (partially implemented -- see Known Limitations) |
+| PATCH | `/auth/user` | Update profile: `username` and/or `picture` |
 | PATCH | `/auth/password` | Change password: `{ current_password, new_password }`. Returns `409` for OAuth-only accounts. |
 | DELETE | `/auth/user` | Delete account + clear session cookie |
 
@@ -416,7 +436,7 @@ Two different ID types are used depending on the resource:
 ---
 
 
-- **OAuth providers**: Only Google (YouTube) and Twitch OAuth are currently wired up. NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili provider values are reserved — login buttons show on the portal but the flows are stubs.
+- **OAuth providers**: Google (YouTube), Twitch, Instagram, and Facebook OAuth are implemented. NicoNico, TikTok, Kick, X, and Bilibili provider values are reserved — login buttons may show on the portal but those flows are not yet wired.
 - **Device test stub**: `POST /devices/test?id=` acknowledges the request but doesn't call the actual device SDK. Each `brand` needs its own implementation.
 - **Stream metrics**: `GET /streams/get` returns the full stream account but not live metrics (viewers/bitrate/fps). A separate polling integration or `GET /streams/metrics?id=` would be needed.
 - **oauth_accounts table name**: The spec uses `oauth_connections` as the logical concept name, but the database table may be named `oauth_accounts` internally. The API endpoints and behaviour are the same.
