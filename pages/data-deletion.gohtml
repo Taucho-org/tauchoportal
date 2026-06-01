@@ -1,0 +1,112 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/privacy-policy.css">
+<style>
+  .status-box {
+    background: #f0f9ff;
+    border: 1px solid #bae0fd;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0;
+  }
+  .status-box.pending {
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+  .status-code {
+    font-family: monospace;
+    background: #e0f2fe;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.95em;
+  }
+</style>
+{{end}}
+
+{{define "content"}}
+<div class="policy-page">
+  {{if .User}}{{else}}
+  <nav class="policy-nav">
+    <a href="/" class="policy-logo">🌊 Taucho</a>
+    <div class="policy-nav-links">
+      <a href="/">Home</a>
+      <a href="/login" class="nav-btn">Sign In</a>
+      <a href="/register" class="nav-btn nav-btn-primary">Create Account</a>
+    </div>
+  </nav>
+  {{end}}
+
+  <div class="container">
+    <div class="policy-header">
+      <h1>Data Deletion</h1>
+    </div>
+
+    <div class="policy-content">
+
+      <!-- Status section: shown when ?id= is present (linked from Meta callback response) -->
+      <div id="status-section" style="display:none">
+        <section class="policy-section">
+          <h2>Deletion Request Status</h2>
+          <div class="status-box pending">
+            <p>✅ Your data deletion request has been received and is being processed.</p>
+            <p>Confirmation code: <span id="confirmation-code" class="status-code"></span></p>
+            <p>All personal data associated with your Facebook account on TauchoPortal will be permanently deleted within <strong>30 days</strong>.</p>
+            <p>If you have questions, please contact us at <a href="mailto:webmaster@taucho.org">webmaster@taucho.org</a> and include your confirmation code.</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Default section: shown when no ?id= param -->
+      <div id="default-section">
+        <section class="policy-section">
+          <h2>How to Delete Your Data</h2>
+          <p>You can request deletion of your personal data from TauchoPortal at any time using one of the following methods:</p>
+
+          <h3>Option 1 — Account Settings</h3>
+          <p>If you have a TauchoPortal account, sign in and go to <a href="/account-settings">Account Settings</a> to delete your account and all associated data.</p>
+
+          <h3>Option 2 — Email Request</h3>
+          <p>Send a deletion request to <a href="mailto:webmaster@taucho.org">webmaster@taucho.org</a> with the subject line <strong>"Data Deletion Request"</strong>. Include the email address or username associated with your account.</p>
+
+          <h3>Option 3 — Facebook Login Users</h3>
+          <p>If you connected your account via Facebook, you can also request deletion directly from your <a href="https://www.facebook.com/settings?tab=applications" target="_blank" rel="noopener">Facebook App Settings</a> by removing TauchoPortal. We will process the deletion automatically.</p>
+        </section>
+
+        <section class="policy-section">
+          <h2>What Gets Deleted</h2>
+          <ul>
+            <li>Your account profile (username, email, picture)</li>
+            <li>All stream monitors, devices, triggers, and conditions</li>
+            <li>OAuth tokens for connected platforms</li>
+            <li>All activity and usage logs tied to your account</li>
+          </ul>
+          <p>Deletion is completed within <strong>30 days</strong> of your request.</p>
+        </section>
+
+        <section class="policy-section">
+          <h2>Contact</h2>
+          <div class="contact-box">
+            <p><strong>Taucho Team</strong></p>
+            <p>Email: <a href="mailto:webmaster@taucho.org">webmaster@taucho.org</a></p>
+            <p>Website: <a href="https://taucho.org" target="_blank">taucho.org</a></p>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get("id");
+    if (id) {
+      document.getElementById("confirmation-code").textContent = id;
+      document.getElementById("status-section").style.display = "block";
+      document.getElementById("default-section").style.display = "none";
+    }
+  })();
+</script>
+{{end}}

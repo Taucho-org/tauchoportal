@@ -60,6 +60,7 @@ var pageRoutes = map[string]pageConfig{
 	"/account-settings": {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
 	"/privacy-policy":   {Name: "privacy-policy", Title: "Privacy Policy", RequireAuth: false},
 	"/terms-of-service": {Name: "terms-of-service", Title: "Terms of Service", RequireAuth: false},
+	"/data-deletion":    {Name: "data-deletion", Title: "Data Deletion", RequireAuth: false},
 }
 
 type Server struct {
