@@ -123,7 +123,7 @@
                 <div class="form-row">
                     <label for="nicoPass">Password</label>
                     <div class="password-field">
-                        <input id="nicoPass" type="password" autocomplete="current-password" placeholder="••••••••">
+                        <input id="nicoPass" type="password" autocomplete="off" placeholder="••••••••">
                         <button type="button" class="toggle-pw" onclick="toggleNicoPassword()" tabindex="-1" aria-label="Show/hide password">👁</button>
                     </div>
                 </div>
@@ -142,7 +142,8 @@
                 <button class="modal-close" onclick="closeNicoModal()" aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
-                <p class="nico-mfa-desc">Enter the 6-digit code from your authenticator app or SMS.</p>
+                <p class="nico-mfa-desc">A 6-digit code was sent to your NicoNico email address. Enter it below.</p>
+                <p class="nico-mfa-hint">Didn't receive a code? ← Go back and double-check your email and password.</p>
                 <div class="form-row">
                     <label for="nicoOtp">One-time code</label>
                     <div class="otp-row">
@@ -416,13 +417,15 @@
         try {
             const data = await apiRequest('POST', '/niconico/login', { email, password: pass });
             if (data.status === 'connected') {
-                nicoStatus = data;
+                nicoStatus = { connected: true, ...data };
                 closeNicoModal();
                 renderProviders();
                 showToast('NicoNico connected! ✅');
             } else if (data.status === 'mfa_required') {
                 nicoMfaSessionId = data.mfa_session_id;
                 showNicoStep2();
+            } else {
+                throw new Error('Unexpected response from server.');
             }
         } catch (e) {
             setNicoError('nicoStep1Error', nicoPrettyError(e.message));
@@ -484,26 +487,30 @@
         try {
             const data = await apiRequest('POST', '/niconico/login/mfa', payload);
             if (data.status === 'connected') {
-                nicoStatus = data;
+                nicoStatus = { connected: true, ...data };
                 closeNicoModal();
                 renderProviders();
                 showToast('NicoNico connected! ✅');
             }
         } catch (e) {
             const msg = e.message;
-            // Any OTP failure (wrong code, expired, not found) invalidates the MFA session —
-            // the server discards it and step 1 must be restarted.
-            clearNicoMfaTimer();
-            if (msg.includes('invalid OTP') || msg.includes('invalid otp') || msg.includes('OTP') ||
-                msg.includes('mismatch') || msg.includes('incorrect')) {
-                setNicoError('nicoStep2Error', 'That code is incorrect. The session has been invalidated — please click ← Back to start over.');
-            } else if (msg.includes('expired') || msg.includes('not found')) {
-                setNicoError('nicoStep2Error', 'The session timed out. Please click ← Back to start over.');
+            const isWrongOtp = msg.includes('OTP rejected') || msg.includes('invalid OTP') || msg.includes('invalid otp');
+            const isExpired  = msg.includes('expired') || msg.includes('not found');
+
+            if (isWrongOtp) {
+                // Session still valid — let the user retry while the timer runs
+                setNicoError('nicoStep2Error', 'That code is incorrect. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Verify & Connect';
             } else {
-                setNicoError('nicoStep2Error', 'Could not verify the code. Please click ← Back to start over.');
+                // Expired session or unknown fatal error
+                clearNicoMfaTimer();
+                setNicoError('nicoStep2Error', isExpired
+                    ? 'The session timed out. Please click ← Back to start over.'
+                    : 'Could not verify the code. Please click ← Back to start over.');
+                btn.disabled = true;
+                btn.textContent = 'Verify & Connect';
             }
-            // Leave the button disabled — the session is dead and cannot be retried.
-            btn.textContent = 'Verify & Connect';
         }
     }
 

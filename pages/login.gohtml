@@ -126,12 +126,12 @@
                     <div class="nico-privacy-note">⚠️ Your credentials are sent directly to NicoNico via a secure proxy. They are never stored.</div>
                     <div class="nico-form-row">
                         <label for="nicoEmail">Email</label>
-                        <input type="email" id="nicoEmail" autocomplete="username" placeholder="you@example.com">
+                        <input type="email" id="nicoEmail" autocomplete="email" placeholder="you@example.com">
                     </div>
                     <div class="nico-form-row">
                         <label for="nicoPassword">Password</label>
                         <div class="nico-pw-field">
-                            <input type="password" id="nicoPassword" autocomplete="current-password" placeholder="••••••••">
+                            <input type="password" id="nicoPassword" autocomplete="off" placeholder="••••••••">
                             <button type="button" class="nico-toggle-pw" onclick="toggleNicoPw()">👁</button>
                         </div>
                     </div>
@@ -178,6 +178,7 @@
             document.getElementById('nicoStep1').style.display = '';
             document.getElementById('nicoStep2').style.display = 'none';
             document.getElementById('nicoLoginBtn').disabled = false;
+            document.getElementById('nicoLoginBtn').textContent = 'Login';
             document.getElementById('nicoOverlay').style.display = 'flex';
             document.getElementById('nicoEmail').focus();
         };
@@ -198,6 +199,8 @@
             document.getElementById('nicoStep2').style.display = 'none';
             document.getElementById('nicoStep1').style.display = '';
             document.getElementById('nicoErr1').style.display  = 'none';
+            document.getElementById('nicoLoginBtn').disabled = false;
+            document.getElementById('nicoLoginBtn').textContent = 'Login';
         };
 
         window.submitNicoLogin = async function () {
@@ -261,7 +264,21 @@
                     body: JSON.stringify({ mfa_session_id: _mfaSessionId, otp: otp })
                 });
                 var data = await resp.json();
-                if (!resp.ok) { throw new Error(data.error || resp.statusText); }
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        // Wrong OTP — session still valid, let the user retry while timer runs
+                        showErr(errEl, (data.error || 'Incorrect code.') + ' Please try again.');
+                        btn.disabled = false;
+                        btn.textContent = 'Verify';
+                    } else {
+                        // 400 expired / other fatal error — session is dead
+                        clearTimer();
+                        showErr(errEl, (data.error || 'Session error.') + ' Please go back and try again.');
+                        btn.disabled = true;
+                        btn.textContent = 'Verify';
+                    }
+                    return;
+                }
 
                 clearTimer();
                 closeNicoModal();
@@ -269,7 +286,7 @@
                 setTimeout(function () { window.location.href = '/dashboard'; }, 1200);
             } catch (e) {
                 clearTimer();
-                showErr(errEl, e.message + ' Please go back and try again.');
+                showErr(errEl, 'Connection error. Please go back and try again.');
                 btn.disabled = true;
                 btn.textContent = 'Verify';
             }
