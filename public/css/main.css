@@ -172,3 +172,83 @@ h3 {
         font-size: 0.9em;
     }
 }
+
+/* ── NicoNico semi-OAuth modal (login / index pages) ─────────────────────
+   Uses .nico- prefixed classes to avoid conflicts with page-specific modals.
+   ──────────────────────────────────────────────────────────────────────── */
+.nico-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 1rem;
+}
+.nico-box {
+    background: white; border-radius: 10px;
+    width: 100%; max-width: 460px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden;
+}
+.nico-box-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.1rem 1.4rem 0.8rem; border-bottom: 1px solid #f0f0f0;
+}
+.nico-box-title { font-size: 1rem; font-weight: 700; color: #222; }
+.nico-box-close {
+    background: none; border: none; font-size: 1rem; color: #999;
+    cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px; line-height: 1;
+    transition: color 0.15s, background 0.15s;
+}
+.nico-box-close:hover { color: #333; background: #f0f0f0; }
+.nico-box-body { padding: 1.2rem 1.4rem; }
+.nico-box-footer {
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+    padding: 0.8rem 1.4rem 1.2rem; border-top: 1px solid #f0f0f0;
+}
+.nico-form-row { margin-bottom: 1rem; }
+.nico-form-row label { display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 0.35rem; }
+.nico-form-row input {
+    width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #ddd; border-radius: 5px;
+    font-size: 0.9rem; background: #fafafa; box-sizing: border-box; color: #333;
+}
+.nico-privacy-note {
+    background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
+    padding: 0.7rem 0.9rem; font-size: 0.83rem; color: #5d4037; margin-bottom: 1.1rem; line-height: 1.5;
+}
+.nico-err {
+    margin-top: 0.6rem; font-size: 0.85rem; color: #c62828;
+    background: #fff5f5; border: 1px solid #ffcdd2; border-radius: 5px; padding: 0.5rem 0.75rem;
+}
+.nico-mfa-desc { font-size: 0.9rem; color: #555; margin: 0 0 1rem; }
+.nico-otp-row { display: flex; align-items: center; gap: 0.75rem; }
+.nico-otp-row input {
+    flex: 1; font-size: 1.3rem; letter-spacing: 0.2em; text-align: center;
+    padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; background: #fafafa;
+}
+.nico-countdown {
+    font-size: 0.88rem; font-weight: 700; color: #888; white-space: nowrap;
+    min-width: 3.5rem; text-align: right; font-variant-numeric: tabular-nums;
+}
+.nico-pw-field { position: relative; display: flex; align-items: center; }
+.nico-pw-field input {
+    width: 100%; padding: 0.55rem 2.5rem 0.55rem 0.75rem; border: 1px solid #ddd;
+    border-radius: 5px; font-size: 0.9rem; background: #fafafa; box-sizing: border-box; color: #333;
+}
+.nico-toggle-pw {
+    position: absolute; right: 0.5rem; background: none; border: none;
+    cursor: pointer; font-size: 1rem; line-height: 1; color: #999; padding: 0;
+}
+.nico-toggle-pw:hover { color: #555; }
+@keyframes nico-spin { to { transform: rotate(360deg); } }
+.nico-spinner {
+    display: inline-block; width: 0.9em; height: 0.9em;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+    border-radius: 50%; animation: nico-spin 0.6s linear infinite;
+    vertical-align: middle; margin-right: 0.3em;
+}
+.nico-toast {
+    position: fixed; bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(2rem);
+    background: #2e7d32; color: white; padding: 0.7rem 1.4rem; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    opacity: 0; transition: opacity 0.25s, transform 0.25s; z-index: 2000; pointer-events: none;
+}
+.nico-toast.nico-toast-on { opacity: 1; transform: translateX(-50%) translateY(0); }

@@ -134,6 +134,8 @@ func main() {
 
 	// callbackProxy forwards /auth/callback/* to the API unchanged (no prefix stripping).
 	// Google redirects the user's browser to the portal after OAuth; we relay it to the API.
+	// ModifyResponse: if the portal set an "oauth_return" cookie before the OAuth redirect
+	// (via /set-oauth-return), use that URL as the post-OAuth redirect destination.
 	callbackProxy := httputil.NewSingleHostReverseProxy(target)
 	callbackProxy.Director = func(r *http.Request) {
 		r.URL.Scheme = target.Scheme
@@ -143,6 +145,18 @@ func main() {
 		attachIdentityToken(r, tokenSource)
 		log.Printf("OAuth callback: %s -> %s://%s%s", r.Method, r.URL.Scheme, r.URL.Host, r.URL.Path)
 	}
+	callbackProxy.ModifyResponse = func(resp *http.Response) error {
+		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+			if cookie, err := resp.Request.Cookie("oauth_return"); err == nil && cookie.Value != "" {
+				returnURL := cookie.Value
+				if strings.HasPrefix(returnURL, "/") {
+					resp.Header.Set("Location", returnURL)
+					resp.Header.Add("Set-Cookie", "oauth_return=; Path=/; Max-Age=0; SameSite=Lax")
+				}
+			}
+		}
+		return nil
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -150,6 +164,25 @@ func main() {
 	})
 	mux.HandleFunc("/auth/callback/", func(w http.ResponseWriter, r *http.Request) {
 		callbackProxy.ServeHTTP(w, r)
+	})
+	// /set-oauth-return: stores the post-OAuth redirect URL in a short-lived cookie.
+	// Called by the account-settings page before initiating an OAuth connect flow so
+	// the callbackProxy can redirect back to account-settings after the callback.
+	mux.HandleFunc("/set-oauth-return", func(w http.ResponseWriter, r *http.Request) {
+		returnURL := r.URL.Query().Get("url")
+		if returnURL == "" || !strings.HasPrefix(returnURL, "/") {
+			http.Error(w, "invalid url", http.StatusBadRequest)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "oauth_return",
+			Value:    returnURL,
+			Path:     "/",
+			MaxAge:   600,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("/set-lang", func(w http.ResponseWriter, r *http.Request) {
 		lang := r.URL.Query().Get("lang")

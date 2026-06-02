@@ -1,4 +1,4 @@
-# TauchoPortal — API Specification
+﻿# TauchoPortal — API Specification
 
 This document lists every API endpoint the portal UI requires, grouped by resource.
 Use it as a checklist: ✅ = already implemented on API server, 🔲 = not yet implemented.
@@ -44,7 +44,7 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 > **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
-> NicoNico, TikTok, Kick, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
+> NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
 
 ### OAuth login flow
 | Scenario | Behaviour |
@@ -75,7 +75,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 
 **What the API does:**
 1. `GET /oauth/login?provider=X` — builds the auth URL using `{PROVIDER}_REDIRECT_URL` from env, returns `{ auth_url }`.
-2. `GET /auth/callback/{provider}?code=...&state=...` — portal proxies this; API exchanges code, creates session, sets cookie, **redirects to `{PORTAL_BASE_URL}/dashboard`**.
+   - **Optional `return_url` param**: `GET /oauth/login?provider=X&return_url=<encoded-url>` — if provided, the API must embed it in the OAuth `state` parameter and redirect to it (instead of the default `/dashboard`) after the callback succeeds. The portal uses this to return to `/account-settings?connected=<provider>` so the page can show a success toast.
+2. `GET /auth/callback/{provider}?code=...&state=...` — portal proxies this; API exchanges code, creates session, sets cookie, **redirects to `return_url` from state if present, otherwise `{PORTAL_BASE_URL}/dashboard`**.
 
 **Required env vars on the API server (`api.taucho.org`):**
 | Env var | Local value | Production value |
@@ -87,8 +88,6 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 | `FACEBOOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 
 > ⚠️ **Instagram credentials** — `INSTAGRAM_CLIENT_ID` and `INSTAGRAM_CLIENT_SECRET` are the **Instagram App ID / Instagram App Secret** found in Meta App Dashboard → Instagram → API setup with Instagram login → Business login settings. These are **not** the same as the main Facebook App ID shown under App Settings → Basic.
-
-> ⚠️ **Facebook credentials** — `FACEBOOK_CLIENT_ID` and `FACEBOOK_CLIENT_SECRET` are the **App ID / App Secret** found in Meta App Dashboard → App Settings → Basic.
 
 > ⚠️ **Facebook credentials** — `FACEBOOK_CLIENT_ID` and `FACEBOOK_CLIENT_SECRET` are the **main App ID / App Secret** from the same Meta app (App Settings → Basic). These are the same across Facebook and Instagram products on one Meta app — just use the top-level ones for Facebook Login.
 
@@ -125,6 +124,332 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 
 ---
 
+## NicoNico Semi-OAuth (Session Proxy Login)
+
+> **Why this exists:** Dwango/NicoNico's public OAuth program is closed to new developers. A corporate application is in progress. Until that OAuth credential is issued, this mechanism lets users connect their NicoNico account by entering their NicoNico email and password directly on the portal. The API logs in to NicoNico on their behalf and stores only the resulting session cookie. The password is used once and immediately discarded — it is never stored or logged.
+
+### How it works
+
+```
+Portal (browser)               API (this server)          NicoNico
+       │                              │                        │
+       │  POST /api/niconico/login    │                        │
+       │  { email, password } ───────►│                        │
+       │                              │  GET login page ──────►│
+       │                              │◄── HTML + CSRF token ──│
+       │                              │  POST credentials ────►│
+       │                              │◄── redirect + cookies ─│
+       │                              │  (discard credentials) │
+       │                              │  GET nvapi/v1/users/me►│
+       │◄── { status, nico_username } │◄── user profile ───────│
+       │     (session stored in DB)   │                        │
+       │                              │                        │
+       │  (later) GET /api/niconico/  │                        │
+       │          status  ───────────►│  SELECT niconico_sess. │
+       │◄── { connected: true, ... } │                        │
+```
+
+### API Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/niconico/login` | Session cookie (required) | **Connect flow** — Step 1: link NicoNico to an already-authenticated portal account |
+| `POST` | `/niconico/login/mfa` | Session cookie (required) | **Connect flow** — Step 2: submit 2FA OTP |
+| `POST` | `/niconico/portal-login` | None (unauthenticated) | **Portal login/register** — Step 1: log in to the portal via NicoNico, or auto-create a portal account |
+| `POST` | `/niconico/portal-login/mfa` | None (unauthenticated) | **Portal login/register** — Step 2: submit 2FA OTP |
+| `GET` | `/niconico/status` | Session cookie | Check whether NicoNico is connected to the current portal account |
+| `DELETE` | `/niconico/session` | Session cookie | Disconnect NicoNico (deletes stored session) |
+
+**Authentication notes:**
+- `/niconico/login` and `/niconico/login/mfa` — require an active portal session. The portal injects `X-User-ID`. Used **only** from the account-settings page (user already logged in, wants to link NicoNico).
+- `/niconico/portal-login` and `/niconico/portal-login/mfa` — **no portal session required**. The API verifies NicoNico credentials, finds or creates the linked portal account, sets the portal session cookie, and returns `{ "status": "logged_in" }`. Used from login, register, and home page.
+
+---
+
+### `POST /niconico/login`
+
+The portal calls this with the user's NicoNico credentials.
+
+**Request body:**
+```json
+{ "email": "user@example.com", "password": "niconico_password" }
+```
+
+**Response — connected (`200`):**
+```json
+{
+  "status": "connected",
+  "nico_user_id": "12345678",
+  "nico_username": "ニコ太郎",
+  "nico_picture": "https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/0/1234567/large.jpg"
+}
+```
+
+**Response — 2FA required (`200`):**
+```json
+{
+  "status": "mfa_required",
+  "mfa_session_id": "eyJhbGciO..."
+}
+```
+The `mfa_session_id` is a server-side token valid for **10 minutes**. Show the OTP input immediately — do not let the user navigate away.
+
+**Response — bad credentials (`401`):**
+```json
+{ "error": "NicoNico login failed: invalid NicoNico credentials" }
+```
+
+**Response — not authenticated with portal (`401`):**
+```json
+{ "error": "Not authenticated" }
+```
+
+---
+
+### `POST /niconico/login/mfa`
+
+Only called when the previous step returned `"status": "mfa_required"`.
+
+**Request body:**
+```json
+{
+  "mfa_session_id": "eyJhbGciO...",
+  "otp": "123456"
+}
+```
+
+**Response — connected (`200`):** same shape as a successful `/niconico/login`.
+
+**Response — bad OTP (`401`):**
+```json
+{ "error": "OTP rejected: invalid OTP code" }
+```
+
+**Response — expired session (`400`):**
+```json
+{ "error": "MFA session expired or not found — please log in again" }
+```
+
+---
+
+### `POST /niconico/portal-login`
+
+> Unauthenticated — **no portal session required.** This endpoint logs the user in to the portal (or auto-creates a portal account) using NicoNico credentials. It is the NicoNico equivalent of `POST /auth/login`.
+
+**Request body:**
+```json
+{ "email": "user@example.com", "password": "niconico_password" }
+```
+
+**Response — logged in (`200`):** API sets the portal session cookie and returns:
+```json
+{ "status": "logged_in" }
+```
+
+**Response — 2FA required (`200`):**
+```json
+{
+  "status": "mfa_required",
+  "mfa_session_id": "eyJhbGciO..."
+}
+```
+
+**Response — bad credentials (`401`):**
+```json
+{ "error": "NicoNico login failed: invalid NicoNico credentials" }
+```
+
+---
+
+### `POST /niconico/portal-login/mfa`
+
+> Unauthenticated — no portal session required.
+
+**Request body:**
+```json
+{
+  "mfa_session_id": "eyJhbGciO...",
+  "otp": "123456"
+}
+```
+
+**Response — logged in (`200`):** same as a successful `/niconico/portal-login` — sets portal session cookie and returns `{ "status": "logged_in" }`.
+
+**Response — bad OTP (`401`):**
+```json
+{ "error": "OTP rejected: invalid OTP code" }
+```
+
+**Response — expired/not found (`400`):**
+```json
+{ "error": "MFA session expired or not found — please log in again" }
+```
+
+---
+### `GET /niconico/status`
+
+**Response — connected (`200`):**
+```json
+{
+  "connected": true,
+  "nico_user_id": "12345678",
+  "nico_username": "ニコ太郎",
+  "nico_picture": "https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/...",
+  "connected_at": "2026-06-01T10:00:00Z"
+}
+```
+
+**Response — not connected (`200`):**
+```json
+{ "connected": false }
+```
+
+---
+
+### `DELETE /niconico/session`
+
+**Response: `204 No Content`**
+
+---
+
+### Portal Implementation Requirements
+
+The portal is responsible for the entire login UX. The API handles only the HTTP session mechanics.
+
+#### 1. Account Settings — "Connected Platforms" section
+
+On the account settings page, show a "Connected Platforms" card (or extend the existing OAuth connections list). For NicoNico:
+
+- On page load, call `GET /api/niconico/status`.
+- **Not connected state:** show a "Connect NicoNico" button with the NicoNico logo.
+- **Connected state:** show the user's NicoNico avatar (`nico_picture`), username (`nico_username`), and a "Disconnect" button.
+- Cache the status response in component state — do not re-fetch on every render.
+
+#### 2. NicoNico Login Modal
+
+Triggered by the "Connect NicoNico" button. The modal has **two steps** that replace each other inline (no page navigation):
+
+---
+
+**Step 1 — Credential form**
+
+```
+┌───────────────────────────────────────────┐
+│  🔴 Connect NicoNico                  ✕   │
+│                                           │
+│  ⚠️  Your password is used once to        │
+│  obtain a login session and is never      │
+│  stored. This is a temporary measure      │
+│  while official OAuth is pending.         │
+│                                           │
+│  NicoNico email / phone                   │
+│  ┌─────────────────────────────────────┐  │
+│  │ user@example.com                    │  │
+│  └─────────────────────────────────────┘  │
+│                                           │
+│  Password                                 │
+│  ┌─────────────────────────────────────┐  │
+│  │ ••••••••                        👁  │  │
+│  └─────────────────────────────────────┘  │
+│                                           │
+│  [ Cancel ]        [ Connect NicoNico → ] │
+└───────────────────────────────────────────┘
+```
+
+- Both fields required; validate client-side before submitting.
+- "Connect NicoNico" button shows a spinner while the request is in flight (`POST /api/niconico/login`).
+- On `{ "status": "connected" }` → close modal, refresh status, show success toast.
+- On `{ "status": "mfa_required" }` → transition to Step 2 (keep `mfa_session_id` in component state).
+- On error → show the error message inline below the form; keep the form filled so the user can correct it.
+
+**Step 2 — 2FA / OTP input** *(only shown when Step 1 returns `mfa_required`)*
+
+```
+┌───────────────────────────────────────────┐
+│  🔴 NicoNico Two-Factor Auth          ✕   │
+│                                           │
+│  Enter the 6-digit code from your         │
+│  authenticator app or SMS.                │
+│                                           │
+│  One-time code                            │
+│  ┌────────────────────┐                   │
+│  │  1 2 3 · · ·       │  ⏳ 9:42 left    │
+│  └────────────────────┘                   │
+│                                           │
+│  [ ← Back ]          [ Verify & Connect ] │
+└───────────────────────────────────────────┘
+```
+
+- Show a **countdown timer** from 10:00 down to 0:00 (the `mfa_session_id` is valid 10 minutes server-side).
+- When the timer hits 0, disable the submit button and show "Session expired — please start over" with a "Try again" link that resets to Step 1.
+- OTP field: `<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code">` — this triggers the SMS OTP auto-fill on iOS/Android.
+- Submit calls `POST /api/niconico/login/mfa` with `{ mfa_session_id, otp }`.
+- On `{ "status": "connected" }` → close modal, refresh status, show success toast.
+- On `401` (bad OTP) → show error, clear the OTP field, let user try again (server discards the pending entry on failure — Step 1 must be restarted).
+- On `400` (expired session) → show "Session expired" and reset to Step 1.
+- "← Back" button resets to Step 1 (the user might have entered the wrong email).
+
+#### 3. Privacy Disclaimer
+
+The privacy note is shown in Step 1 of the modal (see wireframe above). It must be visible before the user types their password. Suggested wording:
+
+> Your NicoNico email and password are sent directly to the Taucho API server over HTTPS. They are used once to obtain a session token and are immediately discarded — your password is never stored or logged. Your session token is stored encrypted and used to fetch live stream data on your behalf.
+
+#### 4. Disconnect flow
+
+From the connected state in Account Settings:
+
+1. Show a confirmation dialog: *"Disconnect NicoNico? Live stream monitoring for NicoNico channels will stop."*
+2. On confirm → `DELETE /api/niconico/session`.
+3. On `204` → update UI to "not connected" state.
+
+#### 5. State machine (component-level)
+
+```
+idle
+ │
+ ├─[open modal]──► step1_form
+ │                    │
+ │          [submit credentials]
+ │                    │
+ │              ┌─────┴────────────────────────┐
+ │              │                              │
+ │          loading_login               error_login
+ │              │                              │
+ │         ┌────┴───────────────┐         [retry]
+ │         │                   │
+ │     connected           step2_mfa
+ │         │                   │
+ │     [modal closes]     [submit otp]
+ │                             │
+ │                        ┌────┴────────────┐
+ │                         │               │
+ │                     connected     error_otp
+ │                         │               │
+ │                     [modal closes]  [retry / back]
+ │
+ └─[connected state]──► disconnect_confirm ──► idle
+```
+
+Implement this as a single `niconico_connect_status` state variable (or a Zustand/Pinia slice) so any component on the page can react to connection changes.
+
+#### 6. Error messages (user-facing copy)
+
+| API error | Displayed message |
+|-----------|-------------------|
+| `invalid NicoNico credentials` | "Incorrect email or password. Please check your NicoNico login details." |
+| `invalid OTP code` | "That code is incorrect. Please check your authenticator app and try again." |
+| `MFA session expired` | "The session timed out. Please start over." |
+| `no user_session cookie` | "NicoNico blocked the login attempt. Please try again in a few minutes." |
+| Network / 5xx | "Could not reach the server. Please check your connection and try again." |
+
+#### 7. Where to show NicoNico connection status elsewhere
+
+- **Watches page:** if a NicoNico watch exists but the session is disconnected, show an inline warning badge: *"NicoNico not connected — live detection paused."* Link to Account Settings.
+- **Account Settings connections list:** NicoNico should appear alongside Google/Twitch in the "Connected Platforms" list, using `connected_at` as "Connected since".
+
+---
+
 ## URL Routing Note
 
 The portal proxy strips exactly one `/api` prefix before forwarding:
@@ -153,7 +478,7 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | POST | `/auth/login` | Email/username + password login, sets session cookie |
 | POST | `/auth/register` | Create new email+password account |
 | POST | `/auth/logout` | Log out, clear session |
-| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook` |
+| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook`. Optional `&return_url=<encoded>` redirects back to that URL after OAuth callback instead of `/dashboard`. |
 | GET | `/auth/callback/google` | Google OAuth callback (proxied by portal) |
 | GET | `/auth/callback/twitch` | Twitch OAuth callback (proxied by portal) |
 | GET | `/auth/callback/instagram` | Instagram OAuth callback (proxied by portal) |
@@ -161,10 +486,10 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | GET | `/auth/connections` | List all OAuth providers linked to the current account |
 | DELETE | `/auth/connections/:provider` | Unlink an OAuth provider from the current account |
 
-### Account Settings (`/auth/...`)
+### Account Settings (`/auth/...`) -- not yet implemented
 | Method | Path | Description |
 |--------|------|-------------|
-| PATCH | `/auth/user` | Update profile: `username` and/or `picture` |
+| PATCH | `/auth/user` | Update profile: `username` and/or `picture` (partially implemented -- see Known Limitations) |
 | PATCH | `/auth/password` | Change password: `{ current_password, new_password }`. Returns `409` for OAuth-only accounts. |
 | DELETE | `/auth/user` | Delete account + clear session cookie |
 
@@ -398,6 +723,7 @@ Distinct from **watched channels** (which are channels they monitor *for events*
 | Resource | List | Get | Create | Update | Delete | Other |
 |----------|------|-----|--------|--------|--------|-------|
 | Auth/User | — | ✅ | — | ✅ | ✅ | ✅ logout, ✅ oauth |
+| NicoNico | — | ✅ status | — | — | ✅ disconnect | ✅ login, ✅ mfa |
 | Watches | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | Stream Events | ✅ | ✅ | — | — | — | — |
 | Conditions | ✅ | ✅ | ✅ | ✅ | ✅ | — |
@@ -440,6 +766,7 @@ Two different ID types are used depending on the resource:
 - **Device test stub**: `POST /devices/test?id=` acknowledges the request but doesn't call the actual device SDK. Each `brand` needs its own implementation.
 - **Stream metrics**: `GET /streams/get` returns the full stream account but not live metrics (viewers/bitrate/fps). A separate polling integration or `GET /streams/metrics?id=` would be needed.
 - **oauth_accounts table name**: The spec uses `oauth_connections` as the logical concept name, but the database table may be named `oauth_accounts` internally. The API endpoints and behaviour are the same.
+- **NicoNico semi-OAuth**: Session-proxy login is implemented (`POST /niconico/login`, `POST /niconico/login/mfa`, `GET /niconico/status`, `DELETE /niconico/session`). Official OAuth credential from Dwango is still pending.
 - **User ownership**: All watches, conditions, devices, and stream accounts have a `user_id` FK. The portal proxy injects an `X-User-ID` header (integer, matching `users.id`) on every forwarded request so the API can resolve ownership without re-parsing the session cookie. See the **X-User-ID Header** section below.
 
 ---

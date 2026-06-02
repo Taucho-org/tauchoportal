@@ -73,7 +73,7 @@
                 <span class="oauth-icon">{{platformIcon "twitch"}}</span>
                 <span>Twitch</span>
             </button>
-            <button type="button" class="oauth-btn niconico-btn" onclick="startOAuthLogin('niconico')">
+            <button type="button" class="oauth-btn niconico-btn" onclick="openNicoLoginModal()">
                 <span class="oauth-icon">{{platformIcon "niconico"}}</span>
                 <span>NicoNico</span>
             </button>
@@ -107,6 +107,56 @@
             <p>Already have an account? <a href="/login">Sign in</a></p>
         </div>
     </div>
+
+    <!-- NicoNico semi-OAuth modal -->
+    <div id="nicoOverlay" class="nico-overlay" style="display:none" onclick="if(event.target===this)closeNicoModal()">
+        <div class="nico-box">
+            <div id="nicoStep1">
+                <div class="nico-box-header">
+                    <span class="nico-box-title">NicoNico Login / Register</span>
+                    <button class="nico-box-close" onclick="closeNicoModal()">✕</button>
+                </div>
+                <div class="nico-box-body">
+                    <div class="nico-privacy-note">⚠️ Your credentials are sent directly to NicoNico via a secure proxy. They are never stored. If you don't have a TauchoPortal account yet, one will be created automatically.</div>
+                    <div class="nico-form-row">
+                        <label for="nicoEmail">NicoNico Email</label>
+                        <input type="email" id="nicoEmail" autocomplete="username" placeholder="you@example.com">
+                    </div>
+                    <div class="nico-form-row">
+                        <label for="nicoPassword">NicoNico Password</label>
+                        <div class="nico-pw-field">
+                            <input type="password" id="nicoPassword" autocomplete="current-password" placeholder="••••••••">
+                            <button type="button" class="nico-toggle-pw" onclick="toggleNicoPw()">👁</button>
+                        </div>
+                    </div>
+                    <div id="nicoErr1" class="nico-err" style="display:none"></div>
+                </div>
+                <div class="nico-box-footer">
+                    <button class="btn btn-secondary" onclick="closeNicoModal()">Cancel</button>
+                    <button id="nicoLoginBtn" class="btn btn-primary" onclick="submitNicoLogin()">Continue</button>
+                </div>
+            </div>
+            <div id="nicoStep2" style="display:none">
+                <div class="nico-box-header">
+                    <span class="nico-box-title">NicoNico — Enter OTP</span>
+                    <button class="nico-box-close" onclick="closeNicoModal()">✕</button>
+                </div>
+                <div class="nico-box-body">
+                    <p class="nico-mfa-desc">A 6-digit code was sent to your email. Enter it below.</p>
+                    <div class="nico-otp-row">
+                        <input type="text" id="nicoOtp" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="000000">
+                        <span id="nicoCountdown" class="nico-countdown"></span>
+                    </div>
+                    <div id="nicoErr2" class="nico-err" style="display:none"></div>
+                </div>
+                <div class="nico-box-footer">
+                    <button class="btn btn-secondary" onclick="backNicoStep1()">← Back</button>
+                    <button id="nicoMfaBtn" class="btn btn-primary" onclick="submitNicoMfa()">Verify</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="nicoToast" class="nico-toast"></div>
     
     <script>
         const form = document.getElementById('registerForm');
@@ -149,5 +199,155 @@
                 errorMessage.classList.add('show');
             }
         });
+    </script>
+
+    <script>
+    (function () {
+        var _mfaSessionId = '';
+        var _timer = null;
+        var _seconds = 0;
+
+        window.openNicoLoginModal = function () {
+            document.getElementById('nicoEmail').value    = '';
+            document.getElementById('nicoPassword').value = '';
+            document.getElementById('nicoErr1').style.display = 'none';
+            document.getElementById('nicoStep1').style.display = '';
+            document.getElementById('nicoStep2').style.display = 'none';
+            document.getElementById('nicoLoginBtn').disabled = false;
+            document.getElementById('nicoLoginBtn').textContent = 'Continue';
+            document.getElementById('nicoOverlay').style.display = 'flex';
+            document.getElementById('nicoEmail').focus();
+        };
+
+        window.closeNicoModal = function () {
+            document.getElementById('nicoOverlay').style.display = 'none';
+            clearTimer();
+        };
+
+        window.toggleNicoPw = function () {
+            var f = document.getElementById('nicoPassword');
+            f.type = f.type === 'password' ? 'text' : 'password';
+        };
+
+        window.backNicoStep1 = function () {
+            clearTimer();
+            _mfaSessionId = '';
+            document.getElementById('nicoStep2').style.display = 'none';
+            document.getElementById('nicoStep1').style.display = '';
+            document.getElementById('nicoErr1').style.display  = 'none';
+        };
+
+        window.submitNicoLogin = async function () {
+            var email    = document.getElementById('nicoEmail').value.trim();
+            var password = document.getElementById('nicoPassword').value;
+            var btn      = document.getElementById('nicoLoginBtn');
+            var errEl    = document.getElementById('nicoErr1');
+
+            errEl.style.display = 'none';
+            if (!email || !password) { showErr(errEl, 'Please enter your NicoNico email and password.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="nico-spinner"></span>Connecting…';
+            try {
+                var resp = await fetch('/api/niconico/portal-login', {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                var data = await resp.json();
+                if (!resp.ok) { throw new Error(data.error || resp.statusText); }
+
+                if (data.status === 'mfa_required') {
+                    _mfaSessionId = data.mfa_session_id;
+                    document.getElementById('nicoStep1').style.display = 'none';
+                    document.getElementById('nicoStep2').style.display = '';
+                    document.getElementById('nicoErr2').style.display  = 'none';
+                    document.getElementById('nicoOtp').value = '';
+                    document.getElementById('nicoMfaBtn').disabled = false;
+                    document.getElementById('nicoMfaBtn').textContent = 'Verify';
+                    startTimer(300);
+                    document.getElementById('nicoOtp').focus();
+                } else if (data.status === 'logged_in') {
+                    closeNicoModal();
+                    showNicoToast('Logged in via NicoNico! ✅');
+                    setTimeout(function () { window.location.href = '/dashboard'; }, 1200);
+                } else {
+                    throw new Error('Unexpected response from server.');
+                }
+            } catch (e) {
+                showErr(errEl, e.message);
+                btn.disabled = false;
+                btn.textContent = 'Continue';
+            }
+        };
+
+        window.submitNicoMfa = async function () {
+            var otp   = document.getElementById('nicoOtp').value.replace(/\s/g, '');
+            var btn   = document.getElementById('nicoMfaBtn');
+            var errEl = document.getElementById('nicoErr2');
+
+            errEl.style.display = 'none';
+            if (!otp) { showErr(errEl, 'Please enter the OTP code.'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="nico-spinner"></span>Verifying…';
+            try {
+                var resp = await fetch('/api/niconico/portal-login/mfa', {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mfa_session_id: _mfaSessionId, otp: otp })
+                });
+                var data = await resp.json();
+                if (!resp.ok) { throw new Error(data.error || resp.statusText); }
+
+                clearTimer();
+                closeNicoModal();
+                showNicoToast('Logged in via NicoNico! ✅');
+                setTimeout(function () { window.location.href = '/dashboard'; }, 1200);
+            } catch (e) {
+                clearTimer();
+                showErr(errEl, e.message + ' Please go back and try again.');
+                btn.disabled = true;
+                btn.textContent = 'Verify';
+            }
+        };
+
+        function startTimer(seconds) {
+            _seconds = seconds;
+            clearTimer();
+            updateCountdown();
+            _timer = setInterval(function () {
+                _seconds--;
+                updateCountdown();
+                if (_seconds <= 0) {
+                    clearTimer();
+                    document.getElementById('nicoMfaBtn').disabled = true;
+                    showErr(document.getElementById('nicoErr2'), 'OTP expired. Please go back and try again.');
+                }
+            }, 1000);
+        }
+
+        function clearTimer() {
+            if (_timer) { clearInterval(_timer); _timer = null; }
+            var el = document.getElementById('nicoCountdown');
+            if (el) el.textContent = '';
+        }
+
+        function updateCountdown() {
+            var m = Math.floor(_seconds / 60);
+            var s = _seconds % 60;
+            var el = document.getElementById('nicoCountdown');
+            if (el) el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
+        function showErr(el, msg) { el.textContent = msg; el.style.display = ''; }
+
+        function showNicoToast(msg) {
+            var t = document.getElementById('nicoToast');
+            t.textContent = msg;
+            t.classList.add('nico-toast-on');
+            setTimeout(function () { t.classList.remove('nico-toast-on'); }, 3000);
+        }
+    })();
     </script>
 {{end}}
