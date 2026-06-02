@@ -116,11 +116,45 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 | POST | `/auth/login` | `{ identifier, password }` | `identifier` = username **or** email. Tries email first; falls back to username. Verifies bcrypt hash, creates session. |
 | PATCH | `/auth/password` | `{ current_password, new_password }` | Change password. Requires `current_password` to match existing hash. Returns `204` on success. Returns `400` if `current_password` is wrong or `new_password` is too short. Returns `409` if the account has no password yet (OAuth-only account -- use a different flow to set initial password). |
 
+### Auth/user response shape
+
+`GET /auth/user` returns the full account object including all connected login methods:
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "username": "donuser",
+  "picture": "https://...",
+  "has_password": true,
+  "connections": [
+    {
+      "provider": "google",
+      "provider_email": "user@gmail.com",
+      "provider_username": "Don Taucho",
+      "provider_channel_name": "Don Taucho Channel",
+      "connected_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "niconico": {
+    "connected": true,
+    "nico_user_id": "12345678",
+    "nico_username": "どんたうこ",
+    "nico_picture": "https://...",
+    "connected_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+- `has_password` — `true` if the account has an email/password set; `false` for OAuth-only accounts.
+- `connections` — array of linked OAuth providers (same shape as `GET /auth/connections`). Empty array `[]` when none.
+- `niconico` — NicoNico connection status (same shape as `GET /niconico/status`). `{ "connected": false }` when not connected.
+
 ### Auth/connections endpoints
 | Method | Path | Response | Description |
 |--------|------|----------|-------------|
-| GET | `/auth/connections` | `[{ provider, provider_email, provider_username, provider_channel_name, connected_at }]` | List linked OAuth providers. Fields `provider_email`, `provider_username`, `provider_channel_name` are nullable. |
-| DELETE | `/auth/connections/:provider` | `204` | Unlink provider (must keep ≥1 login method) |
+| GET | `/auth/connections` | `[{ provider, provider_email, provider_username, provider_channel_name, connected_at }]` | List linked OAuth providers. Fields `provider_email`, `provider_username`, `provider_channel_name` are nullable. Also included in `GET /auth/user` as `connections`. |
+| DELETE | `/auth/connections/:provider` | `204` | Unlink provider. Returns `409` if this is the only remaining login method (i.e. `has_password` is false, no other OAuth connections, and NicoNico is not connected). |
 
 ---
 
@@ -547,7 +581,132 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 
 ## 🔲 Not Yet Implemented
 
-> All endpoints listed in this spec are now implemented. See the Known Limitations section above for in-progress items (device test stub, stream metrics, session cookie auth).
+> All endpoints listed in this spec are now implemented, **except the Platform Channel Discovery section below**.
+> See the Known Limitations section above for in-progress items (device test stub, stream metrics, session cookie auth).
+
+---
+
+## Platform Channel Discovery
+
+Used by the **Add Channel** page (`/add-channel`) to browse and search real channels via linked OAuth accounts.  
+All endpoints require authentication and rely on the user's stored OAuth tokens (refreshed automatically by the API server).  
+Respond with `501 Not Implemented` until the endpoint is ready — the portal UI handles this gracefully.
+
+### YouTube (`/platform/youtube/...`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/youtube/channels/mine` | Own YouTube channel(s) |
+| GET | `/platform/youtube/subscriptions?page_token=` | Paginated subscription list |
+| GET | `/platform/youtube/search?q=` | Channel search (uses YouTube Data API key, not user OAuth) |
+
+**`GET /platform/youtube/channels/mine`**  
+Response: array of channel objects
+```json
+[
+  {
+    "channel_id": "UCxxxxxxxx",
+    "title": "My Channel",
+    "thumbnail": "https://...",
+    "subscriber_count": 12345
+  }
+]
+```
+
+**`GET /platform/youtube/subscriptions?page_token=`**  
+Response:
+```json
+{
+  "items": [
+    { "channel_id": "UCxxxxxxxx", "title": "...", "thumbnail": "...", "subscriber_count": 0 }
+  ],
+  "next_page_token": "CG8Qaa..." 
+}
+```
+- `next_page_token` is omitted or `null` when there is no further page.
+
+**`GET /platform/youtube/search?q=`**  
+- Uses YouTube Data API key (server-side), not user OAuth.  
+- Response: same shape as subscriptions (`{ items: [...], next_page_token: "..." }`).
+
+---
+
+### Twitch (`/platform/twitch/...`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/twitch/channels/mine` | Own Twitch channel |
+| GET | `/platform/twitch/following?cursor=` | Paginated channels-followed list |
+| GET | `/platform/twitch/search?q=` | Channel search |
+
+**`GET /platform/twitch/channels/mine`**  
+Response: array (usually one item):
+```json
+[
+  {
+    "channel_id": "1234567",
+    "display_name": "MyTwitchName",
+    "thumbnail": "https://...",
+    "follower_count": 500,
+    "is_live": false
+  }
+]
+```
+
+**`GET /platform/twitch/following?cursor=`**  
+Response:
+```json
+{
+  "items": [
+    { "channel_id": "987654", "display_name": "...", "thumbnail": "...", "follower_count": 0, "is_live": true }
+  ],
+  "cursor": "eyJiIjpudWxsLCJhIjp7Ik9mZnNldCI6MjB9fQ=="
+}
+```
+- `cursor` is omitted or `null` on last page.
+- Requires `user:read:follows` OAuth scope. If scope is missing, respond with `403 Forbidden`.
+
+**`GET /platform/twitch/search?q=`**  
+Response: same shape as following (`{ items: [...], cursor: "..." }`).
+
+---
+
+### NicoNico (`/platform/niconico/...`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/niconico/channels/mine` | NicoNico user channel info |
+| GET | `/platform/niconico/search?q=` | Channel / user search (if NicoNico provides a public API) |
+
+**`GET /platform/niconico/channels/mine`**  
+Response: array (usually one item):
+```json
+[
+  {
+    "channel_id": "user/12345678",
+    "title": "My NicoNico",
+    "thumbnail": "https://...",
+    "follower_count": 200
+  }
+]
+```
+
+**`GET /platform/niconico/search?q=`**  
+- Only implement if NicoNico exposes a public search API.  
+- Return `501 Not Implemented` otherwise.  
+- Response: `{ items: [...] }` using same channel object shape.
+
+---
+
+### Error responses for all `/platform/...` endpoints
+
+| Status | Meaning |
+|--------|---------|
+| 401 | Not authenticated |
+| 403 | OAuth scope insufficient (e.g. Twitch `user:read:follows` missing) |
+| 404 | User has no linked account for this platform |
+| 501 | Endpoint not yet implemented |
+| 502 | Upstream platform API error |
 
 <!-- Keeping the original endpoint schemas below for reference -->
 

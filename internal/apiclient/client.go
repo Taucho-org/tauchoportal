@@ -20,12 +20,33 @@ type OAuthLoginResponse struct {
 	AuthURL string `json:"auth_url"`
 }
 
-// UserInfo represents a user profile from the API
+// OAuthConnection represents a single linked OAuth provider on a user account
+type OAuthConnection struct {
+	Provider            string `json:"provider"`
+	ProviderEmail       string `json:"provider_email,omitempty"`
+	ProviderUsername    string `json:"provider_username,omitempty"`
+	ProviderChannelName string `json:"provider_channel_name,omitempty"`
+	ConnectedAt         string `json:"connected_at,omitempty"`
+}
+
+// NicoNicoStatus represents the NicoNico connection status on a user account
+type NicoNicoStatus struct {
+	Connected   bool   `json:"connected"`
+	NicoUserID  string `json:"nico_user_id,omitempty"`
+	NicoUsername string `json:"nico_username,omitempty"`
+	NicoPicture  string `json:"nico_picture,omitempty"`
+	ConnectedAt  string `json:"connected_at,omitempty"`
+}
+
+// UserInfo represents a user profile from the API, including all linked login methods
 type UserInfo struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Picture  string `json:"picture,omitempty"`
+	ID          int               `json:"id"`
+	Email       string            `json:"email"`
+	Username    string            `json:"username"`
+	Picture     string            `json:"picture,omitempty"`
+	HasPassword bool              `json:"has_password"`
+	Connections []OAuthConnection `json:"connections"`
+	NicoNico    *NicoNicoStatus   `json:"niconico,omitempty"`
 }
 
 // NewClient creates a new API client

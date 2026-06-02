@@ -181,6 +181,7 @@
 
     let connections = [];
     let nicoStatus  = null; // { connected, nico_user_id, nico_username, nico_picture, connected_at }
+    let hasPassword = false;
 
     // ── Sidebar navigation ────────────────────────────────────────────────
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -209,18 +210,19 @@
         return r.status === 204 ? null : r.json();
     }
 
-    // ── Load all connection data (OAuth + NicoNico) in parallel ───────────
+    // ── Load all account data (profile + connections) in one call ─────────
     async function loadAll() {
         const msgEl = document.getElementById('connectionsMsg');
         try {
-            [connections, nicoStatus] = await Promise.all([
-                apiRequest('GET', '/auth/connections'),
-                apiRequest('GET', '/niconico/status').catch(() => ({ connected: false })),
-            ]);
+            const user = await apiRequest('GET', '/auth/user');
+            connections = user.connections  || [];
+            nicoStatus  = user.niconico     || { connected: false };
+            hasPassword = !!user.has_password;
             msgEl.style.display = 'none';
         } catch (e) {
             connections = [];
             nicoStatus = { connected: false };
+            hasPassword = false;
             msgEl.textContent = 'Failed to load connections: ' + e.message;
             msgEl.className = 'status-msg error-msg';
             return;
@@ -345,7 +347,8 @@
     }
 
     async function disconnectProvider(providerId, providerName) {
-        if (connections.length <= 1) {
+        const totalMethods = connections.length + (nicoStatus?.connected ? 1 : 0) + (hasPassword ? 1 : 0);
+        if (totalMethods <= 1) {
             alert('Cannot disconnect — this is your only login method.\nAdd a password or connect another provider first.');
             return;
         }
@@ -515,6 +518,11 @@
     }
 
     async function disconnectNico() {
+        const totalMethods = connections.length + (nicoStatus?.connected ? 1 : 0) + (hasPassword ? 1 : 0);
+        if (totalMethods <= 1) {
+            alert('Cannot disconnect — this is your only login method.\nAdd a password or connect another provider first.');
+            return;
+        }
         if (!confirm('Disconnect NicoNico?\nLive stream monitoring for NicoNico channels will stop.')) return;
         try {
             await apiRequest('DELETE', '/niconico/session');
