@@ -61,16 +61,18 @@
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
+// publicAccess: true  → API can receive comments WITHOUT user OAuth (anon IRC / public WebSocket)
+// publicAccess: false → API needs user OAuth/session to receive live stream comments
 const PLATFORMS = [
-    { id: 'youtube',   name: 'YouTube',   icon: 'youtube',   hasOAuth: true  },
-    { id: 'twitch',    name: 'Twitch',    icon: 'twitch',    hasOAuth: true  },
-    { id: 'niconico',  name: 'NicoNico',  icon: 'niconico',  hasOAuth: true  },
-    { id: 'instagram', name: 'Instagram', icon: 'instagram', hasOAuth: false },
-    { id: 'tiktok',    name: 'TikTok',    icon: 'tiktok',    hasOAuth: false },
-    { id: 'kick',      name: 'Kick',      icon: 'kick',      hasOAuth: false },
-    { id: 'facebook',  name: 'Facebook',  icon: 'facebook',  hasOAuth: false },
-    { id: 'x',         name: 'X',         icon: 'x',         hasOAuth: false },
-    { id: 'bilibili',  name: 'Bilibili',  icon: 'bilibili',  hasOAuth: false },
+    { id: 'youtube',   name: 'YouTube',   icon: 'youtube',   hasOAuth: true,  publicAccess: false },
+    { id: 'twitch',    name: 'Twitch',    icon: 'twitch',    hasOAuth: true,  publicAccess: true  },
+    { id: 'niconico',  name: 'NicoNico',  icon: 'niconico',  hasOAuth: true,  publicAccess: false },
+    { id: 'instagram', name: 'Instagram', icon: 'instagram', hasOAuth: false, publicAccess: false },
+    { id: 'tiktok',    name: 'TikTok',    icon: 'tiktok',    hasOAuth: false, publicAccess: false },
+    { id: 'kick',      name: 'Kick',      icon: 'kick',      hasOAuth: false, publicAccess: true  },
+    { id: 'facebook',  name: 'Facebook',  icon: 'facebook',  hasOAuth: false, publicAccess: false },
+    { id: 'x',         name: 'X',         icon: 'x',         hasOAuth: false, publicAccess: false },
+    { id: 'bilibili',  name: 'Bilibili',  icon: 'bilibili',  hasOAuth: false, publicAccess: true  },
 ];
 
 // Maps portal provider name → platform id
@@ -117,8 +119,8 @@ PLATFORMS.forEach(p => { paginationState[p.id] = { subsCursor: null, searchDone:
     } catch (_) {}
 
     renderSidebar();
-    selectPlatform(currentPlatform);
     document.getElementById('acLoading').style.display = 'none';
+    selectPlatform(currentPlatform);
 })();
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,16 +157,48 @@ function selectPlatform(platformId) {
 
     const p = PLATFORMS.find(p => p.id === platformId);
     if (p.hasOAuth && connectedSet.has(platformId)) {
-        renderConnectedPanel(platformId);
-    } else if (p.hasOAuth && !connectedSet.has(platformId)) {
-        renderNotConnectedPanel(platformId);
+        renderConnectedPanel(platformId);           // Full browser: own + following + search
+    } else if (p.publicAccess) {
+        renderPublicSearchPanel(platformId);        // Search without OAuth + manual fallback
+    } else if (p.hasOAuth) {
+        renderNotConnectedPanel(platformId);        // OAuth required: connect first
     } else {
-        renderManualPanel(platformId);
+        renderUnsupportedPanel(platformId);         // No public access, no OAuth
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Panel: Not connected (has OAuth but not linked)
+// Panel: Public search (Twitch not-connected, Kick, Bilibili — no OAuth needed)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderPublicSearchPanel(platformId) {
+    const p    = PLATFORMS.find(p => p.id === platformId);
+    const main = document.getElementById('acMain');
+    // Hint to connect OAuth if the platform supports it (Twitch) for richer browsing
+    const connectHint = p.hasOAuth
+        ? `<p class="public-connect-hint">🔗 <a href="/account-settings">Connect your ${p.name} account</a> to also browse your own channel and channels you follow.</p>`
+        : '';
+    main.innerHTML = `
+        <div class="connected-panel">
+            ${connectHint}
+            <div class="search-bar">
+                <input type="text" id="searchInput-${platformId}"
+                       placeholder="Search ${p.name} channels…"
+                       autocomplete="off"
+                       oninput="onSearchInput('${platformId}', this.value)">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div id="searchResults-${platformId}" class="channel-results">
+                <div class="result-empty">Type a channel name or username to search.</div>
+            </div>
+            <div class="ncp-divider">or add by ID</div>
+            ${manualFormHTML(platformId, true)}
+        </div>`;
+    initManualForm(platformId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Not connected (has OAuth but not linked — requires OAuth for comments)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function renderNotConnectedPanel(platformId) {
@@ -174,30 +208,29 @@ function renderNotConnectedPanel(platformId) {
         <div class="not-connected-panel">
             <div class="ncp-icon">🔌</div>
             <h2>Connect ${p.name} first</h2>
-            <p>Link your ${p.name} account to browse and search channels.</p>
+            <p>Your ${p.name} account must be connected so the server can receive live stream comments.</p>
             <a href="/account-settings" class="btn-connect-now">Go to Account Settings →</a>
-            <div class="ncp-divider">or add manually</div>
-            ${manualFormHTML(platformId, true)}
         </div>`;
-    initManualForm(platformId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Panel: Manual entry (no OAuth at all)
+// Panel: Unsupported (no public access, no OAuth — Instagram, TikTok, etc.)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function renderManualPanel(platformId) {
+function renderUnsupportedPanel(platformId) {
     const p    = PLATFORMS.find(p => p.id === platformId);
     const main = document.getElementById('acMain');
     main.innerHTML = `
-        <div class="manual-panel">
-            <h2>Add ${p.name} Channel</h2>
-            <p class="manual-hint">Enter the channel ID or username for this platform.</p>
-            ${manualFormHTML(platformId, false)}
+        <div class="not-connected-panel">
+            <div class="ncp-icon">🚫</div>
+            <h2>${p.name} — Account Required</h2>
+            <p>Receiving live stream comments from ${p.name} requires an account connection. This platform is not yet fully supported.</p>
         </div>`;
-    initManualForm(platformId);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel: Manual entry (kept as internal helper — used by other panels)
+// ─────────────────────────────────────────────────────────────────────────────
 function manualFormHTML(platformId, compact) {
     const hints = {
         youtube:   'Channel ID (UC…) or custom URL handle (@username)',
@@ -311,7 +344,8 @@ async function doSearch(platformId, query) {
     const resultsEl = document.getElementById('searchResults-' + platformId);
     try {
         const data = await apiGet(`/platform/${platformId}/search?q=${encodeURIComponent(query)}`);
-        renderChannelResults(resultsEl, data || [], platformId, 'No results for "' + query + '"');
+        const { items } = normalizePagedData(data);
+        renderChannelResults(resultsEl, items, platformId, 'No results for "' + query + '"');
     } catch (e) {
         if (e.status === 501) {
             resultsEl.innerHTML = stubNotice('Channel search for this platform is not yet available from the API.');
@@ -330,7 +364,8 @@ async function loadOwnChannels(platformId) {
     if (!el) return;
     try {
         const data = await apiGet(`/platform/${platformId}/channels/mine`);
-        renderChannelResults(el, data || [], platformId, 'No channel found.');
+        const { items } = normalizePagedData(data);
+        renderChannelResults(el, items, platformId, 'No channel found.');
     } catch (e) {
         if (e.status === 501) {
             el.innerHTML = stubNotice('Your own channel data is not yet available from the API.');
@@ -356,9 +391,10 @@ async function loadSubs(platformId, cursor) {
 
     try {
         const data = await apiGet(`/platform/${platformId}/${endpoint}${urlSuffix}`);
-        // Expected: { items: [...], next_page_token | cursor: "..." }
-        const items      = data.items || [];
-        const nextCursor = data.next_page_token || data.cursor || null;
+        // Normalize: API may return plain array OR { items: [...], next_page_token | cursor }
+        const normalized  = normalizePagedData(data);
+        const items       = normalized.items;
+        const nextCursor  = normalized.next_page_token || normalized.cursor || null;
         paginationState[platformId].subsCursor = nextCursor;
 
         if (!cursor) {
@@ -426,7 +462,12 @@ function renderChannelResults(container, items, platformId, emptyMsg) {
             <div class="card-action">
                 ${added
                     ? `<span class="badge-added">✓ Added</span>`
-                    : `<button class="btn-select" onclick="openConfirm({platform:'${platformId}',channelId:${JSON.stringify(cid)},name:${JSON.stringify(name)},thumbnail:${JSON.stringify(thumb)}})">Add</button>`
+                    : `<button class="btn-select"
+                               data-platform="${esc(platformId)}"
+                               data-cid="${esc(cid)}"
+                               data-name="${esc(name)}"
+                               data-thumb="${esc(thumb)}"
+                               onclick="openConfirmFromEl(this)">Add</button>`
                 }
             </div>
         </div>`;
@@ -436,6 +477,15 @@ function renderChannelResults(container, items, platformId, emptyMsg) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Confirmation drawer
 // ─────────────────────────────────────────────────────────────────────────────
+
+function openConfirmFromEl(btn) {
+    openConfirm({
+        platform:  btn.dataset.platform,
+        channelId: btn.dataset.cid,
+        name:      btn.dataset.name,
+        thumbnail: btn.dataset.thumb,
+    });
+}
 
 function openConfirm(channel) {
     selectedChannel = channel;
@@ -573,6 +623,14 @@ async function apiPost(path, body) {
 
 function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Normalize API responses that may return either a plain array OR { items: [...], cursor/next_page_token }
+// Returns { items: [...], next_page_token, cursor } always.
+function normalizePagedData(data) {
+    if (Array.isArray(data)) return { items: data, next_page_token: null, cursor: null };
+    if (data && Array.isArray(data.items)) return data;
+    return { items: [], next_page_token: null, cursor: null };
 }
 
 function formatCount(n) {

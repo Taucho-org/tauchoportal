@@ -75,8 +75,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 
 **What the API does:**
 1. `GET /oauth/login?provider=X` — builds the auth URL using `{PROVIDER}_REDIRECT_URL` from env, returns `{ auth_url }`.
-   - **Optional `return_url` param**: `GET /oauth/login?provider=X&return_url=<encoded-url>` — if provided, the API must embed it in the OAuth `state` parameter and redirect to it (instead of the default `/dashboard`) after the callback succeeds. The portal uses this to return to `/account-settings?connected=<provider>` so the page can show a success toast.
-2. `GET /auth/callback/{provider}?code=...&state=...` — portal proxies this; API exchanges code, creates session, sets cookie, **redirects to `return_url` from state if present, otherwise `{PORTAL_BASE_URL}/dashboard`**.
+   - **`return_url` param** *(planned, not yet implemented)*: The `return_url` query parameter is reserved for future use. The API currently ignores it — after a successful callback the API always redirects to `{PORTAL_BASE_URL}/dashboard`.
+2. `GET /auth/callback/{provider}?code=...&state=...` — portal proxies this; API exchanges code, creates session, sets cookie, redirects to `{PORTAL_BASE_URL}/dashboard`.
 
 **Required env vars on the API server (`api.taucho.org`):**
 | Env var | Local value | Production value |
@@ -114,7 +114,7 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 |--------|------|------|-------------|
 | POST | `/auth/register` | `{ email, password, username }` | Creates `users` row with bcrypt hash. `username` must be unique. |
 | POST | `/auth/login` | `{ identifier, password }` | `identifier` = username **or** email. Tries email first; falls back to username. Verifies bcrypt hash, creates session. |
-| PATCH | `/auth/password` | `{ current_password, new_password }` | Change password. Requires `current_password` to match existing hash. Returns `204` on success. Returns `400` if `current_password` is wrong or `new_password` is too short. Returns `409` if the account has no password yet (OAuth-only account -- use a different flow to set initial password). |
+| PATCH | `/auth/password` | `{ current_password, new_password }` | Change password. Requires `current_password` to match existing hash. Returns `200 OK` with `{"message": "Password updated successfully"}` on success. Returns `401` if `current_password` is wrong. Returns `400` if fields are missing or `new_password` is too short. Returns `409` if the account has no password yet (OAuth-only account). |
 
 ### Auth/user response shape
 
@@ -508,11 +508,12 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 |--------|------|-------------|
 | GET | `/auth/user` | Get current user profile |
 | PATCH | `/auth/user` | Update `username` and/or `picture` (fields optional) |
+| PATCH | `/auth/password` | Change password: `{ current_password, new_password }`. Returns `409` for OAuth-only accounts. |
 | DELETE | `/auth/user` | Delete account + clear session cookie |
 | POST | `/auth/login` | Email/username + password login, sets session cookie |
 | POST | `/auth/register` | Create new email+password account |
 | POST | `/auth/logout` | Log out, clear session |
-| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook`. Optional `&return_url=<encoded>` redirects back to that URL after OAuth callback instead of `/dashboard`. |
+| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook`. After OAuth callback, always redirects to `{PORTAL_BASE_URL}/dashboard` (`return_url` is not yet implemented). |
 | GET | `/auth/callback/google` | Google OAuth callback (proxied by portal) |
 | GET | `/auth/callback/twitch` | Twitch OAuth callback (proxied by portal) |
 | GET | `/auth/callback/instagram` | Instagram OAuth callback (proxied by portal) |
@@ -520,12 +521,6 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | GET | `/auth/connections` | List all OAuth providers linked to the current account |
 | DELETE | `/auth/connections/:provider` | Unlink an OAuth provider from the current account |
 
-### Account Settings (`/auth/...`) -- not yet implemented
-| Method | Path | Description |
-|--------|------|-------------|
-| PATCH | `/auth/user` | Update profile: `username` and/or `picture` (partially implemented -- see Known Limitations) |
-| PATCH | `/auth/password` | Change password: `{ current_password, new_password }`. Returns `409` for OAuth-only accounts. |
-| DELETE | `/auth/user` | Delete account + clear session cookie |
 
 ### Watched Channels (`/watches/...`)
 | Method | Path | Description |
@@ -533,8 +528,65 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | GET | `/watches` | List all watches for the authenticated user |
 | GET | `/watches/get?id=<id>` | Get a single watch |
 | POST | `/watches` | Create a new watched channel |
-| PATCH | `/watches/update?id=<id>` | Update `name` and/or `is_active` |
+| PATCH | `/watches/update?id=<id>` | Update `name`, `is_active`, and/or `stream_filter` |
 | DELETE | `/watches?id=<id>` | Delete a watch (also removes its conditions) |
+
+**WatchTarget object fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique ID |
+| `name` | string | Human-readable channel name |
+| `platform` | string | `"youtube"`, `"twitch"`, `"niconico"` |
+| `channel_id` | string | Platform channel identifier |
+| `is_active` | bool | Whether polling is enabled |
+| `status` | string | `"live"`, `"offline"`, `"paused"` |
+| `stream_filter` | object\|null | Optional filter — see below |
+| `last_stream_at` | timestamp | When we last detected a live stream |
+
+**`stream_filter` — per-watch stream tracking filter**
+
+Controls whether a detected live stream should actually be tracked and trigger conditions/device actions. All comparisons are **case-insensitive substring** matches. `null` or omitted means track all streams.
+
+```json
+{
+  "skip_if_title_contains": ["just a test", "テスト配信", "draft"],
+  "skip_if_description_contains": ["do not track"],
+  "require_title_contains": ["live", "配信"]
+}
+```
+
+| Field | Type | Behaviour |
+|-------|------|-----------|
+| `skip_if_title_contains` | `string[]` | Skip stream if title contains **any** entry (blacklist) |
+| `skip_if_description_contains` | `string[]` | Skip stream if description contains **any** entry (blacklist) |
+| `require_title_contains` | `string[]` | Only track stream if title contains **at least one** entry (whitelist); empty = no restriction |
+
+Evaluation order: whitelist check first, then blacklist checks. A stream is tracked only when all checks pass.
+
+**`POST /watches` request body:**
+```json
+{
+  "name": "My Channel",
+  "platform": "youtube",
+  "channel_id": "UCxxxxxxxx",
+  "is_active": true,
+  "stream_filter": {
+    "skip_if_title_contains": ["just a test"]
+  }
+}
+```
+
+**`PATCH /watches/update?id=<id>` request body** (all fields optional):
+```json
+{
+  "name": "New Name",
+  "is_active": true,
+  "stream_filter": { "skip_if_title_contains": ["test"] },
+  "clear_filter": false
+}
+```
+Set `"clear_filter": true` to remove the filter entirely (resetting to track-all behaviour).
 
 ### Stream Events (`/stream-events/...`)
 | Method | Path | Description |
@@ -579,18 +631,12 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 
 ---
 
-## 🔲 Not Yet Implemented
-
-> All endpoints listed in this spec are now implemented, **except the Platform Channel Discovery section below**.
-> See the Known Limitations section above for in-progress items (device test stub, stream metrics, session cookie auth).
-
----
-
-## Platform Channel Discovery
+## Platform Channel Discovery ✅
 
 Used by the **Add Channel** page (`/add-channel`) to browse and search real channels via linked OAuth accounts.  
-All endpoints require authentication and rely on the user's stored OAuth tokens (refreshed automatically by the API server).  
-Respond with `501 Not Implemented` until the endpoint is ready — the portal UI handles this gracefully.
+All endpoints require authentication and rely on the user's stored OAuth tokens (refreshed automatically by the API server).
+
+> **Implementation note:** Tokens are stored in the `oauth_accounts` table (`access_token`, `refresh_token`, `token_expires_at` columns added via migration). The `YOUTUBE_API_KEY` environment variable is required for the YouTube search endpoint. NicoNico channel discovery uses the session cookie from `niconico_sessions` (not an OAuth token). NicoNico search returns `501` (no public API available).
 
 ### YouTube (`/platform/youtube/...`)
 
@@ -698,7 +744,69 @@ Response: array (usually one item):
 
 ---
 
-### Error responses for all `/platform/...` endpoints
+### Kick (`/platform/kick/...`)
+
+Kick allows anonymous WebSocket access for live chat — no user OAuth needed to receive comments.
+Channel search uses the unofficial Kick public API.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/kick/search?q=` | Channel search (no auth required) |
+| GET | `/platform/kick/channels/mine` | Own Kick channel (requires OAuth — not yet implemented) |
+| GET | `/platform/kick/following?cursor=` | Channels you follow (requires OAuth — not yet implemented) |
+
+**`GET /platform/kick/search?q=`**
+- Does **not** require user authentication.
+- Returns `501` if upstream Kick API is unavailable.
+- Response:
+```json
+{
+  "items": [
+    {
+      "channel_id": "xqc",
+      "display_name": "xQc",
+      "thumbnail": "https://...",
+      "follower_count": 500000,
+      "is_live": false
+    }
+  ]
+}
+```
+
+---
+
+### Bilibili (`/platform/bilibili/...`)
+
+Bilibili live chat is readable via public WebSocket with `uid: 0` — no user login required.
+Channel search uses the public Bilibili search API.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/bilibili/search?q=` | Channel / space search (no auth required) |
+| GET | `/platform/bilibili/channels/mine` | Own space info (requires login — not yet implemented) |
+| GET | `/platform/bilibili/following?cursor=` | Followed spaces (requires login — not yet implemented) |
+
+**`GET /platform/bilibili/search?q=`**
+- Does **not** require user authentication.
+- `channel_id` is the numeric UID of the Bilibili space (e.g. `"12345678"`).
+- Returns `501` if upstream Bilibili API is unavailable.
+- Response:
+```json
+{
+  "items": [
+    {
+      "channel_id": "12345678",
+      "title": "Channel Name",
+      "thumbnail": "https://...",
+      "follower_count": 100000
+    }
+  ]
+}
+```
+
+---
+
+
 
 | Status | Meaning |
 |--------|---------|
@@ -750,7 +858,7 @@ stream event, it can trigger a device action.
   "id": "string (nano-time ID, e.g. \"cond_1748500000000\")",
   "watch_id": "string (FK → watches.id)",
   "name": "string",
-  "event_type": "comment | superchat | sticker | member | follow | sub | cheer | gift | nicoru | like | hype_train | raid | stream_start | stream_end",
+  "event_type": "comment | superchat | sticker | member | follow | sub | cheer | gift | nicoru | hype_train | raid | stream_start | stream_end",
   "filter": "string (optional keyword; empty = match all)",
   "is_enabled": true,
   "device_id": "string | null (FK → devices.id)",
@@ -773,16 +881,18 @@ stream event, it can trigger a device action.
 
 **Platform-specific event types the portal uses:**
 
-| Platform | Event types |
+> **Note:** The table below lists event types the portal may display for each platform. For conditions, only types in the `ValidEventTypes` set are accepted as triggers: `comment`, `superchat`, `sticker`, `member`, `follow`, `sub`, `cheer`, `gift`, `nicoru`, `hype_train`, `raid`, `stream_start`, `stream_end`. Event types `like`, `reaction`, and `viewer_join` are received and stored as live events but cannot currently be used as condition triggers.
+
+| Platform | Condition-triggerable event types |
 |----------|-------------|
 | YouTube | `comment`, `superchat`, `sticker`, `member`, `stream_start`, `stream_end` |
 | Twitch | `comment`, `cheer`, `follow`, `sub`, `hype_train`, `raid`, `stream_start`, `stream_end` |
 | NicoNico | `comment`, `nicoru`, `gift`, `follow`, `stream_start`, `stream_end` |
-| Instagram | `comment`, `like`, `follow`, `gift`, `stream_start`, `stream_end` |
-| TikTok | `comment`, `like`, `follow`, `gift`, `stream_start`, `stream_end` |
+| Instagram | `comment`, `follow`, `gift`, `stream_start`, `stream_end` |
+| TikTok | `comment`, `follow`, `gift`, `stream_start`, `stream_end` |
 | Kick | `comment`, `follow`, `sub`, `raid`, `stream_start`, `stream_end` |
-| Facebook | `comment`, `like`, `follow`, `stream_start`, `stream_end` |
-| X (Twitter) | `comment`, `like`, `follow`, `stream_start`, `stream_end` |
+| Facebook | `comment`, `follow`, `stream_start`, `stream_end` |
+| X (Twitter) | `comment`, `follow`, `stream_start`, `stream_end` |
 | Bilibili | `comment`, `gift`, `follow`, `stream_start`, `stream_end` |
 
 ---
@@ -877,6 +987,270 @@ Distinct from **watched channels** (which are channels they monitor *for events*
 
 ---
 
+## Catalog: Brands & Products ✅
+
+The catalog is a **global reference table** of known smart-home device brands and product models.
+It is **not user-scoped** — any authenticated user can read it for populating UI dropdowns.
+
+> **Important — no foreign key from `devices`**
+> `Device.brand` and `Device.product_id` are plain strings. They _may_ match a catalog slug but
+> are not constrained to. This is intentional: users can register unknown/unreleased devices, and
+> obsolete products can be removed from the catalog without breaking existing devices.
+
+---
+
+### GET /catalog/brands
+
+List all brands.
+
+**Query params:**
+| Param | Default | Description |
+|-------|---------|-------------|
+| `active_only` | `true` | Set to `false` to include retired brands |
+
+**Response `200`:**
+```json
+[
+  { "id": "govee", "name": "Govee", "website": "https://www.govee.com", "logo_url": "", "is_active": true, "created_at": "...", "updated_at": "..." },
+  { "id": "hue",   "name": "Philips Hue", "website": "https://www.philips-hue.com", ... }
+]
+```
+
+---
+
+### GET /catalog/brands/get?id=\<id\>
+
+Get a brand with its product list.
+
+**Response `200`:**
+```json
+{
+  "brand": { "id": "govee", "name": "Govee", ... },
+  "products": [
+    { "id": "govee-h6159", "brand_id": "govee", "name": "H6159 LED Strip", "category": "light_strip", "supported_actions": ["set_color","set_brightness"], "is_active": true, ... }
+  ]
+}
+```
+
+---
+
+### POST /catalog/brands
+
+Create a brand. (Admin operation — access control is portal-side for now.)
+
+**Body:**
+```json
+{
+  "id": "acme",          // required — slug, must be unique (e.g. "acme")
+  "name": "Acme Lights", // required
+  "website": "https://acme.example.com",
+  "logo_url": "https://cdn.example.com/acme.png",
+  "is_active": true      // optional, default true
+}
+```
+
+**Response `201`** — created brand object.
+
+---
+
+### PATCH /catalog/brands/update?id=\<id\>
+
+Update brand fields (partial update — only supplied fields are changed).
+
+**Body:** same fields as create (all optional).
+
+**Response `200`** — updated brand object.
+
+---
+
+### DELETE /catalog/brands?id=\<id\>
+
+Delete a brand. All its products are also deleted (`ON DELETE CASCADE`).
+
+**Response `200`:** `{ "status": "deleted" }`
+
+---
+
+### GET /catalog/products?brand_id=\<id\>&active_only=true
+
+List products.
+
+**Query params:**
+| Param | Default | Description |
+|-------|---------|-------------|
+| `brand_id` | _(all)_ | Filter to a specific brand |
+| `active_only` | `true` | Set to `false` to include retired products |
+
+---
+
+### GET /catalog/products/get?id=\<id\>
+
+Get a single product.
+
+**Response `200`:**
+```json
+{
+  "id": "govee-h6159",
+  "brand_id": "govee",
+  "name": "H6159 LED Strip",
+  "category": "light_strip",
+  "thumbnail_url": "",
+  "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"],
+  "is_active": true,
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+### POST /catalog/products
+
+Create a product.
+
+**Body:**
+```json
+{
+  "id": "govee-h6159",        // required — slug
+  "brand_id": "govee",         // required — must exist in brands table
+  "name": "H6159 LED Strip",  // required
+  "category": "light_strip",
+  "thumbnail_url": "",
+  "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"],
+  "is_active": true
+}
+```
+
+`supported_actions` values must be valid device action keys (see `ValidDeviceActions` in `models/condition.go`).
+
+**Response `201`** — created product object.
+
+---
+
+### PATCH /catalog/products/update?id=\<id\>
+
+Update product fields (partial update).
+
+**Response `200`** — updated product object.
+
+---
+
+### DELETE /catalog/products?id=\<id\>
+
+Delete a product.
+
+**Response `200`:** `{ "status": "deleted" }`
+
+---
+
+### Pre-seeded Brands
+
+On first startup the following 10 brands are seeded automatically (`ON CONFLICT DO NOTHING`):
+
+| ID | Name |
+|----|------|
+| `govee` | Govee |
+| `hue` | Philips Hue |
+| `kasa` | TP-Link Kasa |
+| `lifx` | LIFX |
+| `tuya` | Tuya |
+| `nanoleaf` | Nanoleaf |
+| `yeelight` | Yeelight |
+| `wled` | WLED (DIY) |
+| `wyze` | Wyze |
+| `amazon` | Amazon Alexa |
+
+Products must be added manually (via `POST /catalog/products`) as specific device models become known.
+
+---
+
+## Live Events ✅
+
+Real-time in-stream interaction events (comments, gifts, superchats, etc.) ingested by the platform listener layer once a live stream is detected.
+
+> **Note:** Live events are **write-only from the server side** — the platform listener writes them during a live stream. The API exposed here is **read-only** for the portal.
+
+### Event types
+
+| `event_type` | Description | Platforms |
+|---|---|---|
+| `comment` | Regular chat message / danmaku | YouTube, Twitch, NicoNico, TikTok, Kick, Bilibili |
+| `superchat` | Paid super chat with amount | YouTube, Bilibili |
+| `sticker` | Paid super sticker | YouTube |
+| `gift` | Virtual gift or gift subscription | Twitch, NicoNico, TikTok, Bilibili |
+| `cheer` | Twitch Bits | Twitch |
+| `member` | New channel member / guard buy | YouTube, Bilibili |
+| `follow` | New follower | Twitch, Kick |
+| `sub` | New subscription | Twitch, Kick |
+| `raid` | Incoming raid | Twitch |
+| `nicoru` | NicoNico nicoru reaction | NicoNico |
+| `like` | TikTok like burst | TikTok |
+| `hype_train` | Twitch Hype Train progress | Twitch |
+| `reaction` | Facebook Live reaction | Facebook |
+| `viewer_join` | User entered the stream | TikTok, Bilibili |
+
+### GET /live-events
+
+List live events with optional filters.
+
+**Query params:**
+| Param | Description |
+|-------|-------------|
+| `stream_id` | Filter to events from a specific `stream_events.id` (most common) |
+| `watch_id` | Filter to events from a specific watch target (all-time) |
+| `event_type` | Optional: filter to one event type |
+| `limit` | Max results. Default: 200 for `stream_id` queries, 100 otherwise |
+
+If neither `stream_id` nor `watch_id` is provided, returns the authenticated user's most recent events across all streams.
+
+**Response `200`:**
+```json
+[
+  {
+    "id": "evt_01jw...",
+    "user_id": 42,
+    "watch_target_id": "watch_...",
+    "stream_event_id": "stream_...",
+    "platform": "twitch",
+    "event_type": "superchat",
+    "sender_id": "123456",
+    "sender_name": "CoolViewer",
+    "sender_avatar": "https://...",
+    "message": "素晴らしい配信！",
+    "amount_value": 500,
+    "amount_currency": "JPY",
+    "amount_display": "¥500",
+    "is_member": true,
+    "is_mod": false,
+    "badges": ["subscriber/6", "bits/1000"],
+    "received_at": "2026-06-02T10:30:00Z",
+    "created_at": "2026-06-02T10:30:00Z"
+  }
+]
+```
+
+### GET /live-events/get?id=\<id\>
+
+Returns a single live event by its ID.
+
+### GET /live-events/count?stream_id=\<id\>
+
+Returns a per-type count summary for a stream. All known `event_type` values are always included (zero if none received).
+
+**Response `200`:**
+```json
+{
+  "comment": 1423,
+  "superchat": 8,
+  "gift": 3,
+  "cheer": 0,
+  "member": 2,
+  ...
+}
+```
+
+---
+
 ## Summary Checklist
 
 | Resource | List | Get | Create | Update | Delete | Other |
@@ -888,6 +1262,9 @@ Distinct from **watched channels** (which are channels they monitor *for events*
 | Conditions | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | Devices | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ test (stub) |
 | Streams | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Catalog / Brands | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Catalog / Products | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| Live Events | ✅ | ✅ | — | — | — | ✅ count by stream |
 
 ---
 

@@ -864,6 +864,145 @@ body { background: #f5f5f5; }
     letter-spacing: 0.03em;
 }
 
+/* ─── Stream Filter ────────────────────────────────────────────────────────── */
+
+/* Filter badge on channel name in list */
+.filter-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #7b5ea7;
+    background: #f0eaff;
+    border: 1px solid #c7b8ea;
+    border-radius: 10px;
+    padding: 1px 7px;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+/* Filter active dot on detail view heading */
+.filter-active-dot {
+    color: #7b5ea7;
+    font-size: 0.8rem;
+    margin-left: 4px;
+}
+
+/* Filter button in channel actions */
+.action-btn.filter {
+    background: transparent;
+    border: 1px solid #ddd;
+    color: #888;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.action-btn.filter:hover,
+.action-btn.filter.active {
+    background: #f0eaff;
+    color: #7b5ea7;
+    border-color: #c7b8ea;
+}
+
+/* Filter modal body */
+.filter-modal-body {
+    padding: 0 0 0.5rem;
+}
+
+.filter-intro {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1.25rem;
+}
+
+.filter-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+    font-family: inherit;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    resize: vertical;
+    background: #fafafa;
+    transition: border-color 0.15s;
+}
+.filter-textarea:focus {
+    outline: none;
+    border-color: #7b5ea7;
+    background: #fff;
+}
+
+.filter-clear-row {
+    margin: 1.25rem 0 0.5rem;
+}
+
+.filter-eval-note {
+    font-size: 0.82rem;
+    color: #888;
+    background: #f8f8f8;
+    border-left: 3px solid #ddd;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0 4px 4px 0;
+    margin-top: 1rem;
+}
+
+/* Filter inactive message in detail view */
+.filter-inactive-msg {
+    color: #aaa;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: 0.5rem 0;
+}
+
+/* Filter summary in detail view */
+.filter-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.filter-summary-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-summary-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    padding-top: 2px;
+}
+.filter-summary-label.whitelist { color: #2e7d32; }
+.filter-summary-label.blacklist { color: #b71c1c; }
+
+.filter-summary-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.filter-chip {
+    font-size: 0.8rem;
+    padding: 2px 10px;
+    border-radius: 12px;
+    border: 1px solid;
+}
+.filter-chip.whitelist {
+    background: #f0fdf4;
+    border-color: #a5d6a7;
+    color: #2e7d32;
+}
+.filter-chip.blacklist {
+    background: #fff5f5;
+    border-color: #ef9a9a;
+    color: #b71c1c;
+}
+
 .detail-value {
     font-size: 0.88rem;
     color: #444;

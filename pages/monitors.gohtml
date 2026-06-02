@@ -82,6 +82,50 @@
         </div>
     </div>
 
+    <!-- Stream Filter Modal -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('filterModal')">&times;</span>
+            <div class="modal-header">
+                <h2>🔍 Stream Filter</h2>
+                <p id="filterModalSubtitle">Control which live streams are tracked for this channel.</p>
+            </div>
+            <div class="filter-modal-body">
+                <p class="filter-intro">
+                    Even if you're watching a channel, you can skip streams that match certain keywords or only track streams whose titles contain specific words.
+                </p>
+                <fieldset class="form-section">
+                    <legend>Skip if title contains <span class="optional-label">(blacklist)</span></legend>
+                    <p class="section-note">Streams whose title includes <strong>any</strong> of these keywords will be ignored. One keyword per line, case-insensitive.</p>
+                    <textarea id="filterSkipTitle" class="filter-textarea" rows="3" placeholder="e.g.&#10;just a test&#10;テスト配信&#10;draft"></textarea>
+                </fieldset>
+                <fieldset class="form-section">
+                    <legend>Skip if description contains <span class="optional-label">(blacklist)</span></legend>
+                    <p class="section-note">Streams whose description includes <strong>any</strong> of these keywords will be ignored.</p>
+                    <textarea id="filterSkipDesc" class="filter-textarea" rows="3" placeholder="e.g.&#10;do not track&#10;private stream"></textarea>
+                </fieldset>
+                <fieldset class="form-section">
+                    <legend>Only track if title contains <span class="optional-label">(whitelist)</span></legend>
+                    <p class="section-note">If set, only streams whose title contains <strong>at least one</strong> of these keywords will be tracked. Leave empty to track all streams (after blacklist check).</p>
+                    <textarea id="filterRequireTitle" class="filter-textarea" rows="3" placeholder="e.g.&#10;live&#10;配信&#10;stream"></textarea>
+                </fieldset>
+                <div class="filter-clear-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterClearAll">
+                        <span>Clear all filters (track every stream)</span>
+                    </label>
+                </div>
+                <div class="filter-eval-note">
+                    <strong>Evaluation order:</strong> whitelist check first, then blacklist. A stream is tracked only when all checks pass.
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('filterModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="filterSaveBtn" onclick="saveFilter()">Save Filter</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Condition Modal -->
     <div id="conditionModal" class="modal">
         <div class="modal-content modal-large">
@@ -300,6 +344,7 @@
                 active: w.is_active,
                 status: w.status || 'offline',
                 lastStream: w.last_stream_at ? new Date(w.last_stream_at).toLocaleDateString() : 'Never',
+                streamFilter: w.stream_filter || null,
                 conditions: []
             }));
         } catch (e) {
@@ -399,12 +444,15 @@
                 ? '<span class="live-badge">🔴 Live</span>'
                 : (ch.active ? '<span class="offline-badge">Offline</span>' : '<span class="paused-badge">Paused</span>');
             const condCount = ch.conditions.length;
+            const filterBadge = hasActiveFilter(ch.streamFilter)
+                ? '<span class="filter-badge" title="Stream filter active">🔍 Filter</span>'
+                : '';
             return `
             <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}">
                 <div class="channel-main">
                     <div class="platform-icon ${ch.platform}">${p.icon}</div>
                     <div class="channel-info" style="cursor:pointer" onclick="navigate('/monitors/${ch.id}')">
-                        <div class="channel-name">${ch.name}</div>
+                        <div class="channel-name">${ch.name} ${filterBadge}</div>
                         <div class="channel-meta">
                             <span class="platform-tag ${ch.platform}">${p.label}</span>
                             <span class="channel-id">${ch.channelId}</span>
@@ -436,6 +484,7 @@
                         </div>
                     </div>
                     <div class="channel-actions">
+                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')" title="Stream filter">🔍</button>
                         <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
                         <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑</button>
                     </div>
@@ -510,8 +559,22 @@
                 </div>
                 <div class="channel-detail-actions-row">
                     <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit Channel</button>
+                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')">🔍 Stream Filter</button>
                     <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑 Remove</button>
                 </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div>
+                        <h2>🔍 Stream Filter ${hasActiveFilter(ch.streamFilter) ? '<span class="filter-active-dot" title="Filter active">●</span>' : ''}</h2>
+                        <p>Skip streams based on title or description keywords — even if this channel is actively watched.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openFilterModal('${ch.id}')">
+                        ${hasActiveFilter(ch.streamFilter) ? 'Edit Filter' : 'Add Filter'}
+                    </button>
+                </div>
+                ${renderFilterSummary(ch.streamFilter)}
             </div>
 
             <div class="detail-section">
@@ -699,6 +762,109 @@
             navigate('/monitors');
         } catch (e) {
             alert('Failed to delete channel: ' + e.message);
+        }
+    }
+
+    // =============================================
+    // Stream Filter
+    // =============================================
+    let filteringChannelId = null;
+
+    function hasActiveFilter(f) {
+        if (!f) return false;
+        return (f.skip_if_title_contains && f.skip_if_title_contains.length > 0) ||
+               (f.skip_if_description_contains && f.skip_if_description_contains.length > 0) ||
+               (f.require_title_contains && f.require_title_contains.length > 0);
+    }
+
+    function renderFilterSummary(f) {
+        if (!hasActiveFilter(f)) {
+            return '<p class="filter-inactive-msg">No filter set — all streams for this channel are tracked.</p>';
+        }
+        let rows = [];
+        if (f.require_title_contains && f.require_title_contains.length) {
+            rows.push(`<div class="filter-summary-row">
+                <span class="filter-summary-label whitelist">✅ Title must contain</span>
+                <span class="filter-summary-chips">${f.require_title_contains.map(k => `<span class="filter-chip whitelist">${escHtml(k)}</span>`).join('')}</span>
+            </div>`);
+        }
+        if (f.skip_if_title_contains && f.skip_if_title_contains.length) {
+            rows.push(`<div class="filter-summary-row">
+                <span class="filter-summary-label blacklist">🚫 Skip if title contains</span>
+                <span class="filter-summary-chips">${f.skip_if_title_contains.map(k => `<span class="filter-chip blacklist">${escHtml(k)}</span>`).join('')}</span>
+            </div>`);
+        }
+        if (f.skip_if_description_contains && f.skip_if_description_contains.length) {
+            rows.push(`<div class="filter-summary-row">
+                <span class="filter-summary-label blacklist">🚫 Skip if description contains</span>
+                <span class="filter-summary-chips">${f.skip_if_description_contains.map(k => `<span class="filter-chip blacklist">${escHtml(k)}</span>`).join('')}</span>
+            </div>`);
+        }
+        return `<div class="filter-summary">${rows.join('')}</div>`;
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function textToArray(text) {
+        return text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function openFilterModal(channelId) {
+        filteringChannelId = channelId;
+        const ch = CHANNELS.find(c => c.id === channelId);
+        document.getElementById('filterModalSubtitle').textContent =
+            'Control which live streams are tracked for "' + ch.name + '".';
+
+        const f = ch.streamFilter || {};
+        document.getElementById('filterSkipTitle').value =
+            (f.skip_if_title_contains || []).join('\n');
+        document.getElementById('filterSkipDesc').value =
+            (f.skip_if_description_contains || []).join('\n');
+        document.getElementById('filterRequireTitle').value =
+            (f.require_title_contains || []).join('\n');
+        document.getElementById('filterClearAll').checked = false;
+        openModal('filterModal');
+    }
+
+    async function saveFilter() {
+        const btn = document.getElementById('filterSaveBtn');
+        btn.disabled = true;
+        try {
+            const clearAll = document.getElementById('filterClearAll').checked;
+            let body;
+            if (clearAll) {
+                body = { clear_filter: true };
+            } else {
+                const skipTitle   = textToArray(document.getElementById('filterSkipTitle').value);
+                const skipDesc    = textToArray(document.getElementById('filterSkipDesc').value);
+                const reqTitle    = textToArray(document.getElementById('filterRequireTitle').value);
+                const anySet = skipTitle.length || skipDesc.length || reqTitle.length;
+                if (anySet) {
+                    const filter = {};
+                    if (skipTitle.length)  filter.skip_if_title_contains        = skipTitle;
+                    if (skipDesc.length)   filter.skip_if_description_contains  = skipDesc;
+                    if (reqTitle.length)   filter.require_title_contains         = reqTitle;
+                    body = { stream_filter: filter };
+                } else {
+                    body = { clear_filter: true };
+                }
+            }
+            await apiRequest('PATCH', `/watches/update?id=${filteringChannelId}`, body);
+            const ch = CHANNELS.find(c => c.id === filteringChannelId);
+            if (ch) ch.streamFilter = body.clear_filter ? null : (body.stream_filter || null);
+            closeModal('filterModal');
+            // Re-render the current view
+            if (currentChannel && currentChannel.id === filteringChannelId) {
+                renderChannelDetailView();
+            } else {
+                renderChannelListView();
+            }
+        } catch (e) {
+            alert('Failed to save filter: ' + e.message);
+        } finally {
+            btn.disabled = false;
         }
     }
 
@@ -973,7 +1139,7 @@
     }
 
     window.onclick = function(e) {
-        ['channelModal', 'conditionModal'].forEach(id => {
+        ['channelModal', 'conditionModal', 'filterModal'].forEach(id => {
             if (e.target === document.getElementById(id)) closeModal(id);
         });
     };
