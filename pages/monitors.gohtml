@@ -1272,14 +1272,18 @@
         // Build sections
         let html = '';
 
-        // Search box
-        html += `
-            <div class="acc-search-wrap">
-                <span class="acc-search-icon">🔍</span>
-                <input class="acc-search" type="text" id="acc-search-${platId}" placeholder="Search channels…"
-                    oninput="onAccSearch('${platId}', this.value)">
-            </div>
-            <div class="acc-results" id="acc-results-${platId}"></div>`;
+        // Search box (not available for Kick/Bilibili due to API limitations)
+        if (platId !== 'kick' && platId !== 'bilibili') {
+            html += `
+                <div class="acc-search-wrap">
+                    <span class="acc-search-icon">🔍</span>
+                    <input class="acc-search" type="text" id="acc-search-${platId}" placeholder="Search channels…"
+                        oninput="onAccSearch('${platId}', this.value)">
+                </div>
+                <div class="acc-results" id="acc-results-${platId}"></div>`;
+        } else {
+            html += `<div class="acc-results" id="acc-results-${platId}"></div>`;
+        }
 
         // Own channels / subscriptions (OAuth-only)
         if (plat.hasOAuth && connected) {
