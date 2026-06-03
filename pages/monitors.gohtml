@@ -2,20 +2,33 @@
 
 {{define "head"}}
 <link rel="stylesheet" href="/css/monitors.css">
+<link rel="stylesheet" href="/css/add-channel.css">
 {{end}}
 
 {{define "content"}}
 
-<div class="monitors-container">
+<div class="unified-layout">
+
+    <!-- LEFT: Add Channel Accordion Sidebar -->
+    <aside class="add-sidebar" id="addSidebar">
+        <div class="add-sidebar-header">
+            <h2>Add Channel</h2>
+        </div>
+        <div class="accordion-list" id="accordionList">
+            <div class="acc-init-loading">Loading platforms…</div>
+        </div>
+    </aside>
+
+    <!-- RIGHT: Monitors Panel -->
+    <div class="monitors-panel">
         <!-- VIEW: Channel List -->
-        <div id="view-list" class="view">
+        <div id="view-list" class="view monitors-view">
             <div class="page-header">
                 <div class="page-header-top">
                     <div>
                         <h1>📡 Channels</h1>
-                        <p>Live streaming accounts monitored by the polling service. Detection is automatic — just add the channels you want to track.</p>
+                        <p>Live streaming accounts monitored by the polling service. Add channels via the sidebar on the left.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="window.location.href='/add-channel'">+ Add Channel</button>
                 </div>
                 <div class="stats-row" id="statsRow"></div>
             </div>
@@ -23,25 +36,51 @@
             <div class="empty-state" id="emptyState" style="display:none">
                 <div class="empty-icon">📡</div>
                 <h2>No channels yet</h2>
-                <p>Add a streaming account to start monitoring live streams.</p>
-                <button class="btn btn-primary" onclick="window.location.href='/add-channel'">+ Add Channel</button>
+                <p>Choose a platform on the left and add the channels you want to monitor.</p>
             </div>
         </div>
 
         <!-- VIEW: Channel Detail -->
-        <div id="view-channel" class="view" style="display:none"></div>
+        <div id="view-channel" class="view monitors-view" style="display:none"></div>
 
         <!-- VIEW: Conditions -->
-        <div id="view-conditions" class="view" style="display:none"></div>
+        <div id="view-conditions" class="view monitors-view" style="display:none"></div>
+    </div><!-- /.monitors-panel -->
+
+</div><!-- /.unified-layout -->
+
+<!-- ── Confirmation Drawer (add channel from sidebar) ──────────────────── -->
+<div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="cancelConfirm()"></div>
+<div class="confirm-drawer" id="confirmDrawer">
+    <div class="confirm-inner">
+        <div class="confirm-channel-preview" id="confirmPreview"></div>
+        <div class="confirm-form">
+            <div class="cf-row">
+                <label>Display Name</label>
+                <input type="text" id="confirmName" placeholder="e.g., Gaming Stream">
+            </div>
+            <label class="cf-check">
+                <input type="checkbox" id="confirmActive" checked>
+                <span>Start watching immediately</span>
+            </label>
+            <div class="cf-error" id="confirmError" style="display:none"></div>
+            <div class="cf-actions">
+                <button class="btn-cancel" onclick="cancelConfirm()">Cancel</button>
+                <button class="btn-add" id="confirmAddBtn" onclick="confirmAdd()">+ Add Channel</button>
+            </div>
+        </div>
     </div>
+</div>
+
+<div id="monToast" class="mon-toast"></div>
 
     <!-- Add/Edit Channel Modal -->
     <div id="channelModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('channelModal')">&times;</span>
             <div class="modal-header">
-                <h2 id="channelModalTitle">Add Channel</h2>
-                <p>Add a streaming account to monitor.</p>
+                <h2 id="channelModalTitle">Edit Channel</h2>
+                <p>Update the details for this monitored channel.</p>
             </div>
             <form id="channelForm" onsubmit="saveChannel(event)">
                 <div class="form-group">
@@ -76,7 +115,7 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('channelModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="chSaveBtn">Add Channel</button>
+                    <button type="submit" class="btn btn-primary" id="chSaveBtn">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -347,6 +386,7 @@
                 streamFilter: w.stream_filter || null,
                 conditions: []
             }));
+            existingWatchSet = new Set(CHANNELS.map(c => c.platform + ':' + c.channelId));
         } catch (e) {
             console.error('Failed to load watches:', e);
             CHANNELS = [];
@@ -412,7 +452,9 @@
 
     function showView(id) {
         document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-        document.getElementById(id).style.display = 'block';
+        const el = document.getElementById(id);
+        el.style.display = 'block';
+        el.scrollTop = 0;
     }
 
     // =============================================
@@ -1145,10 +1187,367 @@
     };
 
     // =============================================
+    // Sidebar — platform data
+    // =============================================
+    function esc(s) { return escHtml(s); }
+
+    const PLATFORMS = [
+        { id: 'youtube',   label: 'YouTube',   hasOAuth: true,  publicAccess: false },
+        { id: 'twitch',    label: 'Twitch',    hasOAuth: true,  publicAccess: true  },
+        { id: 'niconico',  label: 'NicoNico',  hasOAuth: true,  publicAccess: false },
+        { id: 'kick',      label: 'Kick',      hasOAuth: false, publicAccess: true  },
+        { id: 'bilibili',  label: 'Bilibili',  hasOAuth: false, publicAccess: true  },
+        { id: 'instagram', label: 'Instagram', hasOAuth: false, publicAccess: false },
+        { id: 'tiktok',    label: 'TikTok',    hasOAuth: false, publicAccess: false },
+        { id: 'facebook',  label: 'Facebook',  hasOAuth: false, publicAccess: false },
+        { id: 'x',         label: 'X',         hasOAuth: false, publicAccess: false },
+    ];
+
+    const PROVIDER_MAP = { google: 'youtube', twitch: 'twitch', niconico: 'niconico' };
+
+    let connectedSet    = new Set();
+    let existingWatchSet = new Set();
+    let selectedChannel = null;
+    let accordionLoaded = new Set();
+    const accSearchTimers = new Map();
+    const accPagState    = new Map();
+
+    function renderAccordionList() {
+        const list = document.getElementById('accordionList');
+        list.innerHTML = PLATFORMS.map(p => {
+            const meta = PLATFORM_META[p.id] || { icon: '🔵', label: p.label };
+            const connected = p.hasOAuth && connectedSet.has(p.id);
+            const dot = connected ? '<span class="acc-connected-dot" title="Connected"></span>' : '';
+            return `
+            <div class="acc-item" id="acc-${p.id}">
+                <div class="acc-header" onclick="toggleAcc('${p.id}')">
+                    <span class="acc-plat-icon ${p.id}">${meta.icon}</span>
+                    <span class="acc-plat-name">${esc(meta.label)}</span>
+                    ${dot}
+                    <span class="acc-chevron" id="acc-chev-${p.id}">›</span>
+                </div>
+                <div class="acc-body" id="acc-body-${p.id}">
+                    <div class="acc-body-inner" id="acc-inner-${p.id}">
+                        <div class="acc-init-loading">Loading…</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function toggleAcc(platId) {
+        const body  = document.getElementById(`acc-body-${platId}`);
+        const chev  = document.getElementById(`acc-chev-${platId}`);
+        const head  = body.previousElementSibling;
+        const open  = body.classList.toggle('open');
+        head.classList.toggle('open', open);
+        chev.style.transform = open ? 'rotate(90deg)' : '';
+        if (open && !accordionLoaded.has(platId)) {
+            accordionLoaded.add(platId);
+            renderAccordionBodyContent(platId);
+        }
+    }
+
+    function renderAccordionBodyContent(platId) {
+        const inner = document.getElementById(`acc-inner-${platId}`);
+        const plat  = PLATFORMS.find(p => p.id === platId);
+        if (!plat) return;
+
+        const connected = plat.hasOAuth && connectedSet.has(platId);
+
+        if (!plat.hasOAuth && !plat.publicAccess) {
+            inner.innerHTML = `<div class="acc-stub"><span>🚫</span><p>Channel registration for ${esc(plat.label)} is not yet supported.</p></div>`;
+            return;
+        }
+
+        if (plat.hasOAuth && !connected) {
+            inner.innerHTML = `
+                <div class="acc-not-connected">
+                    <p>Connect your ${esc(plat.label)} account first.</p>
+                    <a class="acc-connect-link" href="/account">Go to Account Settings →</a>
+                </div>`;
+            return;
+        }
+
+        // Build sections
+        let html = '';
+
+        // Search box
+        html += `
+            <div class="acc-search-wrap">
+                <span class="acc-search-icon">🔍</span>
+                <input class="acc-search" type="text" id="acc-search-${platId}" placeholder="Search channels…"
+                    oninput="onAccSearch('${platId}', this.value)">
+            </div>
+            <div class="acc-results" id="acc-results-${platId}"></div>`;
+
+        // Own channels / subscriptions (OAuth-only)
+        if (plat.hasOAuth && connected) {
+            html += `
+                <div class="acc-section-label">Your Channels</div>
+                <div class="acc-results" id="acc-own-${platId}"><div class="acc-init-loading">Loading…</div></div>`;
+
+            if (platId === 'youtube' || platId === 'twitch') {
+                html += `
+                    <div class="acc-section-label">Following / Subscriptions</div>
+                    <div class="acc-results" id="acc-subs-${platId}"><div class="acc-init-loading">Loading…</div></div>`;
+            }
+        }
+
+        // Manual entry
+        html += accManualFormHTML(platId);
+        inner.innerHTML = html;
+
+        // Kick off async loads
+        if (plat.hasOAuth && connected) {
+            loadAccOwnChannels(platId);
+            if (platId === 'youtube' || platId === 'twitch') loadAccSubs(platId, null);
+        }
+        initManualForm(platId);
+    }
+
+    function accManualFormHTML(platId) {
+        return `
+            <div class="acc-section-label">Add by ID / URL</div>
+            <form class="acc-manual" id="acc-manual-${platId}" onsubmit="submitAccManual(event,'${platId}')">
+                <input type="text" placeholder="Channel ID or URL" required>
+                <button type="submit" class="acc-manual-submit">Add</button>
+            </form>`;
+    }
+
+    function initManualForm(platId) { /* placeholder — handled by onsubmit */ }
+
+    function submitAccManual(e, platId) {
+        e.preventDefault();
+        const inp = e.target.querySelector('input');
+        const val = inp.value.trim();
+        if (!val) return;
+        openConfirm({ platform: platId, channelId: val, name: val, thumbnail: null });
+    }
+
+    function onAccSearch(platId, val) {
+        clearTimeout(accSearchTimers.get(platId));
+        const el = document.getElementById(`acc-results-${platId}`);
+        if (!val.trim()) { if (el) el.innerHTML = ''; return; }
+        accSearchTimers.set(platId, setTimeout(() => doAccSearch(platId, val.trim()), 400));
+    }
+
+    async function doAccSearch(platId, query) {
+        const el = document.getElementById(`acc-results-${platId}`);
+        if (!el) return;
+        el.innerHTML = '<div class="result-loading">Searching…</div>';
+        try {
+            const data = await apiGet(`/platform/${platId}/search?q=${encodeURIComponent(query)}`);
+            const { items } = normalizePagedData(data);
+            renderMiniChannelResults(el, items, platId, 'No channels found.');
+        } catch (e) {
+            if (e.status === 501) {
+                el.innerHTML = `<div class="stub-notice">🚧 Search for ${esc(PLATFORM_META[platId]?.label || platId)} is coming soon.</div>`;
+            } else {
+                el.innerHTML = `<div class="result-error">Search failed: ${esc(e.message)}</div>`;
+            }
+        }
+    }
+
+    async function loadAccOwnChannels(platId) {
+        const el = document.getElementById(`acc-own-${platId}`);
+        if (!el) return;
+        try {
+            const data = await apiGet(`/platform/${platId}/channels/mine`);
+            const { items } = normalizePagedData(data);
+            renderMiniChannelResults(el, items, platId, 'No own channels found.');
+        } catch (e) {
+            if (e.status === 501) {
+                el.innerHTML = `<div class="stub-notice">🚧 Not yet available.</div>`;
+            } else {
+                el.innerHTML = `<div class="result-error">Failed to load: ${esc(e.message)}</div>`;
+            }
+        }
+    }
+
+    async function loadAccSubs(platId, cursor) {
+        const el = document.getElementById(`acc-subs-${platId}`);
+        if (!el) return;
+        if (!cursor) el.innerHTML = '<div class="result-loading">Loading…</div>';
+        const param    = platId === 'youtube' ? 'page_token' : 'cursor';
+        const endpoint = platId === 'youtube' ? 'subscriptions' : 'following';
+        const suffix   = cursor ? `?${param}=${encodeURIComponent(cursor)}` : '';
+        try {
+            const data       = await apiGet(`/platform/${platId}/${endpoint}${suffix}`);
+            const normalized = normalizePagedData(data);
+            const items      = normalized.items ?? normalized;
+            const token      = normalized.next_page_token || normalized.cursor || null;
+            accPagState.set(platId, token);
+            if (!cursor) {
+                renderMiniChannelResults(el, items, platId, 'Not following any channels.', token);
+            } else {
+                const frag = document.createElement('div');
+                renderMiniChannelResults(frag, items, platId, '', token);
+                // replace load-more button if present, otherwise append
+                const existing = el.querySelector('.load-more-sm');
+                if (existing) existing.remove();
+                el.append(...frag.childNodes);
+            }
+        } catch (e) {
+            if (e.status === 501) {
+                el.innerHTML = `<div class="stub-notice">🚧 Not yet available.</div>`;
+            } else {
+                el.innerHTML = `<div class="result-error">Failed to load: ${esc(e.message)}</div>`;
+            }
+        }
+    }
+
+    function renderMiniChannelResults(el, items, platId, emptyMsg, nextToken) {
+        if (!items || items.length === 0) {
+            el.innerHTML = `<div class="result-empty">${esc(emptyMsg)}</div>`;
+            return;
+        }
+        const cards = items.map(ch => {
+            const cid      = ch.channel_id || ch.id || '';
+            const name     = ch.title || ch.display_name || ch.name || cid;
+            const thumb    = ch.thumbnail || ch.thumbnail_url || '';
+            const subCount = ch.subscriber_count != null
+                ? formatCount(ch.subscriber_count) + ' subscribers'
+                : (ch.follower_count != null ? formatCount(ch.follower_count) + ' followers' : '');
+            const watchKey = platId + ':' + cid;
+            const added    = existingWatchSet.has(watchKey);
+            const thumbHTML = thumb
+                ? `<img class="mini-thumb-img" src="${esc(thumb)}" alt="" loading="lazy">`
+                : `<div class="mini-thumb-placeholder">${esc(PLATFORM_META[platId]?.icon || '📺')}</div>`;
+            const badge = added
+                ? `<span class="mini-badge-added">Added</span>`
+                : `<button class="mini-add-btn" title="Add channel"
+                        onclick='openConfirm(${JSON.stringify({ platform: platId, channelId: cid, name, thumbnail: thumb || null })})'>+</button>`;
+            return `
+            <div class="mini-card">
+                <div class="mini-thumb">${thumbHTML}</div>
+                <div class="mini-info">
+                    <div class="mini-name">${esc(name)}</div>
+                    <div class="mini-meta">${subCount}</div>
+                </div>
+                ${badge}
+            </div>`;
+        }).join('');
+
+        let loadMore = '';
+        if (nextToken) {
+            loadMore = `<button class="load-more-sm" onclick="loadAccSubs('${platId}', '${esc(nextToken)}')">Load more…</button>`;
+        }
+        el.innerHTML = cards + loadMore;
+    }
+
+    // ── Confirm drawer ────────────────────────────────────────────────────────
+
+    function openConfirm(channel) {
+        selectedChannel = channel;
+        const meta = PLATFORM_META[channel.platform] || { icon: '📺', label: channel.platform };
+        document.getElementById('confirmPreview').innerHTML = `
+            <div class="cf-platform-icon ${esc(channel.platform)}">${meta.icon}</div>
+            <div class="cf-channel-info">
+                <strong>${esc(channel.name)}</strong>
+                <span>${esc(meta.label)} · ${esc(channel.channelId)}</span>
+            </div>`;
+        document.getElementById('confirmName').value = channel.name || '';
+        document.getElementById('confirmActive').checked = true;
+        document.getElementById('confirmError').style.display = 'none';
+        document.getElementById('confirmAddBtn').disabled = false;
+        document.getElementById('confirmAddBtn').textContent = '+ Add Channel';
+        document.getElementById('confirmOverlay').style.display = 'block';
+        document.getElementById('confirmDrawer').classList.add('open');
+        document.getElementById('confirmName').focus();
+    }
+
+    function cancelConfirm() {
+        document.getElementById('confirmOverlay').style.display = 'none';
+        document.getElementById('confirmDrawer').classList.remove('open');
+        selectedChannel = null;
+    }
+
+    function showConfirmError(msg) {
+        const el = document.getElementById('confirmError');
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+
+    async function confirmAdd() {
+        if (!selectedChannel) return;
+        const name   = document.getElementById('confirmName').value.trim();
+        const active = document.getElementById('confirmActive').checked;
+        if (!name) { showConfirmError('Please enter a display name.'); return; }
+        const btn = document.getElementById('confirmAddBtn');
+        btn.disabled = true;
+        btn.textContent = 'Adding…';
+        document.getElementById('confirmError').style.display = 'none';
+        try {
+            await apiRequest('POST', '/watches', {
+                platform:   selectedChannel.platform,
+                channel_id: selectedChannel.channelId,
+                name,
+                is_active: active,
+            });
+            existingWatchSet.add(selectedChannel.platform + ':' + selectedChannel.channelId);
+            cancelConfirm();
+            showMonToast(`✅ "${name}" added!`);
+            await loadWatches();
+            renderChannelListView();
+        } catch (e) {
+            showConfirmError(e.message || 'Failed to add channel.');
+            btn.disabled = false;
+            btn.textContent = '+ Add Channel';
+        }
+    }
+
+    function showMonToast(msg) {
+        const t = document.getElementById('monToast');
+        t.textContent = msg;
+        t.classList.add('visible');
+        setTimeout(() => t.classList.remove('visible'), 3000);
+    }
+
+    // ── Sidebar API helper (attaches .status for 501 detection) ──────────────
+    async function apiGet(path) {
+        const r = await fetch(API_BASE + path, { credentials: 'include' });
+        if (!r.ok) {
+            const t = await r.text();
+            const err = new Error(t || r.status);
+            err.status = r.status;
+            throw err;
+        }
+        return r.json();
+    }
+
+    function normalizePagedData(data) {
+        if (Array.isArray(data)) return { items: data, next_page_token: null, cursor: null };
+        if (data && Array.isArray(data.items)) return data;
+        return { items: [], next_page_token: null, cursor: null };
+    }
+
+    function formatCount(n) {
+        if (n == null) return '';
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+        if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+        return String(n);
+    }
+
+    // =============================================
     // Init
     // =============================================
     (async () => {
-await route();
+        const sidebarInit = (async () => {
+            try {
+                const r = await fetch(API_BASE + '/auth/user', { credentials: 'include' });
+                if (r.ok) {
+                    const u = await r.json();
+                    (u.connections || []).forEach(c => {
+                        const pid = PROVIDER_MAP[c.provider];
+                        if (pid) connectedSet.add(pid);
+                    });
+                    if (u.niconico && u.niconico.connected) connectedSet.add('niconico');
+                }
+            } catch (_) {}
+            renderAccordionList();
+        })();
+        await Promise.all([route(), sidebarInit]);
     })();
     </script>
 {{end}}

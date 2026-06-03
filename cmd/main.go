@@ -347,6 +347,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Path == "/add-channel" {
+		http.Redirect(w, r, "/monitors", http.StatusMovedPermanently)
+		return
+	}
+
 	cfg, ok := pageRoutes[r.URL.Path]
 	if !ok {
 		if strings.HasPrefix(r.URL.Path, "/monitors/") {
@@ -409,7 +414,7 @@ func (s *Server) fetchUser(r *http.Request) *UserProfile {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 16384))
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("fetchUser: API returned %d (cookie_present=%v): %s", resp.StatusCode, cookie != "", string(body))
 		return nil
