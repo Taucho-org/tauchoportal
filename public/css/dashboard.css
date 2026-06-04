@@ -1,11 +1,6 @@
 /* ============================================
    Dashboard Page Styles
    ============================================ */
-
-body {
-    background: #f5f5f7;
-}
-
 .dashboard-container {
     max-width: 1000px;
     margin: 0 auto;

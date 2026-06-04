@@ -298,6 +298,7 @@ func loadTemplates() map[string]*template.Template {
 
 	basePath := filepath.Join("templates", "layouts", "base.gohtml")
 	headerPath := filepath.Join("templates", "partials", "header.gohtml")
+	loginPath := filepath.Join("templates", "partials", "login.gohtml")
 	funcMap := template.FuncMap{
 		"userJSON": userJSON,
 		"i18nJSON": func(t *i18n.Translator) template.JS {
@@ -312,7 +313,7 @@ func loadTemplates() map[string]*template.Template {
 
 	for _, pagePath := range pages {
 		name := strings.TrimSuffix(filepath.Base(pagePath), filepath.Ext(pagePath))
-		tmpl, err := template.New(name).Funcs(funcMap).ParseFiles(basePath, headerPath, pagePath)
+		tmpl, err := template.New(name).Funcs(funcMap).ParseFiles(basePath, headerPath, loginPath, pagePath)
 		if err != nil {
 			log.Fatalf("failed to parse template %s: %v", pagePath, err)
 		}
