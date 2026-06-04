@@ -298,6 +298,11 @@ h3 {
     }
 }
 
+
+.oauth-buttons svg{
+    vertical-align: middle;
+}
+
 /* ── NicoNico semi-OAuth modal (login / index pages) ─────────────────────
    Uses .nico- prefixed classes to avoid conflicts with page-specific modals.
    ──────────────────────────────────────────────────────────────────────── */
