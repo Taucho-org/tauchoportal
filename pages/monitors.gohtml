@@ -26,7 +26,7 @@
             <div class="page-header">
                 <div class="page-header-top">
                     <div>
-                        <h1><img src="/image/channel_s.png"> Channels</h1>
+                        <h1><img src="/image/channels_s.png"> Channels</h1>
                         <p>Live streaming accounts monitored by the polling service. Add channels via the sidebar on the left.</p>
                     </div>
                 </div>
@@ -34,7 +34,7 @@
             </div>
             <div class="channels-list" id="channelsList"></div>
             <div class="empty-state" id="emptyState" style="display:none">
-                <div class="empty-icon">📡</div>
+                <div class="empty-icon"><img src="/image/waiting_s.png" /></div>
                 <h2>No channels yet</h2>
                 <p>Choose a platform on the left and add the channels you want to monitor.</p>
             </div>
@@ -126,7 +126,7 @@
         <div class="modal-content modal-large">
             <span class="close" onclick="closeModal('filterModal')">&times;</span>
             <div class="modal-header">
-                <h2>🔍 Stream Filter</h2>
+                <h2><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter</h2>
                 <p id="filterModalSubtitle">Control which live streams are tracked for this channel.</p>
             </div>
             <div class="filter-modal-body">
@@ -487,7 +487,7 @@
                 : (ch.active ? '<span class="offline-badge">Offline</span>' : '<span class="paused-badge">Paused</span>');
             const condCount = ch.conditions.length;
             const filterBadge = hasActiveFilter(ch.streamFilter)
-                ? '<span class="filter-badge" title="Stream filter active">🔍 Filter</span>'
+                ? '<span class="filter-badge" title="Stream filter active"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Filter</span>'
                 : '';
             return `
             <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}">
@@ -526,7 +526,7 @@
                         </div>
                     </div>
                     <div class="channel-actions">
-                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')" title="Stream filter">🔍</button>
+                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')" title="Stream filter"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg></button>
                         <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
                         <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑</button>
                     </div>
@@ -601,7 +601,7 @@
                 </div>
                 <div class="channel-detail-actions-row">
                     <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit Channel</button>
-                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')">🔍 Stream Filter</button>
+                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter</button>
                     <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑 Remove</button>
                 </div>
             </div>
@@ -609,7 +609,7 @@
             <div class="detail-section">
                 <div class="detail-section-header">
                     <div>
-                        <h2>🔍 Stream Filter ${hasActiveFilter(ch.streamFilter) ? '<span class="filter-active-dot" title="Filter active">●</span>' : ''}</h2>
+                        <h2><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter ${hasActiveFilter(ch.streamFilter) ? '<span class="filter-active-dot" title="Filter active">●</span>' : ''}</h2>
                         <p>Skip streams based on title or description keywords — even if this channel is actively watched.</p>
                     </div>
                     <button class="btn btn-secondary" onclick="openFilterModal('${ch.id}')">

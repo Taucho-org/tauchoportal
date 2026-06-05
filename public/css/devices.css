@@ -1,4 +1,10 @@
 /* My Devices Page Styles */
+
+body {
+    background-image: url(/image/gadget_bg.png);
+    background-image: url(/image/gadget_bg.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+}
+
 .devices-container {
     max-width: 1100px;
     margin: 0 auto;
@@ -281,8 +287,8 @@
 }
 
 .empty-icon { font-size: 3rem; }
-.empty-state h2 { color: #999; }
-.empty-state p  { color: #bbb; max-width: 360px; }
+.empty-state h2 { color: #33344b; }
+.empty-state p  { color: #4a4b6d; max-width: 360px; }
 
 /* =============================================
    Modal

@@ -187,7 +187,7 @@
     padding: 0.6rem 0.875rem;
     border-radius: 8px;
     border: 1px solid var(--color-border, rgba(255,255,255,0.07));
-    background: var(--color-bg, #13131d);
+    background: #6da6e1;
     transition: border-color 0.15s, background 0.15s;
 }
 .channel-card:hover { border-color: rgba(124, 106, 247, 0.35); background: rgba(124, 106, 247, 0.05); }

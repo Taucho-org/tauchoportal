@@ -5,10 +5,17 @@
 body {
     padding: 0;
     min-height: 100vh;
+    background: linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+    background-repeat: no-repeat;
+    background-position: right bottom;
 }
 
 .policy-page {
     min-height: 100vh;
+    background-image: url(/image/bg.png);
+    background-repeat: no-repeat;
+    background-position: right bottom;
+    background-attachment: fixed;
 }
 
 /* Top Nav */
@@ -24,12 +31,10 @@ body {
 .policy-logo {
     font-size: 1.3rem;
     font-weight: 700;
-    color: white;
     text-decoration: none;
 }
 
 .policy-logo:hover { 
-    color: #e8e8e8; 
     text-decoration: none; 
 }
 
@@ -40,14 +45,12 @@ body {
 }
 
 .policy-nav-links a {
-    color: rgba(255,255,255,0.85);
     text-decoration: none;
     font-size: 0.92rem;
     transition: color 0.2s;
 }
 
 .policy-nav-links a:hover { 
-    color: white; 
     text-decoration: none; 
 }
 
@@ -58,8 +61,7 @@ body {
     transition: all 0.2s;
 }
 
-.nav-btn:hover { 
-    border-color: white; 
+.nav-btn:hover {
     background: rgba(255,255,255,0.1); 
 }
 
@@ -83,27 +85,24 @@ body {
 /* Policy Header */
 .policy-header {
     text-align: center;
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
+    margin-bottom: 2rem;
     border-bottom: 2px solid rgba(255,255,255,0.1);
 }
 
 .policy-header h1 {
+    color: #444444;
     font-size: 2.5rem;
     font-weight: 700;
-    color: white;
     margin: 0 0 0.5rem 0;
 }
 
 .last-updated {
-    color: rgba(255,255,255,0.6);
     font-size: 0.95rem;
     margin: 0;
 }
 
 /* Policy Content */
 .policy-content {
-    color: rgba(255,255,255,0.85);
     line-height: 1.7;
 }
 
@@ -113,7 +112,7 @@ body {
 
 .policy-section h2 {
     font-size: 1.6rem;
-    color: #667eea;
+    color: #666666;
     margin: 0 0 1rem 0;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid rgba(102,126,234,0.3);
@@ -121,14 +120,14 @@ body {
 
 .policy-section h3 {
     font-size: 1.2rem;
-    color: rgba(255,255,255,0.95);
+    color: #777777;
     margin: 1.5rem 0 0.8rem 0;
     font-weight: 600;
 }
 
 .policy-section p {
     margin: 0 0 1rem 0;
-    color: rgba(255,255,255,0.8);
+    color: #555555;
 }
 
 .policy-section ul {
@@ -138,11 +137,11 @@ body {
 
 .policy-section li {
     margin-bottom: 0.6rem;
-    color: rgba(255,255,255,0.8);
+    color: #444444;
 }
 
 .policy-section strong {
-    color: rgba(255,255,255,0.95);
+    color: #333333;
     font-weight: 600;
 }
 
@@ -157,7 +156,7 @@ body {
 
 .contact-box p {
     margin: 0.5rem 0;
-    color: rgba(255,255,255,0.9);
+    color: #2b3669;
 }
 
 .contact-box a {
