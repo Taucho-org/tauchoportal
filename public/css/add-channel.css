@@ -187,10 +187,10 @@
     padding: 0.6rem 0.875rem;
     border-radius: 8px;
     border: 1px solid var(--color-border, rgba(255,255,255,0.07));
-    background: #6da6e1;
+    background: rgba(124, 106, 247, 0.35);
     transition: border-color 0.15s, background 0.15s;
 }
-.channel-card:hover { border-color: rgba(124, 106, 247, 0.35); background: rgba(124, 106, 247, 0.05); }
+.channel-card:hover { border-color: rgba(124, 106, 247, 0.5); background: rgba(124, 106, 247, 0.05); }
 .channel-card.already-added { opacity: 0.5; }
 
 .card-thumb {

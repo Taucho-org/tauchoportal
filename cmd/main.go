@@ -51,9 +51,8 @@ var pageRoutes = map[string]pageConfig{
 	"/login":            {Name: "login", Title: "Login", RequireAuth: false},
 	"/register":         {Name: "register", Title: "Register", RequireAuth: false},
 	"/dashboard":        {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
-	"/monitors":         {Name: "monitors", Title: "Watched Channels", RequireAuth: true},
+	"/channels":         {Name: "channels", Title: "Watched Channels", RequireAuth: true},
 	"/devices":          {Name: "devices", Title: "My Devices", RequireAuth: true},
-	"/streams":          {Name: "streams", Title: "My Streams", RequireAuth: true},
 	"/conditions":       {Name: "conditions", Title: "Conditions", RequireAuth: true},
 	"/triggers":         {Name: "triggers", Title: "Triggers", RequireAuth: true},
 	"/about":            {Name: "about", Title: "About", RequireAuth: false},
@@ -348,15 +347,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path == "/add-channel" {
-		http.Redirect(w, r, "/monitors", http.StatusMovedPermanently)
-		return
-	}
-
 	cfg, ok := pageRoutes[r.URL.Path]
 	if !ok {
-		if strings.HasPrefix(r.URL.Path, "/monitors/") {
-			cfg = pageRoutes["/monitors"]
+		if strings.HasPrefix(r.URL.Path, "/channels/") {
+			cfg = pageRoutes["/channels"]
 		} else {
 			http.NotFound(w, r)
 			return

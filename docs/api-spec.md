@@ -820,7 +820,7 @@ Channel search uses the public Bilibili search API.
 
 ### Watched Channels — full CRUD (`/watches/...`)
 
-The **Watched Channels** page (`/monitors`) lists all channels the polling service monitors.  
+The **Watched Channels** page (`/channels`) lists all channels the polling service channels.  
 Each channel has per-platform event conditions (see Conditions below).
 
 **Watch object:**

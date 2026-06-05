@@ -9,7 +9,7 @@
 
     <!-- ── Header ────────────────────────────────────────────────────── -->
     <div class="ac-header">
-        <a href="/monitors" class="ac-back">← Back to Channels</a>
+        <a href="/channels" class="ac-back">← Back to Channels</a>
         <h1>Add Channel</h1>
         <p>Choose a platform, then select a channel to monitor.</p>
     </div>
@@ -556,9 +556,9 @@ async function confirmAdd() {
             }
         });
         cancelConfirm();
-        // Brief toast then back to monitors
+        // Brief toast then back to channels
         showToast('Channel added! ✅');
-        setTimeout(() => { window.location.href = '/monitors'; }, 1100);
+        setTimeout(() => { window.location.href = '/channels'; }, 1100);
     } catch (e) {
         showConfirmErr('Failed to add channel: ' + esc(e.message));
         btn.disabled = false;
