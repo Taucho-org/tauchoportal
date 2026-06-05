@@ -9,10 +9,10 @@
 
 <div class="unified-layout">
 
-    <!-- LEFT: Add Channel Accordion Sidebar -->
+    <!-- LEFT: Select Channel Accordion Sidebar -->
     <aside class="add-sidebar" id="addSidebar">
         <div class="add-sidebar-header">
-            <h2>Add Channel</h2>
+            <h2>Select Checking Channel</h2>
         </div>
         <div class="accordion-list" id="accordionList">
             <div class="acc-init-loading">Loading platforms…</div>
@@ -583,46 +583,30 @@
                         <h1>${ch.name}</h1>
                         <div class="channel-meta">
                             <span class="platform-tag ${ch.platform}">${p.label}</span>
-                            <span class="channel-id">${ch.channelId}</span>
                             ${statusBadge}
+                            <div class="meta-item">
+                                <span class="meta-label">Last stream</span>
+                                <span class="meta-value">${ch.lastStream}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Platform ID</span>
+                                <span class="meta-value mono">${ch.channelId}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="channel-detail-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
+                    <div class="channel-detail-edit">
+                        <div class="channel-detail-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
+                        </div>
+                        <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
+                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg>Filter</button>
+                        <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑Remove</button>
                     </div>
                 </div>
-                <div class="channel-detail-meta">
-                    <div class="meta-item">
-                        <span class="meta-label">Last stream</span>
-                        <span class="meta-value">${ch.lastStream}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Platform ID</span>
-                        <span class="meta-value mono">${ch.channelId}</span>
-                    </div>
-                </div>
-                <div class="channel-detail-actions-row">
-                    <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit Channel</button>
-                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter</button>
-                    <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑 Remove</button>
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-header">
-                    <div>
-                        <h2><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter ${hasActiveFilter(ch.streamFilter) ? '<span class="filter-active-dot" title="Filter active">●</span>' : ''}</h2>
-                        <p>Skip streams based on title or description keywords — even if this channel is actively watched.</p>
-                    </div>
-                    <button class="btn btn-secondary" onclick="openFilterModal('${ch.id}')">
-                        ${hasActiveFilter(ch.streamFilter) ? 'Edit Filter' : 'Add Filter'}
-                    </button>
-                </div>
-                ${renderFilterSummary(ch.streamFilter)}
             </div>
 
             <div class="detail-section">

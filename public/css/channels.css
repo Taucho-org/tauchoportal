@@ -525,10 +525,18 @@
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 0 1.5rem;
     margin-bottom: 1.5rem;
 }
 
+.channel-detail-edit {
+    max-width: 92px;
+}
+
+.channel-detail-edit button {
+    min-width: 90px;
+    height: 2.4em;
+}
 .channel-detail-header {
     display: flex;
     align-items: flex-start;
@@ -566,16 +574,6 @@
     flex-shrink: 0;
 }
 
-.channel-detail-meta {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-    padding: 1rem 0;
-    border-top: 1px solid #f0f0f0;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 1rem;
-}
-
 .meta-item {
     display: flex;
     flex-direction: column;
@@ -600,11 +598,6 @@
     font-family: monospace;
     font-size: 0.85rem;
     color: #555;
-}
-
-.channel-detail-actions-row {
-    display: flex;
-    gap: 0.5rem;
 }
 
 /* =============================================
@@ -1613,11 +1606,25 @@ input[type="range"] {
     .add-sidebar {
         width: 100%;
         max-width: 100%;
-        height: 45vh;
+        height: 100%;
         min-width: unset;
         border-right: none;
         border-bottom: 1px solid #313244;
     }
-    .channels-panel { height: 55vh; }
-    .channels-view { padding: 1rem; }
+    .channels-panel { height: 55vh; position: unset; }
+    .channels-view { padding: 1rem; position: unset; }
+
+    .add-sidebar-footer {
+        display: none;
+    }
+
+    .accordion-list {
+        height: unset;
+    }
+
+    .add-sidebar-header {
+        padding: unset;
+        border-bottom: unset;
+        flex-shrink: unset;
+    }
 }

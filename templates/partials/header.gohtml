@@ -2,24 +2,24 @@
 <header class="taucho-header" data-component="header">
   <div class="header-container">
     <div class="logo-section">
-      <a href="/" class="logo"><img src="image/logo_ss.png">{{.I18n.T "nav.title"}}</a>
+      <a href="/" class="logo"><img src="/image/logo_ss.png">{{.I18n.T "nav.title"}}</a>
     </div>
 
     <nav class="header-nav">
       <ul>
-        <li><a href="/channels" {{if eq .Page "channels"}}class="active"{{end}}><img src="image/channels_ss.png"> {{.I18n.T "nav.channels"}}</a></li>
-        <li><a href="/devices" {{if eq .Page "devices"}}class="active"{{end}}><img src="image/gadget_ss.png"> {{.I18n.T "nav.devices"}}</a></li>
+        <li><a href="/channels" {{if eq .Page "channels"}}class="active"{{end}}><img src="/image/channels_ss.png"> {{.I18n.T "nav.channels"}}</a></li>
+        <li><a href="/devices" {{if eq .Page "devices"}}class="active"{{end}}><img src="/image/gadget_ss.png"> {{.I18n.T "nav.devices"}}</a></li>
       </ul>
     </nav>
 
     <div class="header-controls">
       <select class="language-selector" title="Language"
               onchange="window.location='/set-lang?lang='+this.value+'&back='+encodeURIComponent(window.location.pathname)">
-        <option value="en" {{if eq .Lang "en"}}selected{{end}}>EN</option>
-        <option value="ja" {{if eq .Lang "ja"}}selected{{end}}>JA</option>
-        <option value="de" {{if eq .Lang "de"}}selected{{end}}>DE</option>
-        <option value="fr" {{if eq .Lang "fr"}}selected{{end}}>FR</option>
-        <option value="es" {{if eq .Lang "es"}}selected{{end}}>ES</option>
+        <option value="en" {{if eq .Lang "en"}}selected{{end}}>English</option>
+        <option value="ja" {{if eq .Lang "ja"}}selected{{end}}>日本語</option>
+        <option value="de" {{if eq .Lang "de"}}selected{{end}}>Deutsch</option>
+        <option value="fr" {{if eq .Lang "fr"}}selected{{end}}>Français</option>
+        <option value="es" {{if eq .Lang "es"}}selected{{end}}>Español</option>
       </select>
 
       <div class="user-menu-wrap">
@@ -35,6 +35,25 @@
           <a href="#" id="logoutBtn" class="logout-item">{{.I18n.T "nav.signOut"}}</a>
         </div>
       </div>
+    </div>
+    <div class="phone-only">
+      <a class="menu-button" href="#" onclick="document.getElementById('phoneMenuDialog').classList.toggle('open')">☰</a>
+    </div>
+  </div>
+  <div class="phone-only">
+    <div class="menu-dialog" id="phoneMenuDialog">
+      <a href="/channels" {{if eq .Page "channels"}}class="active"{{end}}><img src="/image/channels_ss.png"> {{.I18n.T "nav.channels"}}</a>
+      <a href="/devices" {{if eq .Page "devices"}}class="active"{{end}}><img src="/image/gadget_ss.png"> {{.I18n.T "nav.devices"}}</a>
+      <select class="language-selector" title="Language" onchange="window.location='/set-lang?lang='+this.value+'&back='+encodeURIComponent(window.location.pathname)">
+          <option value="en" {{if eq .Lang "en"}}selected{{end}}>English</option>
+          <option value="ja" {{if eq .Lang "ja"}}selected{{end}}>日本語</option>
+          <option value="de" {{if eq .Lang "de"}}selected{{end}}>Deutsch</option>
+          <option value="fr" {{if eq .Lang "fr"}}selected{{end}}>Français</option>
+          <option value="es" {{if eq .Lang "es"}}selected{{end}}>Español</option>
+        </select>
+      <a href="/account-settings">{{.I18n.T "nav.accountSettings"}}</a>
+      <hr>
+      <a href="#" id="logoutBtn" class="logout-item">{{.I18n.T "nav.signOut"}}</a>
     </div>
   </div>
 
