@@ -18,6 +18,7 @@
         <div class="error-message" id="errorMessage"></div>
         <div class="success-message" id="successMessage"></div>
         
+        <!-- Step 1: Email/Password Registration -->
         <form id="registerForm">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -57,8 +58,36 @@
                 </div>
             </div>
             
-            <button type="submit" class="submit-btn">Create Account</button>
+            <button type="submit" class="submit-btn" id="submitBtn">Create Account</button>
         </form>
+        
+        <!-- Step 2: Email Verification Code (hidden until step 1 succeeds) -->
+        <div id="verificationStep" style="display:none">
+            <form id="verificationForm">
+                <div class="form-group">
+                    <label>Verification Code</label>
+                    <p style="font-size: 14px; color: #666; margin-bottom: 12px;">
+                        We sent a 6-digit code to <span id="verifyEmail"></span>
+                    </p>
+                    <input 
+                        type="text" 
+                        id="verificationCode" 
+                        name="code"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="6"
+                        autocomplete="one-time-code"
+                        required
+                        placeholder="000000"
+                    >
+                </div>
+                <p style="font-size: 12px; color: #999; text-align: center; margin-top: 8px;">
+                    Code expires in <span id="verificationTimer">60:00</span>
+                </p>
+                <button type="submit" class="submit-btn" id="verifyBtn">Verify & Create Account</button>
+                <button type="button" class="submit-btn" style="background: #f0f0f0; color: #333;" onclick="backToRegistration()">← Back</button>
+            </form>
+        </div>
 
         <div class="divider">
             <span>Or sign up with</span>
@@ -162,6 +191,8 @@
         const form = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
+        let _verificationSessionId = '';
+        let _verificationTimer = null;
         
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -172,9 +203,13 @@
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>Sending…';
             
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch('/api/auth/register/send-verification-code', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -185,20 +220,124 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    successMessage.textContent = 'Account created! Redirecting to login...';
+                    _verificationSessionId = data.verification_session_id;
+                    document.getElementById('verifyEmail').textContent = email;
+                    document.getElementById('verificationCode').value = '';
+                    document.getElementById('verificationStep').style.display = 'block';
+                    form.style.display = 'none';
+                    document.getElementById('verificationCode').focus();
+                    startVerificationTimer(data.expires_in || 3600);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Account';
+                } else {
+                    errorMessage.textContent = data.error || 'Failed to send verification code';
+                    errorMessage.classList.add('show');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Create Account';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.classList.add('show');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Account';
+            }
+        });
+        
+        // Verification form
+        const verificationForm = document.getElementById('verificationForm');
+        verificationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+            
+            const code = document.getElementById('verificationCode').value.replace(/\s/g, '');
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            if (!code || code.length !== 6) {
+                errorMessage.textContent = 'Please enter a valid 6-digit code';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>Verifying…';
+            
+            try {
+                const response = await fetch('/api/auth/register/verify-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ verification_session_id: _verificationSessionId, code: code })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    clearVerificationTimer();
+                    successMessage.textContent = 'Account created! Redirecting to login…';
                     successMessage.classList.add('show');
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 2000);
                 } else {
-                    errorMessage.textContent = data.error || 'Registration failed';
+                    errorMessage.textContent = data.error || 'Verification failed. Please try again.';
                     errorMessage.classList.add('show');
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify & Create Account';
                 }
             } catch (error) {
                 errorMessage.textContent = 'An error occurred. Please try again.';
                 errorMessage.classList.add('show');
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify & Create Account';
             }
         });
+        
+        window.backToRegistration = function() {
+            clearVerificationTimer();
+            _verificationSessionId = '';
+            document.getElementById('verificationStep').style.display = 'none';
+            form.style.display = 'block';
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+        };
+        
+        function startVerificationTimer(seconds) {
+            clearVerificationTimer();
+            const timerEl = document.getElementById('verificationTimer');
+            
+            function updateTimer() {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+                
+                if (seconds <= 0) {
+                    clearVerificationTimer();
+                    document.getElementById('verifyBtn').disabled = true;
+                    errorMessage.textContent = 'Verification code expired. Please start over.';
+                    errorMessage.classList.add('show');
+                } else {
+                    seconds--;
+                    _verificationTimer = setTimeout(updateTimer, 1000);
+                }
+            }
+            
+            updateTimer();
+        }
+        
+        function clearVerificationTimer() {
+            if (_verificationTimer) {
+                clearTimeout(_verificationTimer);
+                _verificationTimer = null;
+            }
+        }
+        
+        // Add CSS for spinner animation
+        const style = document.createElement('style');
+        style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
     </script>
 
     <script>

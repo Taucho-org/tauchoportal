@@ -125,7 +125,8 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 ### Email+password endpoints
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
-| POST | `/auth/register` | `{ email, password, username }` | Creates `users` row with bcrypt hash. `username` must be unique. |
+| POST | `/auth/register/send-verification-code` | `{ email, password, username }` | Initiates email verification flow for new account. Generates 6-digit code, sends to email via HTML template (max 1 attempt per email per 30 seconds). Returns `{ status: "verification_required", verification_session_id: "...", expires_in: 3600 }` (1 hour TTL). Returns `409` if email already registered. Returns `400` for invalid email format or password too short. |
+| POST | `/auth/register/verify-code` | `{ verification_session_id, code }` | Completes registration after email verification. Verifies 6-digit code against session. Creates `users` row with bcrypt hash if valid. Returns `{ status: "registered", user_id: "...", message: "Account created successfully" }`. Returns `400` if code is invalid. Returns `410` if verification_session_id expired. |
 | POST | `/auth/login` | `{ identifier, password }` | `identifier` = username **or** email. Tries email first; falls back to username. Verifies bcrypt hash, creates session. |
 | PATCH | `/auth/password` | `{ current_password, new_password }` | Change password. Requires `current_password` to match existing hash. Returns `200 OK` with `{"message": "Password updated successfully"}` on success. Returns `401` if `current_password` is wrong. Returns `400` if fields are missing or `new_password` is too short. Returns `409` if the account has no password yet (OAuth-only account). |
 
