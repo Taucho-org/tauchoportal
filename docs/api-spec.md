@@ -1,4 +1,4 @@
-﻿# TauchoPortal — API Specification
+# TauchoPortal — API Specification
 
 This document lists every API endpoint the portal UI requires, grouped by resource.
 Use it as a checklist: ✅ = already implemented on API server, 🔲 = not yet implemented.
@@ -44,7 +44,7 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 > **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
-> NicoNico, Instagram, TikTok, Kick, Facebook, X, and Bilibili OAuth are spec'd but not yet wired — the provider values are reserved for when those flows are implemented.
+> All OAuth providers (Google, Twitch, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented. NicoNico uses a session-proxy login mechanism (not standard OAuth).
 
 ### OAuth login flow
 | Scenario | Behaviour |
@@ -66,12 +66,20 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 | Twitch | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
 | Instagram | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | Facebook | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
+| TikTok | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
+| Kick | `http://localhost:8080/auth/callback/kick` | `https://taucho.org/auth/callback/kick` |
+| X | `http://localhost:8080/auth/callback/x` | `https://taucho.org/auth/callback/x` |
+| Bilibili | `http://localhost:8080/auth/callback/bilibili` | `https://taucho.org/auth/callback/bilibili` |
 
 **Where to register each redirect URI:**
 - **Google** — Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client → Authorized redirect URIs
 - **Twitch** — Twitch Developer Console → your app → OAuth Redirect URLs
 - **Instagram** — Meta App Dashboard → Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings → OAuth Redirect URIs
 - **Facebook** — Same Meta App Dashboard → Facebook Login → Settings → Valid OAuth Redirect URIs
+- **TikTok** — TikTok Developer Portal → your app → Authorization Settings → Redirect URLs
+- **Kick** — Kick Creator Dashboard → Developer Settings → OAuth → Redirect URLs
+- **X** — X Developer Portal → your app → Authentication settings → Callback URLs
+- **Bilibili** — Bilibili Developer Portal → your app → OAuth configuration → Redirect URLs
 
 **What the API does:**
 1. `GET /oauth/login?provider=X` — builds the auth URL using `{PROVIDER}_REDIRECT_URL` from env, returns `{ auth_url }`.
@@ -86,6 +94,10 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 | `TWITCH_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
 | `INSTAGRAM_REDIRECT_URL` | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | `FACEBOOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
+| `TIKTOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
+| `KICK_REDIRECT_URL` | `http://localhost:8080/auth/callback/kick` | `https://taucho.org/auth/callback/kick` |
+| `X_REDIRECT_URL` | `http://localhost:8080/auth/callback/x` | `https://taucho.org/auth/callback/x` |
+| `BILIBILI_REDIRECT_URL` | `http://localhost:8080/auth/callback/bilibili` | `https://taucho.org/auth/callback/bilibili` |
 
 > ⚠️ **Instagram credentials** — `INSTAGRAM_CLIENT_ID` and `INSTAGRAM_CLIENT_SECRET` are the **Instagram App ID / Instagram App Secret** found in Meta App Dashboard → Instagram → API setup with Instagram login → Business login settings. These are **not** the same as the main Facebook App ID shown under App Settings → Basic.
 
@@ -104,6 +116,7 @@ When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, 
 | Env var | Default | Description |
 |---------|---------|-------------|
 | `DATABASE_URL` | — | PostgreSQL connection string (required for persistence) |
+| `POLL_INTERVAL` | `5m` | How often the poller checks registered channels for stream start/end (e.g. `10m`, `15m`). Longer intervals reduce API quota consumption. |
 | `CACHE_REFRESH_INTERVAL` | `5m` | How often the poller reloads active watches from DB (e.g. `2m`, `10m`) |
 
 > ⚠️ `GOOGLE_REDIRECT_URL` has **no default**. If it is not set on the API server, OAuth will be disabled rather than silently using localhost.  
@@ -513,11 +526,15 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | POST | `/auth/login` | Email/username + password login, sets session cookie |
 | POST | `/auth/register` | Create new email+password account |
 | POST | `/auth/logout` | Log out, clear session |
-| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, or `facebook`. After OAuth callback, always redirects to `{PORTAL_BASE_URL}/dashboard` (`return_url` is not yet implemented). |
+| GET | `/oauth/login?provider=<p>` | Start OAuth login — returns `{ auth_url }`. `p` = `google`, `twitch`, `instagram`, `facebook`, `tiktok`, `kick`, `x`, or `bilibili`. After OAuth callback, always redirects to `{PORTAL_BASE_URL}/dashboard` (`return_url` is not yet implemented). |
 | GET | `/auth/callback/google` | Google OAuth callback (proxied by portal) |
 | GET | `/auth/callback/twitch` | Twitch OAuth callback (proxied by portal) |
 | GET | `/auth/callback/instagram` | Instagram OAuth callback (proxied by portal) |
 | GET | `/auth/callback/facebook` | Facebook OAuth callback (proxied by portal) |
+| GET | `/auth/callback/tiktok` | TikTok OAuth callback (proxied by portal) |
+| GET | `/auth/callback/kick` | Kick OAuth callback (proxied by portal) |
+| GET | `/auth/callback/x` | X OAuth callback (proxied by portal) |
+| GET | `/auth/callback/bilibili` | Bilibili OAuth callback (proxied by portal) |
 | GET | `/auth/connections` | List all OAuth providers linked to the current account |
 | DELETE | `/auth/connections/:provider` | Unlink an OAuth provider from the current account |
 
@@ -564,6 +581,8 @@ Controls whether a detected live stream should actually be tracked and trigger c
 
 Evaluation order: whitelist check first, then blacklist checks. A stream is tracked only when all checks pass.
 
+> **Filter + polling interaction:** When a stream is detected but does **not** pass the filter, the watch target is still marked as `is_currently_live = true` internally. This prevents the poller from hitting the platform API on every cycle for a stream that will always be filtered. The stream is recorded in the database with status `"filtered"`. When the stream ends, the live flag is cleared and the status becomes `"filtered_ended"`. The watcher is **not** notified for filtered streams — no conditions are evaluated and no device actions fire. The portal can show status `"live"` for these (the channel is live, just not being tracked).
+
 **`POST /watches` request body:**
 ```json
 {
@@ -593,6 +612,16 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 |--------|------|-------------|
 | GET | `/stream-events` | List events for user (`?limit=N`, `?watch_id=<id>`) |
 | GET | `/stream-events/get?id=<id>` | Get a single stream event |
+
+**Stream event `status` values:**
+
+| Status | Meaning |
+|--------|---------|
+| `live` | Stream is currently active |
+| `ended` | Stream ended normally; watcher was notified |
+| `scheduled` | Detected as a future/scheduled broadcast |
+| `filtered` | Stream was detected but skipped by the watch's `stream_filter` (still live) |
+| `filtered_ended` | Filtered stream has now ended |
 
 ### Conditions (`/conditions/...`)
 | Method | Path | Description |
@@ -633,10 +662,10 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 
 ## Platform Channel Discovery ✅
 
-Used by the **Channels** page (`/channels`) to browse and search real channels via linked OAuth accounts.  
-All endpoints require authentication and rely on the user's stored OAuth tokens (refreshed automatically by the API server).
+Used by the **Add Channel** page (`/add-channel`) to browse and search real channels.  
+Most endpoints rely on linked OAuth tokens (refreshed automatically). **Kick and Bilibili search, and Twitch search, do not require a linked account** — they use public or app-level APIs.
 
-> **Implementation note:** Tokens are stored in the `oauth_accounts` table (`access_token`, `refresh_token`, `token_expires_at` columns added via migration). The `YOUTUBE_API_KEY` environment variable is required for the YouTube search endpoint. NicoNico channel discovery uses the session cookie from `niconico_sessions` (not an OAuth token). NicoNico search returns `501` (no public API available).
+> **Implementation note:** Tokens are stored in the `oauth_accounts` table (`access_token`, `refresh_token`, `token_expires_at` columns added via migration). The `YOUTUBE_API_KEY` environment variable is required for the YouTube search endpoint. NicoNico channel discovery uses the session cookie from `niconico_sessions` (not an OAuth token). NicoNico search uses the **public** NicoNico live content search API (`api.search.nicovideo.jp`) — no authentication required; results are deduplicated live broadcast entries. Twitch search uses the user's linked token when available, and falls back to a Twitch app access token (client credentials) when not, so it works even without a linked Twitch account. Kick search currently returns `501` — the informal public API is no longer available and the official Kick API requires OAuth. Bilibili search is geo-restricted from non-Japanese IPs (returns `412`); the production server in Japan handles it correctly.
 
 ### YouTube (`/platform/youtube/...`)
 
@@ -713,7 +742,8 @@ Response:
 - Requires `user:read:follows` OAuth scope. If scope is missing, respond with `403 Forbidden`.
 
 **`GET /platform/twitch/search?q=`**  
-Response: same shape as following (`{ items: [...], cursor: "..." }`).
+- Does **not** require a linked Twitch account — uses the user's linked token if available, otherwise falls back to a Twitch app access token (client credentials).
+- Response: same shape as following (`{ items: [...], cursor: "..." }`).
 
 ---
 
@@ -722,7 +752,7 @@ Response: same shape as following (`{ items: [...], cursor: "..." }`).
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/platform/niconico/channels/mine` | NicoNico user channel info |
-| GET | `/platform/niconico/search?q=` | Channel / user search (if NicoNico provides a public API) |
+| GET | `/platform/niconico/search?q=` | Live broadcast search (public NicoNico search API) |
 
 **`GET /platform/niconico/channels/mine`**  
 Response: array (usually one item):
@@ -738,40 +768,54 @@ Response: array (usually one item):
 ```
 
 **`GET /platform/niconico/search?q=`**  
-- Only implement if NicoNico exposes a public search API.  
-- Return `501 Not Implemented` otherwise.  
-- Response: `{ items: [...] }` using same channel object shape.
+- Does **not** require a linked NicoNico account — uses the public NicoNico live content search API.  
+- Results are **deduplicated by channel identity**: only the most-viewed broadcast per channel is returned.  
+- The `title` field is the **broadcast title**, not the channel/user display name (limitation of the NicoNico search API — no channel-name search is available publicly).  
+- May return `502` if the upstream NicoNico search API is unreachable.  
+- The API is accessible only from Japan; non-Japanese IPs may receive a `403` from NicoNico's CDN. The production server handles this correctly.  
+
+Response: array of search result objects:
+```json
+[
+  {
+    "channel_id": "co123456",
+    "title": "Broadcast title here",
+    "thumbnail": "https://...",
+    "is_live": true,
+    "viewer_count": 1234,
+    "provider_type": "community"
+  }
+]
+```
+
+**`channel_id` format by `provider_type`:**
+
+| `provider_type` | `channel_id` format | Description |
+|-----------------|---------------------|-------------|
+| `community` | `co123456` | Personal community stream (most common) |
+| `channel` | `ch1234` | Paid official channel (e.g. anime/publisher channels) |
+| `official` | `user/{userId}` | NicoNico official content |
+
+> When creating a watch target for a NicoNico channel, use the `channel_id` exactly as returned by this endpoint. The prefix (`co`, `ch`, or `user/`) identifies the broadcaster type and is used by the NicoNico poller.
 
 ---
 
 ### Kick (`/platform/kick/...`)
 
 Kick allows anonymous WebSocket access for live chat — no user OAuth needed to receive comments.
-Channel search uses the unofficial Kick public API.
+The public/unofficial Kick search API is **no longer available**; channel search now requires Kick OAuth.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/platform/kick/search?q=` | Channel search (no auth required) |
+| GET | `/platform/kick/search?q=` | Channel search — currently returns `501` (Kick's public API is unavailable) |
 | GET | `/platform/kick/channels/mine` | Own Kick channel (requires OAuth — not yet implemented) |
 | GET | `/platform/kick/following?cursor=` | Channels you follow (requires OAuth — not yet implemented) |
 
 **`GET /platform/kick/search?q=`**
-- Does **not** require user authentication.
-- Returns `501` if upstream Kick API is unavailable.
-- Response:
-```json
-{
-  "items": [
-    {
-      "channel_id": "xqc",
-      "display_name": "xQc",
-      "thumbnail": "https://...",
-      "follower_count": 500000,
-      "is_live": false
-    }
-  ]
-}
-```
+- Always returns `501 Not Implemented`.
+- The unofficial Kick public search API is no longer operational.
+- Once Kick OAuth is implemented, this endpoint can be wired to the official Kick API.
+- **Portal note:** Do not show a free-text search form for Kick — searching is unavailable regardless of login state.
 
 ---
 
@@ -789,7 +833,8 @@ Channel search uses the public Bilibili search API.
 **`GET /platform/bilibili/search?q=`**
 - Does **not** require user authentication.
 - `channel_id` is the numeric UID of the Bilibili space (e.g. `"12345678"`).
-- Returns `501` if upstream Bilibili API is unavailable.
+- Returns `502` if the upstream Bilibili API is unreachable.
+- **Geo-restriction:** Bilibili's search API returns `412 Request was banned` from non-Chinese/non-Japanese IPs. The production server (Japan) handles this correctly; local development from outside Japan will receive errors.
 - Response:
 ```json
 {
@@ -820,7 +865,7 @@ Channel search uses the public Bilibili search API.
 
 ### Watched Channels — full CRUD (`/watches/...`)
 
-The **Watched Channels** page (`/channels`) lists all channels the polling service channels.  
+The **Watched Channels** page (`/monitors`) lists all channels the polling service monitors.  
 Each channel has per-platform event conditions (see Conditions below).
 
 **Watch object:**
@@ -1257,6 +1302,7 @@ Returns a per-type count summary for a stream. All known `event_type` values are
 |----------|------|-----|--------|--------|--------|-------|
 | Auth/User | — | ✅ | — | ✅ | ✅ | ✅ logout, ✅ oauth |
 | NicoNico | — | ✅ status | — | — | ✅ disconnect | ✅ login, ✅ mfa |
+| Platform Discovery | — | — | — | — | — | ✅ YouTube search/subs/mine, ✅ Twitch search/following/mine, ✅ NicoNico search/mine, ⚠️ Kick search (501), ⚠️ Bilibili search (geo-restricted) |
 | Watches | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | Stream Events | ✅ | ✅ | — | — | — | — |
 | Conditions | ✅ | ✅ | ✅ | ✅ | ✅ | — |
@@ -1298,7 +1344,7 @@ Two different ID types are used depending on the resource:
 ---
 
 
-- **OAuth providers**: Google (YouTube), Twitch, Instagram, and Facebook OAuth are implemented. NicoNico, TikTok, Kick, X, and Bilibili provider values are reserved — login buttons may show on the portal but those flows are not yet wired.
+- **OAuth providers**: All OAuth providers (Google/YouTube, Twitch, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented. NicoNico uses a session-proxy login mechanism (not standard OAuth).
 - **Device test stub**: `POST /devices/test?id=` acknowledges the request but doesn't call the actual device SDK. Each `brand` needs its own implementation.
 - **Stream metrics**: `GET /streams/get` returns the full stream account but not live metrics (viewers/bitrate/fps). A separate polling integration or `GET /streams/metrics?id=` would be needed.
 - **oauth_accounts table name**: The spec uses `oauth_connections` as the logical concept name, but the database table may be named `oauth_accounts` internally. The API endpoints and behaviour are the same.
