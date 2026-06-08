@@ -9,6 +9,176 @@ This guide walks through implementing email verification for user registration u
 - **Email Service**: SendGrid (free tier: 100 emails/day)
 - **Verification Code Lifetime**: 1 hour
 - **Code Format**: 6 random digits
+- **Multi-language Support**: English, Japanese, German, Spanish, French, Chinese (new), Korean (new)
+
+---
+
+## Language Detection (Multi-language Email Support)
+
+### How It Works
+
+1. **Frontend detects user's language** from `navigator.language` (browser UI language)
+2. **Frontend passes language code** as `language` parameter to API
+3. **Backend uses language code** to select the appropriate email template
+4. **Backend sends email** in user's preferred language
+
+### Supported Languages
+
+The frontend sends one of these language codes (matching your i18n setup):
+- `en` - English (fallback)
+- `ja` - 日本語 (Japanese)
+- `de` - Deutsch (German)
+- `fr` - Français (French)
+- `es` - Español (Spanish)
+- `zh` - 中文 (Chinese) *(new)*
+- `ko` - 한국어 (Korean) *(new)*
+
+### Frontend Implementation
+
+```javascript
+// Detect user's preferred language from navigator or Accept-Language
+function detectUserLanguage() {
+    const browserLang = navigator.language || navigator.userLanguage;
+    const supported = ['en', 'ja', 'de', 'fr', 'es', 'zh', 'ko'];
+    
+    // Extract base language code (e.g., "ja" from "ja-JP")
+    const baseLang = browserLang.split('-')[0].toLowerCase();
+    
+    // Return if supported, otherwise default to English
+    return supported.includes(baseLang) ? baseLang : 'en';
+}
+
+// When calling the API:
+const language = detectUserLanguage();
+const response = await fetch('/api/auth/register/send-verification-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+        username, 
+        email, 
+        password, 
+        language  // <- NEW: pass detected language
+    })
+});
+```
+
+### Backend Implementation
+
+**Endpoint: POST `/auth/register/send-verification-code`**
+
+```go
+type SendVerificationCodeRequest struct {
+    Email    string `json:"email"`
+    Password string `json:"password"`
+    Username string `json:"username"`
+    Language string `json:"language"` // <- NEW: optional, defaults to "en"
+}
+
+func (h *Handler) SendVerificationCode(w http.ResponseWriter, r *http.Request) {
+    var req SendVerificationCodeRequest
+    json.NewDecoder(r.Body).Decode(&req)
+    
+    // Validate language code
+    language := req.Language
+    if language == "" {
+        // Optional: try to detect from Accept-Language header as fallback
+        language = i18n.DetectLang(r)  // Uses your existing i18n.DetectLang()
+    }
+    
+    // Validate language is supported
+    supported := []string{"en", "ja", "de", "fr", "es", "zh", "ko"}
+    if !contains(supported, language) {
+        language = "en"  // fallback to English
+    }
+    
+    // ... rest of logic ...
+    
+    // Store language in verification_session
+    session := VerificationSession{
+        ID:          generateID(),
+        Email:       req.Email,
+        Username:    req.Username,
+        PasswordHash: bcrypt(req.Password),
+        Code:        generateCode(),
+        Language:    language,  // <- Store it
+        CreatedAt:   time.Now(),
+        ExpiresAt:   time.Now().Add(1 * time.Hour),
+    }
+    
+    // Send email in user's language
+    template := fmt.Sprintf("templates/email/verification-code.%s.html", language)
+    err := email.SendVerificationEmail(req.Email, session.Code, template)
+    
+    // Return response
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "status": "verification_required",
+        "verification_session_id": session.ID,
+        "expires_in": 3600,
+    })
+}
+```
+
+### Email Template Files
+
+Create email templates for each language:
+
+```
+templates/email/verification-code.en.html
+templates/email/verification-code.ja.html
+templates/email/verification-code.de.html
+templates/email/verification-code.fr.html
+templates/email/verification-code.es.html
+templates/email/verification-code.zh.html    (NEW)
+templates/email/verification-code.ko.html    (NEW)
+```
+
+Each template receives:
+- `Code` - the 6-digit verification code
+- `Email` - user's email address
+- `Expires` - expiration time (1 hour)
+
+Example Go code to load template:
+
+```go
+func SendVerificationEmail(toEmail, code, templatePath string) error {
+    // Load and parse template
+    tmpl, err := template.ParseFiles(templatePath)
+    if err != nil {
+        return fmt.Errorf("failed to load template: %w", err)
+    }
+    
+    // Render template with data
+    var buf bytes.Buffer
+    tmpl.Execute(&buf, map[string]interface{}{
+        "Code":    code,
+        "Email":   toEmail,
+        "Expires": "1 hour",
+    })
+    
+    // Send via SendGrid
+    from := mail.NewEmail("TauchoPortal", os.Getenv("SENDGRID_FROM_EMAIL"))
+    to := mail.NewEmail("", toEmail)
+    message := mail.NewSingleEmail(from, "Your TauchoPortal Verification Code", to, 
+        "Code: "+code, buf.String())
+    
+    client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+    response, err := client.Send(message)
+    
+    if response.StatusCode != 202 {
+        return fmt.Errorf("sendgrid returned %d", response.StatusCode)
+    }
+    return nil
+}
+```
+
+### Fallback Strategy
+
+If language parameter is missing or unsupported:
+1. Try to detect from `Accept-Language` header (your existing `i18n.DetectLang()` function)
+2. Default to English ("en")
+
+This ensures graceful degradation if frontend doesn't send language.
 
 ---
 
@@ -52,9 +222,12 @@ This guide walks through implementing email verification for user registration u
 {
   "email": "user@example.com",
   "password": "securepass123",
-  "username": "username_here"
+  "username": "username_here",
+  "language": "ja"
 }
 ```
+
+Note: `language` is optional. If not provided, backend will detect from `Accept-Language` header or default to "en". Supported values: "en", "ja", "de", "fr", "es", "zh", "ko".
 
 **Response (Success - 200)**:
 ```json
@@ -71,10 +244,11 @@ This guide walks through implementing email verification for user registration u
 - `429 Too Many Requests`: Rate limited (if same email requests within 30 seconds)
 
 **Backend Logic**:
-1. Validate email format and password strength
-2. Check if email already exists (return 409)
-3. Generate 6-digit random code: `secure_random(1000000, 9999999)`
-4. Create pending verification record:
+1. Parse `language` parameter (optional, defaults to "en" if not provided)
+2. Validate email format and password strength
+3. Check if email already exists (return 409)
+4. Generate 6-digit random code: `secure_random(1000000, 9999999)`
+5. Create pending verification record:
    ```
    verification_sessions {
      id: "sess_...",
@@ -82,13 +256,14 @@ This guide walks through implementing email verification for user registration u
      username: "username_here",
      password_hash: bcrypt(password),
      verification_code: "123456",
+     language: "ja",
      created_at: now(),
      expires_at: now() + 1 hour,
      attempts: 0
    }
    ```
-5. Send email with HTML template (see template below)
-6. Return session ID and expires_in
+6. Send email with HTML template in user's language (see language templates below)
+7. Return session ID and expires_in
 
 #### 2. POST `/auth/register/verify-code`
 **Purpose**: Complete registration after code verification

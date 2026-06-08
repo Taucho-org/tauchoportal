@@ -194,6 +194,19 @@
         let _verificationSessionId = '';
         let _verificationTimer = null;
         
+        // Detect user's preferred language from navigator or Accept-Language header
+        function detectUserLanguage() {
+            // Use navigator.language (browser UI language)
+            const browserLang = navigator.language || navigator.userLanguage;
+            const supported = ['en', 'ja', 'de', 'fr', 'es', 'zh', 'ko'];
+            
+            // Extract base language code (e.g., "ja" from "ja-JP")
+            const baseLang = browserLang.split('-')[0].toLowerCase();
+            
+            // Return if supported, otherwise default to English
+            return supported.includes(baseLang) ? baseLang : 'en';
+        }
+        
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -203,6 +216,7 @@
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const language = detectUserLanguage();
             const submitBtn = document.getElementById('submitBtn');
             
             submitBtn.disabled = true;
@@ -214,7 +228,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, email, password })
+                    body: JSON.stringify({ username, email, password, language })
                 });
                 
                 const data = await response.json();
