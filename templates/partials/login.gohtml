@@ -111,7 +111,7 @@
             <div class="nico-box-body">
                 <p class="nico-mfa-desc">A 6-digit code was sent to your email. Enter it below.</p>
                 <div class="nico-otp-row">
-                    <input type="text" id="nicoOtp" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="000000">
+                    <input type="text" id="nicoOtp" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000">
                     <span id="nicoCountdown" class="nico-countdown"></span>
                 </div>
                 <div id="nicoErr2" class="nico-err" style="display:none"></div>
@@ -232,7 +232,7 @@
                     document.getElementById('nicoOtp').value = '';
                     document.getElementById('nicoMfaBtn').disabled = false;
                     document.getElementById('nicoMfaBtn').textContent = 'Verify';
-                    startTimer(300);
+                    startTimer(600);
                     document.getElementById('nicoOtp').focus();
                 } else if (data.status === 'logged_in') {
                     closeNicoModal();

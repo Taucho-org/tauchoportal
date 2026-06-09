@@ -214,8 +214,16 @@
         try {
             const user = await apiRequest('GET', '/auth/user');
             connections = user.connections  || [];
-            nicoStatus  = user.niconico     || { connected: false };
             hasPassword = !!user.has_password;
+            
+            // Fetch dedicated NicoNico status as per spec requirement
+            try {
+                nicoStatus = await apiRequest('GET', '/niconico/status');
+            } catch (e) {
+                // Fall back to user.niconico if dedicated endpoint fails
+                nicoStatus = user.niconico || { connected: false };
+            }
+            
             msgEl.style.display = 'none';
         } catch (e) {
             connections = [];
@@ -331,11 +339,7 @@
 
     async function connectProvider(providerId) {
         try {
-            const returnPath = '/account-settings?connected=' + providerId;
-            // Set a short-lived cookie so the portal callbackProxy redirects back here after OAuth.
-            await fetch('/set-oauth-return?url=' + encodeURIComponent(returnPath), { credentials: 'include' });
-            const returnUrl = encodeURIComponent(returnPath);
-            const data = await apiRequest('GET', '/oauth/login?provider=' + providerId + '&return_url=' + returnUrl);
+            const data = await apiRequest('GET', '/oauth/login?provider=' + providerId);
             if (data && data.auth_url) {
                 window.location.href = data.auth_url;
             }
