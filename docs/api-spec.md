@@ -1163,6 +1163,8 @@ Example custom action body template:
 
 ---
 
+### Streams (`/streams/...`)
+
 The user's own streaming accounts — the channels they stream *from* (YouTube, Twitch, NicoNico).
 Distinct from **watched channels** (which are channels they monitor *for events*).
 
