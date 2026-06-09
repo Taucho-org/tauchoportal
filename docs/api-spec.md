@@ -633,7 +633,7 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 
 ## Platform Channel Discovery ✅
 
-Used by the **Add Channel** page (`/add-channel`) to browse and search real channels via linked OAuth accounts.  
+Used by the **Channels** page (`/channels`) to browse and search real channels via linked OAuth accounts.  
 All endpoints require authentication and rely on the user's stored OAuth tokens (refreshed automatically by the API server).
 
 > **Implementation note:** Tokens are stored in the `oauth_accounts` table (`access_token`, `refresh_token`, `token_expires_at` columns added via migration). The `YOUTUBE_API_KEY` environment variable is required for the YouTube search endpoint. NicoNico channel discovery uses the session cookie from `niconico_sessions` (not an OAuth token). NicoNico search returns `501` (no public API available).
@@ -820,7 +820,7 @@ Channel search uses the public Bilibili search API.
 
 ### Watched Channels — full CRUD (`/watches/...`)
 
-The **Watched Channels** page (`/monitors`) lists all channels the polling service monitors.  
+The **Watched Channels** page (`/channels`) lists all channels the polling service channels.  
 Each channel has per-platform event conditions (see Conditions below).
 
 **Watch object:**

@@ -1,5 +1,5 @@
-/* Watched Channels (monitors) Page Styles */
-.monitors-container {
+/* Watched Channels Page Styles */
+.channels-container {
     max-width: 1100px;
     margin: 0 auto;
     padding: 2rem;
@@ -525,10 +525,18 @@
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 0 1.5rem;
     margin-bottom: 1.5rem;
 }
 
+.channel-detail-edit {
+    max-width: 92px;
+}
+
+.channel-detail-edit button {
+    min-width: 90px;
+    height: 2.4em;
+}
 .channel-detail-header {
     display: flex;
     align-items: flex-start;
@@ -566,16 +574,6 @@
     flex-shrink: 0;
 }
 
-.channel-detail-meta {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-    padding: 1rem 0;
-    border-top: 1px solid #f0f0f0;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 1rem;
-}
-
 .meta-item {
     display: flex;
     flex-direction: column;
@@ -600,11 +598,6 @@
     font-family: monospace;
     font-size: 0.85rem;
     color: #555;
-}
-
-.channel-detail-actions-row {
-    display: flex;
-    gap: 0.5rem;
 }
 
 /* =============================================
@@ -697,7 +690,7 @@
 .more-conditions-link a:hover { text-decoration: underline; }
 
 /* =============================================
-   Conditions List View (within monitors SPA)
+   Conditions List View (within channels SPA)
    ============================================= */
 .platform-icon-sm {
     display: inline-block;
@@ -1139,7 +1132,7 @@ input[type="range"] {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .monitors-container { padding: 1rem; }
+    .channels-container { padding: 1rem; }
     .page-header-top { flex-direction: column; }
     .channel-main { flex-wrap: wrap; }
     .channel-footer { flex-direction: column; align-items: flex-start; }
@@ -1156,11 +1149,11 @@ input[type="range"] {
 }
 
 /* ================================================================
-   Unified Layout — Two-panel monitors + add-channel sidebar
+   Unified Layout — Two-panel channels + add-channel sidebar
    ================================================================ */
 
 /* Remove the old single-column container */
-.monitors-container { display: none !important; }
+.channels-container { display: none !important; }
 
 /* Full-height two-panel shell */
 .unified-layout {
@@ -1181,8 +1174,38 @@ input[type="range"] {
     overflow: hidden;
     border-right: 1px solid #313244;
     flex-shrink: 0;
+    transition: all 1s;
+}
+.add-sidebar.closed {
+    width: 1em;
+    overflow-x: hidden;
+    min-width: 47px;
 }
 
+.add-sidebar.closed .add-sidebar-header h2 {
+    display: none;
+}
+.add-sidebar.closed .accordion-list {
+    overflow-x: hidden;
+}
+.add-sidebar .openbutton {
+    display: none;
+    font-weight: bold;
+    font-family: tahoma, sans-serif;
+    color: #aeb3c5;
+}
+.add-sidebar .closebutton {
+    display: block;
+    font-weight: bold;
+    font-family: tahoma, sans-serif;
+    color: #aeb3c5;
+}
+.add-sidebar.closed .openbutton {
+    display: block;
+}
+.add-sidebar.closed .closebutton {
+    display: none;
+}
 .add-sidebar-header {
     padding: 1rem 1.25rem 0.75rem;
     border-bottom: 1px solid #313244;
@@ -1197,6 +1220,12 @@ input[type="range"] {
     letter-spacing: 0.02em;
 }
 
+.add-sidebar-footer {
+    width: 100%;
+    height: 2em;
+    padding: 0.5rem;
+    background-color: #7d8aa745;
+}
 .accordion-list {
     flex: 1;
     overflow-y: auto;
@@ -1493,14 +1522,14 @@ input[type="range"] {
 
 .load-more-sm:hover { border-color: #89b4fa; color: #89b4fa; }
 
-/* ── Right: Monitors panel ───────────────────────────────────── */
-.monitors-panel {
+/* ── Right: Channels panel ───────────────────────────────────── */
+.channels-panel {
     flex: 1;
     position: relative;
     overflow: hidden;
 }
 
-.monitors-view {
+.channels-view {
     position: absolute;
     inset: 0;
     overflow-y: auto;
@@ -1577,11 +1606,25 @@ input[type="range"] {
     .add-sidebar {
         width: 100%;
         max-width: 100%;
-        height: 45vh;
+        height: 100%;
         min-width: unset;
         border-right: none;
         border-bottom: 1px solid #313244;
     }
-    .monitors-panel { height: 55vh; }
-    .monitors-view { padding: 1rem; }
+    .channels-panel { height: 55vh; position: unset; }
+    .channels-view { padding: 1rem; position: unset; }
+
+    .add-sidebar-footer {
+        display: none;
+    }
+
+    .accordion-list {
+        height: unset;
+    }
+
+    .add-sidebar-header {
+        padding: unset;
+        border-bottom: unset;
+        flex-shrink: unset;
+    }
 }

@@ -1,7 +1,7 @@
 {{define "page"}}{{template "base" .}}{{end}}
 
 {{define "head"}}
-<link rel="stylesheet" href="/css/monitors.css">
+<link rel="stylesheet" href="/css/channels.css">
 <link rel="stylesheet" href="/css/add-channel.css">
 {{end}}
 
@@ -9,20 +9,26 @@
 
 <div class="unified-layout">
 
-    <!-- LEFT: Add Channel Accordion Sidebar -->
+    <!-- LEFT: Select Channel Accordion Sidebar -->
     <aside class="add-sidebar" id="addSidebar">
         <div class="add-sidebar-header">
-            <h2>Add Channel</h2>
+            <h2>Select Checking Channel</h2>
         </div>
         <div class="accordion-list" id="accordionList">
             <div class="acc-init-loading">Loading platforms…</div>
         </div>
+        <div class="add-sidebar-footer">
+            <div class="align-right">
+                <a class="closebutton" href="#" onclick="closeAllAcc();document.getElementById('addSidebar').classList.add('closed')">|&lt;</a>
+                <a class="openbutton" href="#" onclick="closeAllAcc();document.getElementById('addSidebar').classList.remove('closed')">&gt;|</a>
+            </div>
+        </div>
     </aside>
 
-    <!-- RIGHT: Monitors Panel -->
-    <div class="monitors-panel">
+    <!-- RIGHT: Channels Panel -->
+    <div class="channels-panel">
         <!-- VIEW: Channel List -->
-        <div id="view-list" class="view monitors-view">
+        <div id="view-list" class="view channels-view">
             <div class="page-header">
                 <div class="page-header-top">
                     <div>
@@ -41,11 +47,11 @@
         </div>
 
         <!-- VIEW: Channel Detail -->
-        <div id="view-channel" class="view monitors-view" style="display:none"></div>
+        <div id="view-channel" class="view channels-view" style="display:none"></div>
 
         <!-- VIEW: Conditions -->
-        <div id="view-conditions" class="view monitors-view" style="display:none"></div>
-    </div><!-- /.monitors-panel -->
+        <div id="view-conditions" class="view channels-view" style="display:none"></div>
+    </div><!-- /.channels-panel -->
 
 </div><!-- /.unified-layout -->
 
@@ -420,11 +426,11 @@
 
     async function route() {
         const path = window.location.pathname;
-        const m = path.match(/^\/monitors\/([^\/]+)(\/conditions)?/);
+        const m = path.match(/^\/channels\/([^\/]+)(\/conditions)?/);
         if (m) {
             await loadWatches();
             const ch = CHANNELS.find(c => c.id === m[1]);
-            if (!ch) { navigate('/monitors'); return; }
+            if (!ch) { navigate('/channels'); return; }
             currentChannel = ch;
             await loadConditions(ch.id);
             if (m[2]) {
@@ -493,7 +499,7 @@
             <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}">
                 <div class="channel-main">
                     <div class="platform-icon ${ch.platform}">${p.icon}</div>
-                    <div class="channel-info" style="cursor:pointer" onclick="navigate('/monitors/${ch.id}')">
+                    <div class="channel-info" style="cursor:pointer" onclick="navigate('/channels/${ch.id}')">
                         <div class="channel-name">${ch.name} ${filterBadge}</div>
                         <div class="channel-meta">
                             <span class="platform-tag ${ch.platform}">${p.label}</span>
@@ -518,8 +524,8 @@
                         <div class="meta-item rules-link">
                             <span class="meta-label">Conditions:</span>
                             <span class="meta-value">
-                                <a href="/monitors/${ch.id}/conditions"
-                                   onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                                <a href="/channels/${ch.id}/conditions"
+                                   onclick="navigate('/channels/${ch.id}/conditions'); return false;">
                                    ${condCount} rule${condCount !== 1 ? 's' : ''}
                                 </a>
                             </span>
@@ -558,14 +564,14 @@
                     <span class="rule-status ${cond.enabled ? 'enabled' : 'disabled'}">${cond.enabled ? 'On' : 'Off'}</span>
                 </div>`;
             }).join('') + (condCount > 3 ? `<div class="more-conditions-link">
-                <a href="/monitors/${ch.id}/conditions" onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                <a href="/channels/${ch.id}/conditions" onclick="navigate('/channels/${ch.id}/conditions'); return false;">
                     + ${condCount - 3} more...
                 </a></div>` : '');
 
         document.getElementById('view-channel').innerHTML = `
             <div class="page-header">
                 <nav class="breadcrumb">
-                    <a href="/monitors" onclick="navigate('/monitors'); return false;">📡 Watched Channels</a>
+                    <a href="/channels" onclick="navigate('/channels'); return false;">📡 Watched Channels</a>
                     <span class="breadcrumb-sep">›</span>
                     <span>${ch.name}</span>
                 </nav>
@@ -577,46 +583,30 @@
                         <h1>${ch.name}</h1>
                         <div class="channel-meta">
                             <span class="platform-tag ${ch.platform}">${p.label}</span>
-                            <span class="channel-id">${ch.channelId}</span>
                             ${statusBadge}
+                            <div class="meta-item">
+                                <span class="meta-label">Last stream</span>
+                                <span class="meta-value">${ch.lastStream}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Platform ID</span>
+                                <span class="meta-value mono">${ch.channelId}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="channel-detail-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
+                    <div class="channel-detail-edit">
+                        <div class="channel-detail-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
+                        </div>
+                        <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
+                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg>Filter</button>
+                        <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑Remove</button>
                     </div>
                 </div>
-                <div class="channel-detail-meta">
-                    <div class="meta-item">
-                        <span class="meta-label">Last stream</span>
-                        <span class="meta-value">${ch.lastStream}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">Platform ID</span>
-                        <span class="meta-value mono">${ch.channelId}</span>
-                    </div>
-                </div>
-                <div class="channel-detail-actions-row">
-                    <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit Channel</button>
-                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter</button>
-                    <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑 Remove</button>
-                </div>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-header">
-                    <div>
-                        <h2><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter ${hasActiveFilter(ch.streamFilter) ? '<span class="filter-active-dot" title="Filter active">●</span>' : ''}</h2>
-                        <p>Skip streams based on title or description keywords — even if this channel is actively watched.</p>
-                    </div>
-                    <button class="btn btn-secondary" onclick="openFilterModal('${ch.id}')">
-                        ${hasActiveFilter(ch.streamFilter) ? 'Edit Filter' : 'Add Filter'}
-                    </button>
-                </div>
-                ${renderFilterSummary(ch.streamFilter)}
             </div>
 
             <div class="detail-section">
@@ -626,8 +616,8 @@
                         <p>Events to react to on <strong>${ch.name}</strong> — comments, gifts, effects, follows, etc.</p>
                     </div>
                     <a class="btn btn-primary"
-                       href="/monitors/${ch.id}/conditions"
-                       onclick="navigate('/monitors/${ch.id}/conditions'); return false;">
+                       href="/channels/${ch.id}/conditions"
+                       onclick="navigate('/channels/${ch.id}/conditions'); return false;">
                         Manage Conditions →
                     </a>
                 </div>
@@ -662,9 +652,9 @@
         document.getElementById('view-conditions').innerHTML = `
             <div class="page-header">
                 <nav class="breadcrumb">
-                    <a href="/monitors" onclick="navigate('/monitors'); return false;">📡 Watched Channels</a>
+                    <a href="/channels" onclick="navigate('/channels'); return false;">📡 Watched Channels</a>
                     <span class="breadcrumb-sep">›</span>
-                    <a href="/monitors/${ch.id}" onclick="navigate('/monitors/${ch.id}'); return false;">${ch.name}</a>
+                    <a href="/channels/${ch.id}" onclick="navigate('/channels/${ch.id}'); return false;">${ch.name}</a>
                     <span class="breadcrumb-sep">›</span>
                     <span>Conditions</span>
                 </nav>
@@ -801,7 +791,7 @@
         if (!confirm('Remove this channel from monitoring?\n\nAll conditions for this channel will also be removed.')) return;
         try {
             await apiRequest('DELETE', `/watches?id=${channelId}`);
-            navigate('/monitors');
+            navigate('/channels');
         } catch (e) {
             alert('Failed to delete channel: ' + e.message);
         }
@@ -1236,6 +1226,7 @@
     }
 
     function toggleAcc(platId) {
+        document.getElementById(`addSidebar`).classList.remove(`closed`);
         const body  = document.getElementById(`acc-body-${platId}`);
         const chev  = document.getElementById(`acc-chev-${platId}`);
         const head  = body.previousElementSibling;
@@ -1245,6 +1236,18 @@
         if (open && !accordionLoaded.has(platId)) {
             accordionLoaded.add(platId);
             renderAccordionBodyContent(platId);
+        }
+    }
+
+    function closeAllAcc() {
+        for (var platindex in PLATFORMS) {
+            var platId = PLATFORMS[platindex].id;
+            const body  = document.getElementById(`acc-body-${platId}`);
+            const chev  = document.getElementById(`acc-chev-${platId}`);
+            const head  = body.previousElementSibling;
+            const open  = body.classList.remove('open');
+            head.classList.toggle('open', open);
+            chev.style.transform = '';
         }
     }
 
@@ -1264,7 +1267,7 @@
             inner.innerHTML = `
                 <div class="acc-not-connected">
                     <p>Connect your ${esc(plat.label)} account first.</p>
-                    <a class="acc-connect-link" href="/account">Go to Account Settings →</a>
+                    <a class="acc-connect-link" href="/account-settings">Go to Account Settings →</a>
                 </div>`;
             return;
         }
