@@ -801,6 +801,118 @@ Response: array of search result objects:
 
 ---
 
+### Instagram (`/platform/instagram/...`)
+
+Instagram Live events are accessible via the Meta Graph API with user OAuth token.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/instagram/user/mine` | Own Instagram Business account |
+| GET | `/platform/instagram/search?q=` | User search (via Meta Graph API) |
+
+**`GET /platform/instagram/user/mine`**  
+Response: object with Instagram account info
+```json
+{
+  "user_id": "17841401234567890",
+  "username": "my_ig_handle",
+  "display_name": "My Display Name",
+  "thumbnail": "https://...",
+  "follower_count": 5000
+}
+```
+
+**`GET /platform/instagram/search?q=`**  
+Response: array of user objects (same shape as above):
+```json
+{
+  "items": [
+    { "user_id": "...", "username": "...", "display_name": "...", "thumbnail": "...", "follower_count": 0 }
+  ]
+}
+```
+
+---
+
+### Facebook (`/platform/facebook/...`)
+
+Facebook Live events are accessible via the Meta Graph API with user OAuth token.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/facebook/page/mine` | Own Facebook page(s) |
+| GET | `/platform/facebook/search?q=` | Page search (via Meta Graph API) |
+
+**`GET /platform/facebook/page/mine`**  
+Response: array of page objects
+```json
+[
+  {
+    "page_id": "1234567890",
+    "name": "My Page",
+    "thumbnail": "https://...",
+    "follower_count": 10000
+  }
+]
+```
+
+**`GET /platform/facebook/search?q=`**  
+Response: array of page objects (same shape as above).
+
+---
+
+### TikTok (`/platform/tiktok/...`)
+
+TikTok Live events are accessible via the TikTok Open API with user OAuth token.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/tiktok/user/mine` | Own TikTok account |
+| GET | `/platform/tiktok/search?q=` | Creator search (via TikTok Open API) |
+
+**`GET /platform/tiktok/user/mine`**  
+Response: object with TikTok account info
+```json
+{
+  "user_id": "6987123456789012345",
+  "username": "my_tiktok_handle",
+  "display_name": "My TikTok Name",
+  "thumbnail": "https://...",
+  "follower_count": 50000
+}
+```
+
+**`GET /platform/tiktok/search?q=`**  
+Response: array of creator objects (same shape as above).
+
+---
+
+### X / Twitter (`/platform/x/...`)
+
+X (formerly Twitter) Live events are accessible via the X API v2 with user OAuth token.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/platform/x/user/mine` | Own X account |
+| GET | `/platform/x/search?q=` | User search (via X API v2) |
+
+**`GET /platform/x/user/mine`**  
+Response: object with X account info
+```json
+{
+  "user_id": "1234567890",
+  "username": "my_x_handle",
+  "display_name": "My X Name",
+  "thumbnail": "https://...",
+  "follower_count": 100000
+}
+```
+
+**`GET /platform/x/search?q=`**  
+Response: array of user objects (same shape as above).
+
+---
+
 ### Kick (`/platform/kick/...`)
 
 Kick allows anonymous WebSocket access for live chat — no user OAuth needed to receive comments.
@@ -1057,7 +1169,7 @@ List all brands.
 **Response `200`:**
 ```json
 [
-  { "id": "govee", "name": "Govee", "website": "https://www.govee.com", "logo_url": "", "is_active": true, "created_at": "...", "updated_at": "..." },
+  { "id": "govee", "name": "Govee", "website": "https://www.govee.com", "logo_url": "", "brand_color": "#005DAA", "is_active": true, "created_at": "...", "updated_at": "..." },
   { "id": "hue",   "name": "Philips Hue", "website": "https://www.philips-hue.com", ... }
 ]
 ```
@@ -1091,6 +1203,7 @@ Create a brand. (Admin operation — access control is portal-side for now.)
   "name": "Acme Lights", // required
   "website": "https://acme.example.com",
   "logo_url": "https://cdn.example.com/acme.png",
+  "brand_color": "#FF5733", // optional — hex color for device card accent
   "is_active": true      // optional, default true
 }
 ```
@@ -1127,6 +1240,14 @@ List products.
 | `brand_id` | _(all)_ | Filter to a specific brand |
 | `active_only` | `true` | Set to `false` to include retired products |
 
+**Response `200`:**
+```json
+[
+  { "id": "govee-h6159", "brand_id": "govee", "name": "H6159 LED Strip", "category": "light_strip", "logo_url": "", "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"], "is_active": true, "created_at": "...", "updated_at": "..." },
+  { "id": "hue-play", "brand_id": "hue", "name": "Hue Play", ... }
+]
+```
+
 ---
 
 ### GET /catalog/products/get?id=\<id\>
@@ -1140,7 +1261,7 @@ Get a single product.
   "brand_id": "govee",
   "name": "H6159 LED Strip",
   "category": "light_strip",
-  "thumbnail_url": "",
+  "logo_url": "",
   "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"],
   "is_active": true,
   "created_at": "...",
@@ -1161,7 +1282,7 @@ Create a product.
   "brand_id": "govee",         // required — must exist in brands table
   "name": "H6159 LED Strip",  // required
   "category": "light_strip",
-  "thumbnail_url": "",
+  "logo_url": "",
   "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"],
   "is_active": true
 }
@@ -1303,7 +1424,7 @@ Returns a per-type count summary for a stream. All known `event_type` values are
 |----------|------|-----|--------|--------|--------|-------|
 | Auth/User | — | ✅ | — | ✅ | ✅ | ✅ logout, ✅ oauth |
 | NicoNico | — | ✅ status | — | — | ✅ disconnect | ✅ login, ✅ mfa |
-| Platform Discovery | — | — | — | — | — | ✅ YouTube search/subs/mine, ✅ Twitch search/following/mine, ✅ NicoNico search/mine, ⚠️ Kick search (501), ⚠️ Bilibili search (geo-restricted) |
+| Platform Discovery | — | — | — | — | — | ✅ YouTube search/subs/mine, ✅ Twitch search/following/mine, ✅ NicoNico search/mine, ✅ Instagram search/mine, ✅ Facebook search/mine, ✅ TikTok search/mine, ✅ X search/mine, ⚠️ Kick search (501), ⚠️ Bilibili search (geo-restricted) |
 | Watches | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | Stream Events | ✅ | ✅ | — | — | — | — |
 | Conditions | ✅ | ✅ | ✅ | ✅ | ✅ | — |

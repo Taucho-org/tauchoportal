@@ -87,69 +87,9 @@
     // =============================================
     // Brand & Product Catalog
     // =============================================
-    const BRANDS = [
-        { id: 'govee',    name: 'Govee',            icon: '💡', color: '#9c27b0', type: 'Lights & Strips' },
-        { id: 'hue',      name: 'Philips Hue',      icon: '💡', color: '#1565c0', type: 'Lights & Switches' },
-        { id: 'kasa',     name: 'TP-Link Kasa',     icon: '🔌', color: '#2e7d32', type: 'Plugs & Switches' },
-        { id: 'lifx',     name: 'LIFX',             icon: '💡', color: '#e65100', type: 'Smart Lights' },
-        { id: 'tuya',     name: 'Tuya / Smart Life', icon: '🔌', color: '#1976d2', type: 'Generic Smart Devices' },
-        { id: 'nanoleaf', name: 'Nanoleaf',          icon: '🔺', color: '#388e3c', type: 'Light Panels' },
-        { id: 'yeelight', name: 'Yeelight',          icon: '💡', color: '#f9a825', type: 'Smart Lights' },
-        { id: 'wled',     name: 'WLED',              icon: '🌈', color: '#c2185b', type: 'LED Controllers' },
-        { id: 'wyze',     name: 'Wyze',              icon: '🔌', color: '#0277bd', type: 'Plugs & Bulbs' },
-        { id: 'amazon',   name: 'Amazon Smart',      icon: '🔵', color: '#00838f', type: 'Smart Plugs' },
-    ];
-
-    const PRODUCTS = {
-        govee: [
-            { id: 'govee-h6159', name: 'RGBIC LED Strip (H6159)',   type: 'light',  actions: ['on','off','color','brightness','scene','flash'] },
-            { id: 'govee-h6052', name: 'Smart Bulb RGBW (H6052)',   type: 'light',  actions: ['on','off','color','brightness','color_temp'] },
-            { id: 'govee-h7021', name: 'Smart Floor Lamp (H7021)',  type: 'light',  actions: ['on','off','color','brightness'] },
-            { id: 'govee-h5080', name: 'Smart Power Strip (H5080)', type: 'switch', actions: ['on','off','toggle'] },
-        ],
-        hue: [
-            { id: 'hue-color', name: 'Color Bulb (E27)',    type: 'light',  actions: ['on','off','color','brightness','color_temp','scene'] },
-            { id: 'hue-white', name: 'White Ambiance Bulb', type: 'light',  actions: ['on','off','brightness','color_temp'] },
-            { id: 'hue-strip', name: 'Lightstrip Plus',     type: 'light',  actions: ['on','off','color','brightness','scene'] },
-            { id: 'hue-plug',  name: 'Smart Plug',          type: 'switch', actions: ['on','off','toggle'] },
-        ],
-        kasa: [
-            { id: 'kasa-ep10',  name: 'Smart Plug Mini (EP10)',    type: 'switch', actions: ['on','off','toggle'] },
-            { id: 'kasa-ep40',  name: 'Outdoor Smart Plug (EP40)', type: 'switch', actions: ['on','off','toggle'] },
-            { id: 'kasa-lb130', name: 'Smart Bulb Color (LB130)',  type: 'light',  actions: ['on','off','color','brightness'] },
-        ],
-        lifx: [
-            { id: 'lifx-color', name: 'LIFX Color Bulb', type: 'light', actions: ['on','off','color','brightness','color_temp','scene'] },
-            { id: 'lifx-mini',  name: 'LIFX Mini White', type: 'light', actions: ['on','off','brightness','color_temp'] },
-            { id: 'lifx-strip', name: 'LIFX Z Strip',    type: 'light', actions: ['on','off','color','brightness','scene'] },
-        ],
-        tuya: [
-            { id: 'tuya-bulb',  name: 'Generic Smart Bulb', type: 'light',  actions: ['on','off','color','brightness'] },
-            { id: 'tuya-plug',  name: 'Generic Smart Plug', type: 'switch', actions: ['on','off','toggle'] },
-            { id: 'tuya-strip', name: 'Generic LED Strip',  type: 'light',  actions: ['on','off','color','brightness'] },
-        ],
-        nanoleaf: [
-            { id: 'nano-shapes', name: 'Shapes Hexagons', type: 'light', actions: ['on','off','color','brightness','scene'] },
-            { id: 'nano-lines',  name: 'Lines',           type: 'light', actions: ['on','off','color','brightness','scene'] },
-            { id: 'nano-canvas', name: 'Canvas Squares',  type: 'light', actions: ['on','off','color','brightness','scene'] },
-        ],
-        yeelight: [
-            { id: 'yee-color', name: 'Color LED Bulb', type: 'light', actions: ['on','off','color','brightness','color_temp'] },
-            { id: 'yee-strip', name: 'LED Strip 1S',   type: 'light', actions: ['on','off','color','brightness'] },
-            { id: 'yee-desk',  name: 'LED Desk Lamp',  type: 'light', actions: ['on','off','brightness','color_temp'] },
-        ],
-        wled: [
-            { id: 'wled-ctrl', name: 'WLED Controller (custom)', type: 'light', actions: ['on','off','color','brightness','scene','flash'] },
-        ],
-        wyze: [
-            { id: 'wyze-plug', name: 'Wyze Plug',       type: 'switch', actions: ['on','off','toggle'] },
-            { id: 'wyze-bulb', name: 'Wyze Bulb Color', type: 'light',  actions: ['on','off','color','brightness','color_temp'] },
-        ],
-        amazon: [
-            { id: 'amz-plug',  name: 'Amazon Smart Plug',    type: 'switch', actions: ['on','off','toggle'] },
-            { id: 'echo-flex', name: 'Echo Flex Smart Plug',  type: 'switch', actions: ['on','off','toggle'] },
-        ],
-    };
+    // Loaded from API endpoints
+    let BRANDS = [];
+    let PRODUCTS = {};
 
     // Per-brand API credential fields + docs
     const BRAND_CREDS = {
@@ -292,6 +232,27 @@
         return r.status === 204 ? null : r.json();
     }
 
+    async function loadBrandsAndProducts() {
+        try {
+            // Load brands from catalog
+            const brandList = await apiRequest('GET', '/catalog/brands?active_only=true');
+            BRANDS = brandList || [];
+            
+            // Load products for each brand
+            for (const brand of BRANDS) {
+                try {
+                    const products = await apiRequest('GET', `/catalog/products?brand_id=${brand.id}`);
+                    PRODUCTS[brand.id] = products || [];
+                } catch (e) {
+                    console.warn(`Failed to load products for brand ${brand.id}:`, e);
+                    PRODUCTS[brand.id] = [];
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load catalog:', e);
+        }
+    }
+
     async function loadDevices() {
         try {
             MY_DEVICES = await apiRequest('GET', '/devices');
@@ -329,8 +290,9 @@
         const tabs = presentBrands.map(brandId => {
             const b = BRANDS.find(x => x.id === brandId);
             const count = MY_DEVICES.filter(d => d.brand === brandId).length;
+            const brandLabel = b ? (b.icon || '🔌') + ' ' + b.name : brandId;
             return `<button class="filter-tab ${activeFilter === brandId ? 'active' : ''}"
-                onclick="filterByBrand('${brandId}', this)">${b ? b.icon + ' ' + b.name : brandId} <span class="tab-count">${count}</span></button>`;
+                onclick="filterByBrand('${brandId}', this)">${brandLabel} <span class="tab-count">${count}</span></button>`;
         }).join('');
         document.getElementById('brandFilterTabs').innerHTML = `
             <div class="filter-tabs">
@@ -369,7 +331,10 @@
     function renderDeviceCard(dev) {
         const brand      = BRANDS.find(b => b.id === dev.brand);
         const product    = (PRODUCTS[dev.brand] || []).find(p => p.id === dev.product_id);
-        const brandColor = brand ? brand.color : '#888';
+        const brandColor = brand ? (brand.brand_color || '#888') : '#888';
+        const logoHtml   = brand && brand.logo_url 
+            ? `<img src="${brand.logo_url}" alt="${brand.name}" style="max-height:24px; width:auto;">`
+            : `${brand ? brand.icon : '🔌'}`;
 
         const statusBadge = dev.status === 'online'
             ? '<span class="status-badge online">🟢 Online</span>'
@@ -379,17 +344,17 @@
             ? '<span class="status-badge warn">⚠ Setup incomplete</span>'
             : '';
 
-        const chips = product ? product.actions.slice(0, 5).map(a => {
+        const chips = product ? product.supported_actions.slice(0, 5).map(a => {
             const m = ACTION_META[a];
             return `<span class="action-chip">${m ? m.icon : ''} ${m ? m.label : a}</span>`;
-        }).join('') + (product.actions.length > 5 ? `<span class="action-chip more">+${product.actions.length - 5}</span>` : '') : '';
+        }).join('') + (product.supported_actions.length > 5 ? `<span class="action-chip more">+${product.supported_actions.length - 5}</span>` : '') : '';
 
         return `
         <div class="device-card" data-id="${dev.id}">
             <div class="device-accent" style="background:${brandColor}"></div>
             <div class="device-body">
                 <div class="device-brand">
-                    <span class="device-brand-icon">${brand ? brand.icon : '🔌'}</span>
+                    <span class="device-brand-icon">${logoHtml}</span>
                     <span class="device-brand-label">${brand ? brand.name : dev.brand}</span>
                 </div>
                 <div class="device-info">
@@ -468,14 +433,17 @@
     }
 
     function renderBrandGrid() {
-        document.getElementById('brandGrid').innerHTML = BRANDS.map(b => `
+        document.getElementById('brandGrid').innerHTML = BRANDS.map(b => {
+            const logoHtml = b.logo_url 
+                ? `<img src="${b.logo_url}" alt="${b.name}" class="brand-card-logo">`
+                : `<div class="brand-card-icon">📱</div>`;
+            return `
             <div class="brand-card ${selectedBrand === b.id ? 'selected' : ''}"
-                 style="--brand-color:${b.color}"
                  onclick="selectBrand('${b.id}', this)">
-                <div class="brand-card-icon">${b.icon}</div>
+                ${logoHtml}
                 <div class="brand-card-name">${b.name}</div>
-                <div class="brand-card-type">${b.type}</div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     function selectBrand(brandId, card) {
@@ -503,8 +471,10 @@
 
     function setStep2Brand(brand) {
         document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
+        const brandColor = brand.brand_color || '#888';
+        const brandIcon = brand.icon || '🔌';
         document.getElementById('step2BrandBadge').innerHTML =
-            `<span class="brand-step-badge" style="background:${brand.color}18;border-color:${brand.color};color:${brand.color}">${brand.icon} ${brand.name}</span>`;
+            `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
     }
 
     function populateProductSelect(brandId) {
@@ -613,6 +583,6 @@
     window.onclick = e => {
         if (e.target === document.getElementById('deviceModal')) closeModal();
     };
-(async () => { await loadDevices(); renderPage(); })();
+(async () => { await loadBrandsAndProducts(); await loadDevices(); renderPage(); })();
     </script>
 {{end}}
