@@ -3,7 +3,7 @@ steps:
   args:
   - build
   - -t
-  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/taucho/${_SERVICE}:latest
   - -f
   - Dockerfile
   - .
@@ -11,7 +11,7 @@ steps:
 - name: gcr.io/cloud-builders/docker
   args:
   - push
-  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/taucho/${_SERVICE}:latest
 
 - name: gcr.io/google.com/cloudsdktool/cloud-sdk
   entrypoint: gcloud
@@ -20,7 +20,7 @@ steps:
   - deploy
   - ${_SERVICE}
   - --image
-  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/${_SERVICE}/${_SERVICE}:latest
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/taucho/${_SERVICE}:latest
   - --region
   - ${_REGION}
   - --platform
