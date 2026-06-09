@@ -262,42 +262,10 @@ label {
 .user-menu hr { margin: 0; border: none; border-top: 1px solid #3a3a3a; }
 .logout-item { color: #ff7070 !important; }
 .logout-item:hover { background: rgba(255,80,80,0.1) !important; color: #ff9090 !important; }
-@media (max-width: 920px) {
-    .header-nav a { padding: 0.4rem 0.5rem; font-size: 0.82rem; }
-}
+
 .phone-only { display: none; }
 .phone-only #phoneMenuDialog { display: none; }
 .phone-only #phoneMenuDialog.open { display: block; }
-@media (max-width: 700px) {
-    .header-container { display: flex; justify-content: space-between; padding: 0.25rem 1rem; gap: 0.75rem; min-height: 1rem; }
-    .header-nav,.header-controls { display: none; }
-    .taucho-header .phone-only { display: block; }
-    .taucho-header .phone-only .menu-button {
-        border: 1px solid #224065;
-        border-radius: 4px;
-        padding: 0.2em;
-        text-decoration: none !important;
-        color: #7490ff;
-    }
-    .taucho-header .phone-only .menu-dialog {
-        display: none;
-        position: absolute;
-        left: 0px;
-        width: 100%;
-        min-height: 300px;
-        background-color: #57769d;
-        z-index: 1;
-    }
-    .taucho-header .phone-only .menu-dialog a,
-    .taucho-header .phone-only .menu-dialog select {
-        display: block; width: 100%;
-        padding: 0.75rem 1rem;
-        color: #ccc;
-        text-decoration: none;
-        font-size: 0.88rem;
-        border-bottom: 1px solid #495f91;
-    }
-}
 
 /* Headings */
 h1 {
@@ -316,20 +284,6 @@ h3 {
     color: #667eea;
     margin-bottom: 12px;
 }
-
-/* Responsive */
-@media (max-width: 768px) {
-    .container {
-        padding: 20px;
-        margin: 10px;
-    }
-
-    .btn {
-        padding: 10px 20px;
-        font-size: 0.9em;
-    }
-}
-
 
 .oauth-buttons svg{
     vertical-align: middle;
@@ -414,3 +368,51 @@ h3 {
     opacity: 0; transition: opacity 0.25s, transform 0.25s; z-index: 2000; pointer-events: none;
 }
 .nico-toast.nico-toast-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 768px) {
+    
+    body {
+        background-image: url(/image/bg_s.png);
+        background-image: url(/image/bg_s.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+        background-attachment: fixed;
+    }
+
+    .header-container { display: flex; justify-content: space-between; padding: 0.25rem 1rem; gap: 0.75rem; min-height: 1rem; }
+    .header-nav,.header-controls { display: none; }
+    .taucho-header .phone-only { display: block; }
+    .taucho-header .phone-only .menu-button {
+        border: 1px solid #224065;
+        border-radius: 4px;
+        padding: 0.2em;
+        text-decoration: none !important;
+        color: #7490ff;
+    }
+    .taucho-header .phone-only .menu-dialog {
+        display: none;
+        position: absolute;
+        left: 0px;
+        width: 100%;
+        min-height: 300px;
+        background-color: #57769d;
+        z-index: 1;
+    }
+    .taucho-header .phone-only .menu-dialog a,
+    .taucho-header .phone-only .menu-dialog select {
+        display: block; width: 100%;
+        padding: 0.75rem 1rem;
+        color: #ccc;
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-bottom: 1px solid #495f91;
+    }
+
+    .container {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }    
+}

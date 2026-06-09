@@ -1,4 +1,10 @@
 /* Watched Channels Page Styles */
+body {
+    background-image: url(/image/channels_bg.png);
+    background-image: url(/image/channels_bg.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+}
+
+
 .channels-container {
     max-width: 1100px;
     margin: 0 auto;
@@ -1130,24 +1136,6 @@ input[type="range"] {
     accent-color: #4CAF50;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .channels-container { padding: 1rem; }
-    .page-header-top { flex-direction: column; }
-    .channel-main { flex-wrap: wrap; }
-    .channel-footer { flex-direction: column; align-items: flex-start; }
-    .footer-meta { flex-direction: column; gap: 0.4rem; }
-    .stats-row { gap: 0.5rem; }
-    .stat-card { min-width: 80px; padding: 0.75rem 1rem; }
-    .channel-detail-header { flex-direction: column; }
-    .channel-detail-toggle { flex-direction: row; }
-    .detail-section-header { flex-direction: column; }
-    .rule-header { flex-direction: column; align-items: flex-start; }
-    .rule-controls { width: 100%; justify-content: flex-end; }
-    .rule-detail-row { flex-direction: column; gap: 0.75rem; }
-    .filter-tab { padding: 0.5rem 0.75rem; font-size: 0.82rem; }
-}
-
 /* ================================================================
    Unified Layout — Two-panel channels + add-channel sidebar
    ================================================================ */
@@ -1600,8 +1588,28 @@ input[type="range"] {
     font-size: 0.82rem;
 }
 
+
 /* Responsive */
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+    body {
+        background-image: url(/image/channels_bg_s.png);
+        background-image: url(/image/channels_bg_s.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+    }
+    .channels-container { padding: 1rem; }
+    .page-header-top { flex-direction: column; }
+    .channel-main { flex-wrap: wrap; }
+    .channel-footer { flex-direction: column; align-items: flex-start; }
+    .footer-meta { flex-direction: column; gap: 0.4rem; }
+    .stats-row { gap: 0.5rem; }
+    .stat-card { min-width: 80px; padding: 0.75rem 1rem; }
+    .channel-detail-header { flex-direction: column; }
+    .channel-detail-toggle { flex-direction: row; }
+    .detail-section-header { flex-direction: column; }
+    .rule-header { flex-direction: column; align-items: flex-start; }
+    .rule-controls { width: 100%; justify-content: flex-end; }
+    .rule-detail-row { flex-direction: column; gap: 0.75rem; }
+    .filter-tab { padding: 0.5rem 0.75rem; font-size: 0.82rem; }
+
     .unified-layout { flex-direction: column; height: auto; }
     .add-sidebar {
         width: 100%;

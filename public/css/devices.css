@@ -528,4 +528,10 @@ body {
     .brand-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
     .stats-row { gap: 0.5rem; }
     .stat-card { min-width: 80px; padding: 0.75rem 1rem; }
+
+    
+    body {
+        background-image: url(/image/gadget_bg_s.png);
+        background-image: url(/image/gadget_bg_s.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
+    }
 }

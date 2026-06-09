@@ -53,7 +53,7 @@
         </select>
       <a href="/account-settings">{{.I18n.T "nav.accountSettings"}}</a>
       <hr>
-      <a href="#" id="logoutBtn" class="logout-item">{{.I18n.T "nav.signOut"}}</a>
+      <a href="#" id="logoutBtn_phone" class="logout-item">{{.I18n.T "nav.signOut"}}</a>
     </div>
   </div>
 
@@ -72,8 +72,16 @@
       }
 
       const logoutBtn = document.getElementById('logoutBtn');
+      const logoutBtn_phone = document.getElementById('logoutBtn_phone');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (typeof logout === 'function') logout();
+          else window.location.href = '/login';
+        });
+      }
+      if (logoutBtn_phone) {
+        logoutBtn_phone.addEventListener('click', (e) => {
           e.preventDefault();
           if (typeof logout === 'function') logout();
           else window.location.href = '/login';
