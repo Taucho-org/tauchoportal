@@ -52,7 +52,7 @@
                 <div class="modal-header">
                     <div id="step2BrandBadge"></div>
                     <h2 id="step2Title">Configure Device</h2>
-                    <p>Fill in the details and API credentials for your device.</p>
+                    <p id="step2Desc">Fill in the details and API credentials for your device.</p>
                 </div>
                 <form id="deviceForm" onsubmit="saveDevice(event)">
                     <div class="form-group">
@@ -60,21 +60,42 @@
                         <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
                         <small class="form-help">A friendly name to identify this device.</small>
                     </div>
-                    <div class="form-group">
+                    
+                    <!-- Catalog Device: Product Model -->
+                    <div class="form-group" id="catalogProductGroup">
                         <label for="devProduct">Product Model</label>
-                        <select id="devProduct" required>
+                        <select id="devProduct">
                             <option value="">Select product model...</option>
                         </select>
                     </div>
+                    
+                    <!-- Custom Device: Product Name -->
+                    <div class="form-group" id="customProductGroup" style="display:none">
+                        <label for="customProductName">Device Type / Model</label>
+                        <input type="text" id="customProductName" placeholder="e.g., Smart LED Controller, Home Automation Hub">
+                        <small class="form-help">Describe what kind of device this is.</small>
+                    </div>
+                    
                     <div class="form-group">
                         <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
                         <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
                     </div>
-                    <fieldset class="form-section">
+                    
+                    <!-- Catalog Device: API Credentials -->
+                    <fieldset class="form-section" id="credFieldset">
                         <legend>API Credentials</legend>
                         <div id="credFields"></div>
                         <div id="credDocsLink"></div>
                     </fieldset>
+                    
+                    <!-- Custom Device: HTTP Actions -->
+                    <fieldset class="form-section" id="customActionsFieldset" style="display:none">
+                        <legend>Custom Actions</legend>
+                        <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">Define HTTP requests for device actions (e.g., turn_on, turn_off, set_brightness).</p>
+                        <div id="customActionsList"></div>
+                        <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">+ Add Action</button>
+                    </fieldset>
+                    
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
                         <button type="submit" class="btn btn-primary" id="devSaveBtn">Add Device</button>
@@ -433,7 +454,7 @@
     }
 
     function renderBrandGrid() {
-        document.getElementById('brandGrid').innerHTML = BRANDS.map(b => {
+        const catalogCards = BRANDS.map(b => {
             const logoHtml = b.logo_url 
                 ? `<img src="${b.logo_url}" alt="${b.name}" class="brand-card-logo">`
                 : `<div class="brand-card-icon">📱</div>`;
@@ -444,6 +465,15 @@
                 <div class="brand-card-name">${b.name}</div>
             </div>`;
         }).join('');
+        
+        const customCard = `
+            <div class="brand-card ${selectedBrand === 'custom' ? 'selected' : ''}"
+                 onclick="selectBrand('custom', this)">
+                <div class="brand-card-icon">✏️</div>
+                <div class="brand-card-name">Custom</div>
+            </div>`;
+        
+        document.getElementById('brandGrid').innerHTML = catalogCards + customCard;
     }
 
     function selectBrand(brandId, card) {
@@ -455,10 +485,16 @@
 
     function goToStep2() {
         if (!selectedBrand) return;
-        const brand = BRANDS.find(b => b.id === selectedBrand);
-        setStep2Brand(brand);
-        populateProductSelect(selectedBrand);
-        renderCredFields(selectedBrand);
+        
+        if (selectedBrand === 'custom') {
+            setStep2Custom();
+        } else {
+            const brand = BRANDS.find(b => b.id === selectedBrand);
+            setStep2Brand(brand);
+            populateProductSelect(selectedBrand);
+            renderCredFields(selectedBrand);
+        }
+        
         document.getElementById('deviceForm').reset();
         document.getElementById('devSaveBtn').textContent = 'Add Device';
         showStep(2);
@@ -471,10 +507,36 @@
 
     function setStep2Brand(brand) {
         document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
+        document.getElementById('step2Desc').textContent = 'Fill in the details and API credentials for your device.';
         const brandColor = brand.brand_color || '#888';
         const brandIcon = brand.icon || '🔌';
         document.getElementById('step2BrandBadge').innerHTML =
             `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
+        
+        // Show catalog UI, hide custom UI
+        document.getElementById('catalogProductGroup').style.display = 'block';
+        document.getElementById('customProductGroup').style.display = 'none';
+        document.getElementById('credFieldset').style.display = 'block';
+        document.getElementById('customActionsFieldset').style.display = 'none';
+        document.getElementById('devProduct').required = true;
+    }
+    
+    function setStep2Custom() {
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' Custom Device';
+        document.getElementById('step2Desc').textContent = 'Define your custom device with HTTP-based actions.';
+        document.getElementById('step2BrandBadge').innerHTML =
+            `<span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>`;
+        
+        // Hide catalog UI, show custom UI
+        document.getElementById('catalogProductGroup').style.display = 'none';
+        document.getElementById('customProductGroup').style.display = 'block';
+        document.getElementById('credFieldset').style.display = 'none';
+        document.getElementById('customActionsFieldset').style.display = 'block';
+        document.getElementById('devProduct').required = false;
+        
+        // Initialize custom actions list
+        window.customActions = [];
+        renderCustomActionsList();
     }
 
     function populateProductSelect(brandId) {
@@ -513,6 +575,56 @@
         el.type = el.type === 'password' ? 'text' : 'password';
         btn.textContent = el.type === 'password' ? 'Show' : 'Hide';
     }
+    
+    // =============================================
+    // Custom Actions
+    // =============================================
+    function renderCustomActionsList() {
+        if (!window.customActions) window.customActions = [];
+        const html = window.customActions.map((action, idx) => `
+            <div class="custom-action-card" style="border:1px solid #ddd; border-radius:6px; padding:1rem; margin-bottom:1rem; background:#f9f9f9">
+                <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem">
+                    <input type="text" placeholder="Action name (e.g., turn_on, set_brightness)" 
+                           value="${action.action_name || ''}" 
+                           onchange="customActions[${idx}].action_name = this.value"
+                           style="flex:1">
+                    <button type="button" class="btn btn-secondary" onclick="removeCustomAction(${idx})">Remove</button>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem">
+                    <input type="text" placeholder="HTTP Method (GET, POST, PUT...)" 
+                           value="${action.http_method || 'POST'}" 
+                           onchange="customActions[${idx}].http_method = this.value">
+                    <input type="text" placeholder="URL (e.g., http://device.local/api/action)" 
+                           value="${action.http_url || ''}" 
+                           onchange="customActions[${idx}].http_url = this.value">
+                </div>
+                <textarea placeholder="Headers (JSON format, optional). Example: {\"Content-Type\": \"application/json\"}" 
+                          rows="2" style="width:100%; padding:0.5rem; margin-bottom:0.75rem; font-family:monospace; font-size:0.85rem"
+                          onchange="customActions[${idx}].http_headers = this.value">${action.http_headers || ''}</textarea>
+                <textarea placeholder="Body template (JSON with {placeholders} for values). Example: {\"action\": \"{action_name}\", \"brightness\": {brightness}}" 
+                          rows="3" style="width:100%; padding:0.5rem; font-family:monospace; font-size:0.85rem"
+                          onchange="customActions[${idx}].http_body_template = this.value">${action.http_body_template || ''}</textarea>
+            </div>
+        `).join('');
+        document.getElementById('customActionsList').innerHTML = html || '<p style="color:#999">No custom actions defined yet.</p>';
+    }
+    
+    function addCustomAction() {
+        if (!window.customActions) window.customActions = [];
+        window.customActions.push({
+            action_name: '',
+            http_method: 'POST',
+            http_url: '',
+            http_headers: '',
+            http_body_template: ''
+        });
+        renderCustomActionsList();
+    }
+    
+    function removeCustomAction(idx) {
+        window.customActions.splice(idx, 1);
+        renderCustomActionsList();
+    }
 
     // =============================================
     // CRUD
@@ -522,29 +634,79 @@
         const btn = document.getElementById('devSaveBtn');
         btn.disabled = true;
         try {
-            const creds = {};
-            const brand = selectedBrand;
-            const brandCred = BRAND_CREDS[brand];
-            if (brandCred) {
-                brandCred.fields.forEach(f => {
-                    if (f.type !== 'info') {
-                        const el = document.getElementById('cred_' + f.id);
-                        if (el && el.value) creds[CRED_KEY_MAP[f.id] || f.id] = el.value;
+            const name = document.getElementById('devName').value;
+            const room = document.getElementById('devRoom').value || null;
+            
+            // Handle custom devices
+            if (selectedBrand === 'custom') {
+                const customProductName = document.getElementById('customProductName').value;
+                if (!customProductName) { alert('Please enter a device type/model'); btn.disabled = false; return; }
+                if (!window.customActions || window.customActions.length === 0) { 
+                    alert('Please add at least one custom action'); btn.disabled = false; return; 
+                }
+                
+                // Create custom product
+                const productBody = { name: customProductName, description: '' };
+                const productRes = await apiRequest('POST', '/custom-products', productBody);
+                const customProductId = productRes.id;
+                
+                // Create custom actions
+                for (const action of window.customActions) {
+                    if (!action.action_name || !action.http_url) {
+                        alert(`Skipping action without name or URL`); 
+                        continue;
                     }
-                });
+                    const actionBody = {
+                        custom_product_id: customProductId,
+                        action_name: action.action_name,
+                        http_method: action.http_method || 'POST',
+                        http_url: action.http_url,
+                        http_headers: action.http_headers ? JSON.parse(action.http_headers) : {},
+                        http_body_template: action.http_body_template || ''
+                    };
+                    await apiRequest('POST', '/custom-actions', actionBody);
+                }
+                
+                // Save device with custom product
+                const deviceBody = {
+                    name: name,
+                    brand: 'custom',
+                    product_id: customProductId,
+                    room: room,
+                    credentials: {}
+                };
+                if (editingId) {
+                    await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
+                } else {
+                    await apiRequest('POST', '/devices', deviceBody);
+                }
+            } 
+            // Handle catalog devices
+            else {
+                const creds = {};
+                const brandCred = BRAND_CREDS[selectedBrand];
+                if (brandCred) {
+                    brandCred.fields.forEach(f => {
+                        if (f.type !== 'info') {
+                            const el = document.getElementById('cred_' + f.id);
+                            if (el && el.value) creds[CRED_KEY_MAP[f.id] || f.id] = el.value;
+                        }
+                    });
+                }
+                const deviceBody = {
+                    name: name,
+                    brand: selectedBrand,
+                    product_id: document.getElementById('devProduct').value,
+                    room: room,
+                    credentials: creds
+                };
+                if (editingId) {
+                    await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
+                } else {
+                    await apiRequest('POST', '/devices', deviceBody);
+                }
             }
-            const body = {
-                name: document.getElementById('devName').value,
-                brand: selectedBrand,
-                product_id: document.getElementById('devProduct').value,
-                room: document.getElementById('devRoom').value || null,
-                credentials: creds
-            };
-            if (editingId) {
-                await apiRequest('PATCH', `/devices/update?id=${editingId}`, body);
-            } else {
-                await apiRequest('POST', '/devices', body);
-            }
+            
             closeModal();
             await loadDevices();
             renderPage();

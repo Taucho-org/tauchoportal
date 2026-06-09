@@ -1065,8 +1065,8 @@ Registered smart home devices. Credentials are stored per-brand.
   "id": "string (nano-time ID, e.g. \"device_1748500000000\")",
   "user_id": "integer",
   "name": "string",
-  "brand": "govee | hue | kasa | lifx | tuya | nanoleaf | yeelight | wled | wyze | amazon",
-  "product_id": "string (e.g. govee-h6159, hue-color)",
+  "brand": "govee | hue | kasa | lifx | tuya | nanoleaf | yeelight | wled | wyze | amazon | custom",
+  "product_id": "string (e.g. govee-h6159, hue-color, or custom_product_id for custom brand)",
   "room": "string (optional)",
   "is_configured": true,
   "status": "online | offline | unknown",
@@ -1103,7 +1103,65 @@ Registered smart home devices. Credentials are stored per-brand.
 
 ---
 
-### Streams (`/streams/...`)
+### Custom Devices (`/custom-products/...` and `/custom-actions/...`)
+
+Users can register devices not in the catalog by creating custom product definitions with HTTP-based actions.
+This is useful for generic smart home devices, local APIs, or home automation hubs.
+
+**`user_custom_products` table:**
+```json
+{
+  "id": "string (nano-time ID or UUID, e.g. \"cust_prod_1748500000000\")",
+  "user_id": "integer (FK → users.id, CASCADE DELETE)",
+  "name": "string (e.g., 'My Custom LED Controller')",
+  "description": "string (optional — user notes about the device type)",
+  "created_at": "timestamp",
+  "updated_at": "timestamp"
+}
+```
+
+When a device references `brand: "custom"`, the `product_id` refers to the `id` of a custom product.
+
+**`user_custom_actions` table:**
+```json
+{
+  "id": "string (nano-time ID or UUID)",
+  "custom_product_id": "string (FK → user_custom_products.id, CASCADE DELETE)",
+  "action_name": "string (e.g., 'turn_on', 'set_brightness', 'power_cycle')",
+  "http_method": "GET | POST | PUT | PATCH | DELETE",
+  "http_url": "string (target URL; may include variable placeholders like {brightness})",
+  "http_headers": "object (JSON map of header names to values, e.g. {\"Authorization\": \"Bearer token...\"})",
+  "http_body_template": "string (JSON template; may include placeholders like {brightness}, {color})",
+  "created_at": "timestamp"
+}
+```
+
+**HTTP request variable substitution:**
+When a condition triggers a custom action, the backend substitutes:
+- `{action_name}` → the triggered action name (e.g., "turn_on")
+- `{brightness}` → brightness value (0-100) if brightness action was triggered
+- `{color}` → hex color (e.g., "#FF5733") if color action was triggered
+- `{power_state}` → "on" or "off" if power action was triggered
+
+Example custom action body template:
+```json
+{ "action": "{action_name}", "brightness": {brightness} }
+```
+
+**API endpoints:**
+
+| Method | Path | Body / Params | Description |
+|--------|------|---------------|-------------|
+| GET | `/custom-products` | — | List user's custom products |
+| GET | `/custom-products/get?id=<id>` | — | Get a custom product with its actions |
+| POST | `/custom-products` | `{ name, description? }` | Create a custom product |
+| PATCH | `/custom-products/update?id=<id>` | `{ name?, description? }` | Update custom product metadata |
+| DELETE | `/custom-products?id=<id>` | — | Delete custom product (and cascade all its actions) |
+| POST | `/custom-actions` | `{ custom_product_id, action_name, http_method, http_url, http_headers?, http_body_template? }` | Create a custom action |
+| PATCH | `/custom-actions/update?id=<id>` | any of above fields | Update custom action |
+| DELETE | `/custom-actions?id=<id>` | — | Delete a custom action |
+
+---
 
 The user's own streaming accounts — the channels they stream *from* (YouTube, Twitch, NicoNico).
 Distinct from **watched channels** (which are channels they monitor *for events*).
