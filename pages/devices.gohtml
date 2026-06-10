@@ -35,9 +35,16 @@
         <div class="modal-content modal-wide">
             <div class="modal-header">
                 <span class="close" onclick="closeModal()">&times;</span>
-                <div id="headerContent">
+                <!-- Step 1 Header -->
+                <div id="step1-header">
                     <h2>Add Device — Select Brand & Product</h2>
                     <p>Select a brand to see available products, or choose Custom to define your own device.</p>
+                </div>
+                <!-- Step 2 Header -->
+                <div id="step2-header" style="display:none">
+                    <div id="step2BrandBadge" style="margin-bottom: 0.5rem;"></div>
+                    <h2 id="step2Title">Configure Device</h2>
+                    <p id="step2Desc">Fill in the details and API credentials for your device.</p>
                 </div>
             </div>
             
@@ -97,8 +104,12 @@
             </div>
             
             <div class="modal-footer">
-                <div id="footerContent">
+                <div id="step1-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+                <div id="step2-footer" style="display:none">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
+                    <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
                 </div>
             </div>
         </div>
@@ -481,21 +492,17 @@
     });
 
     function showStep(n) {
+        // Toggle body visibility
         document.getElementById('step1-body').style.display = n === 1 ? 'block' : 'none';
         document.getElementById('step2-body').style.display = n === 2 ? 'block' : 'none';
         
-        // Update footer content based on step
-        const footerContent = document.getElementById('footerContent');
-        if (!footerContent) return; // Element not ready yet
+        // Toggle header visibility
+        document.getElementById('step1-header').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-header').style.display = n === 2 ? 'block' : 'none';
         
-        if (n === 1) {
-            footerContent.innerHTML = '<button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>';
-        } else if (n === 2) {
-            footerContent.innerHTML = `
-                <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
-                <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
-            `;
-        }
+        // Toggle footer visibility
+        document.getElementById('step1-footer').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-footer').style.display = n === 2 ? 'block' : 'none';
     }
 
     function renderBrandAccordion() {
@@ -625,16 +632,13 @@
     }
 
     function setStep2Brand(brand) {
-        const headerContent = document.getElementById('headerContent');
-        if (!headerContent) return; // Element not ready yet
-        
-        headerContent.innerHTML = `
-            <div style="margin-bottom: 0.5rem;">
-                <span class="brand-step-badge" style="background:${brand.brand_color || '#888'}18;border-color:${brand.brand_color || '#888'};color:${brand.brand_color || '#888'}">${brand.icon || '🔌'} ${brand.name}</span>
-            </div>
-            <h2>${(editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device'}</h2>
-            <p>Fill in the details and API credentials for your device.</p>
-        `;
+        // Update step 2 header with brand info
+        const brandColor = brand.brand_color || '#888';
+        const brandIcon = brand.icon || '🔌';
+        document.getElementById('step2BrandBadge').innerHTML =
+            `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
+        document.getElementById('step2Desc').textContent = 'Fill in the details and API credentials for your device.';
         
         // Show catalog UI, hide custom UI
         document.getElementById('catalogProductGroup').style.display = 'block';
@@ -645,16 +649,11 @@
     }
     
     function setStep2Custom() {
-        const headerContent = document.getElementById('headerContent');
-        if (!headerContent) return; // Element not ready yet
-        
-        headerContent.innerHTML = `
-            <div style="margin-bottom: 0.5rem;">
-                <span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>
-            </div>
-            <h2>${(editingId ? 'Edit' : 'Configure') + ' Custom Device'}</h2>
-            <p>Define your custom device with HTTP-based actions.</p>
-        `;
+        // Update step 2 header for custom device
+        document.getElementById('step2BrandBadge').innerHTML =
+            `<span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>`;
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' Custom Device';
+        document.getElementById('step2Desc').textContent = 'Define your custom device with HTTP-based actions.';
         
         // Hide catalog UI, show custom UI
         document.getElementById('catalogProductGroup').style.display = 'none';
