@@ -33,33 +33,25 @@
     <!-- Add / Edit Device Modal (Accordion Style) -->
     <div id="deviceModal" class="modal">
         <div class="modal-content modal-wide">
-            <span class="close" onclick="closeModal()">&times;</span>
-
-            <!-- Step 1: Choose Brand & Product (Accordion) -->
-            <div id="step1">
-                <div class="modal-header">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <div id="headerContent">
                     <h2>Add Device — Select Brand & Product</h2>
                     <p>Select a brand to see available products, or choose Custom to define your own device.</p>
                 </div>
-                <div class="modal-body">
+            </div>
+            
+            <div class="modal-body">
+                <!-- Step 1: Brand Accordion -->
+                <div id="step1-body">
                     <!-- Brand Accordion Container -->
                     <div class="brand-accordion" id="brandAccordion">
                         <!-- Populated by renderBrandAccordion() -->
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                </div>
-            </div>
-
-            <!-- Step 2: Configure Device (after selection) -->
-            <div id="step2" style="display:none">
-                <div class="modal-header">
-                    <div id="step2BrandBadge"></div>
-                    <h2 id="step2Title">Configure Device</h2>
-                    <p id="step2Desc">Fill in the details and API credentials for your device.</p>
-                </div>
-                <div class="modal-body">
+                
+                <!-- Step 2: Configure Device Form -->
+                <div id="step2-body" style="display:none">
                     <form id="deviceForm" onsubmit="saveDevice(event)">
                         <div class="form-group">
                             <label for="devName">Display Name</label>
@@ -102,9 +94,11 @@
                         </fieldset>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
-                    <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
+            </div>
+            
+            <div class="modal-footer">
+                <div id="footerContent">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -281,9 +275,6 @@
             console.warn(`Failed to load products for brand ${brandId}:`, e);
             PRODUCTS[brandId] = [];
             return [];
-        }
-    }
-            console.error('Failed to load catalog:', e);
         }
     }
 
@@ -472,13 +463,44 @@
     }
 
     function closeModal() {
-        document.getElementById('deviceModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
+        const modal = document.getElementById('deviceModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
     }
 
+    // Close modal when clicking outside of modal-content
+    document.addEventListener('click', e => {
+        const modal = document.getElementById('deviceModal');
+        if (!modal) return;
+        
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
     function showStep(n) {
-        document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
-        document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+        document.getElementById('step1-body').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-body').style.display = n === 2 ? 'block' : 'none';
+        
+        // Update header and footer content based on step
+        const headerContent = document.getElementById('headerContent');
+        const footerContent = document.getElementById('footerContent');
+        
+        if (n === 1) {
+            headerContent.innerHTML = `
+                <h2>Add Device — Select Brand & Product</h2>
+                <p>Select a brand to see available products, or choose Custom to define your own device.</p>
+            `;
+            footerContent.innerHTML = '<button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>';
+        } else if (n === 2) {
+            // Header is updated by selectProduct/selectCustom
+            footerContent.innerHTML = `
+                <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
+                <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
+            `;
+        }
     }
 
     function renderBrandAccordion() {
@@ -608,12 +630,14 @@
     }
 
     function setStep2Brand(brand) {
-        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
-        document.getElementById('step2Desc').textContent = 'Fill in the details and API credentials for your device.';
-        const brandColor = brand.brand_color || '#888';
-        const brandIcon = brand.icon || '🔌';
-        document.getElementById('step2BrandBadge').innerHTML =
-            `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
+        const headerContent = document.getElementById('headerContent');
+        headerContent.innerHTML = `
+            <div style="margin-bottom: 0.5rem;">
+                <span class="brand-step-badge" style="background:${brand.brand_color || '#888'}18;border-color:${brand.brand_color || '#888'};color:${brand.brand_color || '#888'}">${brand.icon || '🔌'} ${brand.name}</span>
+            </div>
+            <h2>${(editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device'}</h2>
+            <p>Fill in the details and API credentials for your device.</p>
+        `;
         
         // Show catalog UI, hide custom UI
         document.getElementById('catalogProductGroup').style.display = 'block';
@@ -624,10 +648,14 @@
     }
     
     function setStep2Custom() {
-        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' Custom Device';
-        document.getElementById('step2Desc').textContent = 'Define your custom device with HTTP-based actions.';
-        document.getElementById('step2BrandBadge').innerHTML =
-            `<span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>`;
+        const headerContent = document.getElementById('headerContent');
+        headerContent.innerHTML = `
+            <div style="margin-bottom: 0.5rem;">
+                <span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>
+            </div>
+            <h2>${(editingId ? 'Edit' : 'Configure') + ' Custom Device'}</h2>
+            <p>Define your custom device with HTTP-based actions.</p>
+        `;
         
         // Hide catalog UI, show custom UI
         document.getElementById('catalogProductGroup').style.display = 'none';
@@ -837,9 +865,10 @@
         }
     }
 
-    window.onclick = e => {
-        if (e.target === document.getElementById('deviceModal')) closeModal();
-    };
-(async () => { await loadBrandsAndProducts(); await loadDevices(); renderPage(); })();
+    (async () => {
+        await loadBrandsAndProducts();
+        await loadDevices();
+        renderPage();
+    })();
     </script>
 {{end}}

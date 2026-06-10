@@ -103,11 +103,11 @@
 <!-- ── NicoNico Login Modal ──────────────────────────────────────────── -->
 <div id="nicoModal" class="modal" style="display:none">
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="nicoModalTitle">
-        <span class="close" onclick="closeNicoModal()">&times;</span>
 
         <!-- Step 1: credentials ─────────────────────────────── -->
         <div id="nicoStep1">
             <div class="modal-header">
+                <span class="close" onclick="closeNicoModal()">&times;</span>
                 <h2 id="nicoModalTitle">🔴 Connect NicoNico</h2>
             </div>
             <div class="modal-body">
@@ -137,6 +137,7 @@
         <!-- Step 2: 2FA / OTP ───────────────────────────────── -->
         <div id="nicoStep2" style="display:none">
             <div class="modal-header">
+                <span class="close" onclick="closeNicoModal()">&times;</span>
                 <h2 class="modal-title">🔴 NicoNico Two-Factor Auth</h2>
             </div>
             <div class="modal-body">
