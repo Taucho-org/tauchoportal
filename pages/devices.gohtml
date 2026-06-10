@@ -484,18 +484,13 @@
         document.getElementById('step1-body').style.display = n === 1 ? 'block' : 'none';
         document.getElementById('step2-body').style.display = n === 2 ? 'block' : 'none';
         
-        // Update header and footer content based on step
-        const headerContent = document.getElementById('headerContent');
+        // Update footer content based on step
         const footerContent = document.getElementById('footerContent');
+        if (!footerContent) return; // Element not ready yet
         
         if (n === 1) {
-            headerContent.innerHTML = `
-                <h2>Add Device — Select Brand & Product</h2>
-                <p>Select a brand to see available products, or choose Custom to define your own device.</p>
-            `;
             footerContent.innerHTML = '<button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>';
         } else if (n === 2) {
-            // Header is updated by selectProduct/selectCustom
             footerContent.innerHTML = `
                 <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
                 <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
@@ -631,6 +626,8 @@
 
     function setStep2Brand(brand) {
         const headerContent = document.getElementById('headerContent');
+        if (!headerContent) return; // Element not ready yet
+        
         headerContent.innerHTML = `
             <div style="margin-bottom: 0.5rem;">
                 <span class="brand-step-badge" style="background:${brand.brand_color || '#888'}18;border-color:${brand.brand_color || '#888'};color:${brand.brand_color || '#888'}">${brand.icon || '🔌'} ${brand.name}</span>
@@ -649,6 +646,8 @@
     
     function setStep2Custom() {
         const headerContent = document.getElementById('headerContent');
+        if (!headerContent) return; // Element not ready yet
+        
         headerContent.innerHTML = `
             <div style="margin-bottom: 0.5rem;">
                 <span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>
