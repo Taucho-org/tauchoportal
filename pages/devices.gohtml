@@ -258,21 +258,29 @@
 
     async function loadBrandsAndProducts() {
         try {
-            // Load brands from catalog
+            // Load brands from catalog only (products loaded on demand)
             const brandList = await apiRequest('GET', '/catalog/brands?active_only=true');
             BRANDS = brandList || [];
-            
-            // Load products for each brand
-            for (const brand of BRANDS) {
-                try {
-                    const products = await apiRequest('GET', `/catalog/products?brand_id=${brand.id}`);
-                    PRODUCTS[brand.id] = products || [];
-                } catch (e) {
-                    console.warn(`Failed to load products for brand ${brand.id}:`, e);
-                    PRODUCTS[brand.id] = [];
-                }
-            }
         } catch (e) {
+            console.error('Failed to load brands:', e);
+            alert('Failed to load device brands: ' + e.message);
+        }
+    }
+    
+    async function loadProductsForBrand(brandId) {
+        try {
+            // Load products for a specific brand (on-demand, lazy loading)
+            if (!PRODUCTS[brandId]) {
+                const products = await apiRequest('GET', `/catalog/products?brand_id=${brandId}`);
+                PRODUCTS[brandId] = products || [];
+            }
+            return PRODUCTS[brandId];
+        } catch (e) {
+            console.warn(`Failed to load products for brand ${brandId}:`, e);
+            PRODUCTS[brandId] = [];
+            return [];
+        }
+    }
             console.error('Failed to load catalog:', e);
         }
     }
@@ -478,24 +486,29 @@
                 ? `<img src="${b.logo_url}" alt="${b.name}" class="accordion-brand-logo">`
                 : `<div class="accordion-brand-icon">📱</div>`;
             
-            const productsHtml = products.length > 0
-                ? `<div class="accordion-products">
-                    ${products.map(p => `
-                        <div class="product-item" onclick="selectProduct('${b.id}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
-                            <span class="product-name">${p.name}</span>
-                            <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
-                        </div>
-                    `).join('')}
-                   </div>`
-                : `<div class="accordion-products"><p style="color:#999; padding:1rem">No products available</p></div>`;
+            // Show products if loaded, otherwise show placeholder for lazy loading
+            const productsHtml = PRODUCTS[b.id] !== undefined
+                ? (products.length > 0
+                    ? `<div class="accordion-products">
+                        ${products.map(p => `
+                            <div class="product-item" onclick="selectProduct('${b.id}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                                <span class="product-name">${p.name}</span>
+                                <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                            </div>
+                        `).join('')}
+                       </div>`
+                    : `<div class="accordion-products"><p style="color:#999; padding:1rem">No products available</p></div>`)
+                : `<div class="accordion-products"><p class="loading-placeholder">Click to load products...</p></div>`;
+            
+            const productCount = PRODUCTS[b.id] !== undefined ? products.length : '?';
             
             return `
-                <div class="accordion-item">
+                <div class="accordion-item" data-brand-id="${b.id}">
                     <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
                         <span class="accordion-toggle-icon">▶</span>
                         ${logoHtml}
                         <span class="accordion-brand-name">${b.name}</span>
-                        <span class="accordion-count">${products.length} product${products.length !== 1 ? 's' : ''}</span>
+                        <span class="accordion-count">${productCount} product${productCount !== 1 ? 's' : ''}</span>
                     </button>
                     ${productsHtml}
                 </div>`;
@@ -520,9 +533,43 @@
         document.getElementById('brandAccordion').innerHTML = catalogItems + customItem;
     }
     
-    function toggleAccordion(headerBtn) {
+    async function toggleAccordion(headerBtn) {
         const item = headerBtn.closest('.accordion-item');
         const isOpen = item.classList.contains('open');
+        
+        // If opening and products not yet loaded, load them
+        if (!isOpen) {
+            const brandId = item.dataset.brandId;
+            if (brandId && PRODUCTS[brandId] === undefined) {
+                // Show loading state
+                const productsContainer = item.querySelector('.accordion-products');
+                if (productsContainer) {
+                    productsContainer.innerHTML = '<p class="loading-placeholder">⏳ Loading products...</p>';
+                }
+                
+                // Load products for this brand
+                await loadProductsForBrand(brandId);
+                
+                // Refresh the accordion item with loaded products
+                const products = PRODUCTS[brandId] || [];
+                const productsHtml = products.length > 0
+                    ? products.map(p => `
+                        <div class="product-item" onclick="selectProduct('${brandId}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                            <span class="product-name">${p.name}</span>
+                            <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                        </div>
+                    `).join('')
+                    : '<p style="color:#999; padding:1rem">No products available</p>';
+                
+                productsContainer.innerHTML = productsHtml;
+                
+                // Update product count in header
+                const countSpan = item.querySelector('.accordion-count');
+                if (countSpan) {
+                    countSpan.textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+                }
+            }
+        }
         
         // Close all other accordion items
         document.querySelectorAll('.accordion-item.open').forEach(i => {

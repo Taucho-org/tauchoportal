@@ -516,6 +516,14 @@ body {
     white-space: nowrap;
 }
 
+.loading-placeholder {
+    color: #999;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
 /* =============================================
    Forms (Step 2)
    ============================================= */
