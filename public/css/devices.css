@@ -293,52 +293,6 @@ body {
 /* =============================================
    Modal
    ============================================= */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    overflow-y: auto;
-}
-
-.modal-content {
-    background: white;
-    margin: 5% auto;
-    padding: 2rem;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 560px;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.modal-wide { max-width: 780px; }
-
-.modal-header {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.modal-header h2 {
-    margin: 0.25rem 0;
-    font-size: 1.4rem;
-    color: #222;
-}
-
-.modal-header p { margin: 0; font-size: 0.85rem; color: #888; }
-
-.close {
-    color: #999;
-    float: right;
-    font-size: 26px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.close:hover { color: #333; }
 
 /* Brand step badge (shown in step 2 header) */
 .brand-step-badge {

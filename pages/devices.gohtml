@@ -1,6 +1,7 @@
 {{define "page"}}{{template "base" .}}{{end}}
 
 {{define "head"}}
+<link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/devices.css">
 {{end}}
 
@@ -40,13 +41,13 @@
                     <h2>Add Device — Select Brand & Product</h2>
                     <p>Select a brand to see available products, or choose Custom to define your own device.</p>
                 </div>
-                
-                <!-- Brand Accordion Container -->
-                <div class="brand-accordion" id="brandAccordion">
-                    <!-- Populated by renderBrandAccordion() -->
+                <div class="modal-body">
+                    <!-- Brand Accordion Container -->
+                    <div class="brand-accordion" id="brandAccordion">
+                        <!-- Populated by renderBrandAccordion() -->
+                    </div>
                 </div>
-                
-                <div class="form-actions">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                 </div>
             </div>
@@ -58,52 +59,53 @@
                     <h2 id="step2Title">Configure Device</h2>
                     <p id="step2Desc">Fill in the details and API credentials for your device.</p>
                 </div>
-                <form id="deviceForm" onsubmit="saveDevice(event)">
-                    <div class="form-group">
-                        <label for="devName">Display Name</label>
-                        <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
-                        <small class="form-help">A friendly name to identify this device.</small>
-                    </div>
-                    
-                    <!-- Catalog Device: Product Model (read-only display) -->
-                    <div class="form-group" id="catalogProductGroup">
-                        <label for="devProductDisplay">Product Model</label>
-                        <input type="text" id="devProductDisplay" readonly>
-                        <input type="hidden" id="devProduct">
-                    </div>
-                    
-                    <!-- Custom Device: Product Name -->
-                    <div class="form-group" id="customProductGroup" style="display:none">
-                        <label for="customProductName">Device Type / Model</label>
-                        <input type="text" id="customProductName" placeholder="e.g., Smart LED Controller, Home Automation Hub">
-                        <small class="form-help">Describe what kind of device this is.</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
-                        <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
-                    </div>
-                    
-                    <!-- Catalog Device: API Credentials -->
-                    <fieldset class="form-section" id="credFieldset">
-                        <legend>API Credentials</legend>
-                        <div id="credFields"></div>
-                        <div id="credDocsLink"></div>
-                    </fieldset>
-                    
-                    <!-- Custom Device: HTTP Actions -->
-                    <fieldset class="form-section" id="customActionsFieldset" style="display:none">
-                        <legend>Custom Actions</legend>
-                        <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">Define HTTP requests for device actions (e.g., turn_on, turn_off, set_brightness).</p>
-                        <div id="customActionsList"></div>
-                        <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">+ Add Action</button>
-                    </fieldset>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
-                        <button type="submit" class="btn btn-primary" id="devSaveBtn">Add Device</button>
-                    </div>
-                </form>
+                <div class="modal-body">
+                    <form id="deviceForm" onsubmit="saveDevice(event)">
+                        <div class="form-group">
+                            <label for="devName">Display Name</label>
+                            <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
+                            <small class="form-help">A friendly name to identify this device.</small>
+                        </div>
+                        
+                        <!-- Catalog Device: Product Model (read-only display) -->
+                        <div class="form-group" id="catalogProductGroup">
+                            <label for="devProductDisplay">Product Model</label>
+                            <input type="text" id="devProductDisplay" readonly>
+                            <input type="hidden" id="devProduct">
+                        </div>
+                        
+                        <!-- Custom Device: Product Name -->
+                        <div class="form-group" id="customProductGroup" style="display:none">
+                            <label for="customProductName">Device Type / Model</label>
+                            <input type="text" id="customProductName" placeholder="e.g., Smart LED Controller, Home Automation Hub">
+                            <small class="form-help">Describe what kind of device this is.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
+                            <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
+                        </div>
+                        
+                        <!-- Catalog Device: API Credentials -->
+                        <fieldset class="form-section" id="credFieldset">
+                            <legend>API Credentials</legend>
+                            <div id="credFields"></div>
+                            <div id="credDocsLink"></div>
+                        </fieldset>
+                        
+                        <!-- Custom Device: HTTP Actions -->
+                        <fieldset class="form-section" id="customActionsFieldset" style="display:none">
+                            <legend>Custom Actions</legend>
+                            <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">Define HTTP requests for device actions (e.g., turn_on, turn_off, set_brightness).</p>
+                            <div id="customActionsList"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">+ Add Action</button>
+                        </fieldset>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
+                    <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
+                </div>
             </div>
         </div>
     </div>

@@ -1,6 +1,7 @@
 {{define "page"}}{{template "base" .}}{{end}}
 
 {{define "head"}}
+<link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/account-settings.css">
 {{end}}
 
@@ -100,14 +101,14 @@
 </div><!-- /settings-container -->
 
 <!-- ── NicoNico Login Modal ──────────────────────────────────────────── -->
-<div id="nicoModal" class="modal-overlay" style="display:none" onclick="nicoModalBgClick(event)">
-    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="nicoModalTitle">
+<div id="nicoModal" class="modal" style="display:none">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="nicoModalTitle">
+        <span class="close" onclick="closeNicoModal()">&times;</span>
 
         <!-- Step 1: credentials ─────────────────────────────── -->
         <div id="nicoStep1">
             <div class="modal-header">
-                <span id="nicoModalTitle" class="modal-title">🔴 Connect NicoNico</span>
-                <button class="modal-close" onclick="closeNicoModal()" aria-label="Close">✕</button>
+                <h2 id="nicoModalTitle">🔴 Connect NicoNico</h2>
             </div>
             <div class="modal-body">
                 <div class="nico-privacy-note">
@@ -128,16 +129,15 @@
                 <div id="nicoStep1Error" class="nico-error" style="display:none"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeNicoModal()">Cancel</button>
-                <button id="nicoStep1Btn" class="btn-primary" onclick="submitNicoLogin()">Connect NicoNico →</button>
+                <button class="btn btn-secondary" onclick="closeNicoModal()">Cancel</button>
+                <button id="nicoStep1Btn" class="btn btn-primary" onclick="submitNicoLogin()">Connect NicoNico →</button>
             </div>
         </div>
 
         <!-- Step 2: 2FA / OTP ───────────────────────────────── -->
         <div id="nicoStep2" style="display:none">
             <div class="modal-header">
-                <span class="modal-title">🔴 NicoNico Two-Factor Auth</span>
-                <button class="modal-close" onclick="closeNicoModal()" aria-label="Close">✕</button>
+                <h2 class="modal-title">🔴 NicoNico Two-Factor Auth</h2>
             </div>
             <div class="modal-body">
                 <p class="nico-mfa-desc">A 6-digit code was sent to your NicoNico email address. Enter it below.</p>
@@ -153,8 +153,8 @@
                 <div id="nicoStep2Error" class="nico-error" style="display:none"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="nicoBackToStep1()">← Back</button>
-                <button id="nicoStep2Btn" class="btn-primary" onclick="submitNicoMfa()">Verify &amp; Connect</button>
+                <button class="btn btn-secondary" onclick="nicoBackToStep1()">← Back</button>
+                <button id="nicoStep2Btn" class="btn btn-primary" onclick="submitNicoMfa()">Verify &amp; Connect</button>
             </div>
         </div>
 
