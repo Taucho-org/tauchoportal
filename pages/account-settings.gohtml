@@ -208,6 +208,16 @@
         return r.status === 204 ? null : r.json();
     }
 
+    // ── Date utilities ────────────────────────────────────────────────────────
+    function isZeroDate(dateStr) {
+        return dateStr === '0001-01-01T00:00:00Z' || dateStr === '0001-01-01' || !dateStr;
+    }
+
+    function formatDate(dateStr, fallback = '-') {
+        if (isZeroDate(dateStr)) return fallback;
+        return new Date(dateStr).toLocaleDateString();
+    }
+
     // ── Load all account data (profile + connections) in one call ─────────
     async function loadAll() {
         const msgEl = document.getElementById('connectionsMsg');
@@ -272,8 +282,7 @@
                 const channelName = conn.provider_channel_name ? esc(conn.provider_channel_name) : '';
                 const displayName = conn.provider_username     ? esc(conn.provider_username)     : '';
                 const email       = conn.provider_email        ? esc(conn.provider_email)        : '';
-                const since       = conn.connected_at
-                    ? new Date(conn.connected_at).toLocaleDateString() : '';
+                const since       = formatDate(conn.connected_at, '');
                 if (channelName) subParts.push(`<span class="sub-channel">📺 ${channelName}</span>`);
                 if (displayName && displayName !== channelName) subParts.push(`<span class="sub-name">@${displayName}</span>`);
                 if (email) subParts.push(`<span class="sub-email">${email}</span>`);
@@ -317,7 +326,7 @@
         let subParts = [];
         if (isConnected) {
             if (ns.nico_username) subParts.push(`<span class="sub-name">${esc(ns.nico_username)}</span>`);
-            if (ns.connected_at)  subParts.push(`<span class="sub-since">since ${new Date(ns.connected_at).toLocaleDateString()}</span>`);
+            if (!isZeroDate(ns.connected_at)) subParts.push(`<span class="sub-since">since ${formatDate(ns.connected_at)}</span>`);
         } else {
             subParts.push(`<span class="sub-coming-soon">Session-proxy login (official OAuth pending)</span>`);
         }

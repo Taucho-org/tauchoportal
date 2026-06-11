@@ -360,6 +360,23 @@
     };
 
     // =============================================
+    // Utilities
+    // =============================================
+    function isZeroDate(dateStr) {
+        return dateStr === '0001-01-01T00:00:00Z' || dateStr === '0001-01-01' || !dateStr;
+    }
+
+    function formatDate(dateStr, fallback = '-') {
+        if (isZeroDate(dateStr)) return fallback;
+        return new Date(dateStr).toLocaleDateString();
+    }
+
+    function formatDateTime(dateStr, fallback = '-') {
+        if (isZeroDate(dateStr)) return fallback;
+        return new Date(dateStr).toLocaleString();
+    }
+
+    // =============================================
     // Router
     // =============================================
     let currentChannel = null;
@@ -388,7 +405,8 @@
                 channelId: w.channel_id,
                 active: w.is_active,
                 status: w.status || 'offline',
-                lastStream: w.last_stream_at ? new Date(w.last_stream_at).toLocaleDateString() : 'Never',
+                thumbnailUrl: w.thumbnail_url || null,
+                lastStream: formatDate(w.last_stream_at, 'Never'),
                 streamFilter: w.stream_filter || null,
                 conditions: []
             }));
@@ -413,7 +431,7 @@
                     deviceId: c.device_id || null,
                     deviceAction: c.device_action || null,
                     deviceActionParams: c.device_action_params || {},
-                    lastTriggered: c.last_triggered_at ? new Date(c.last_triggered_at).toLocaleString() : 'Never'
+                    lastTriggered: formatDateTime(c.last_triggered_at, 'Never')
                 }));
             }
             return ch ? ch.conditions : [];
@@ -496,20 +514,25 @@
                 ? '<span class="filter-badge" title="Stream filter active"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Filter</span>'
                 : '';
             return `
-            <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}">
+            <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}" style="cursor:pointer" onclick="navigate('/channels/${ch.id}')">
                 <div class="channel-main">
-                    <div class="platform-icon ${ch.platform}">${p.icon}</div>
-                    <div class="channel-info" style="cursor:pointer" onclick="navigate('/channels/${ch.id}')">
+                    <div class="platform-icon ${ch.platform}">
+                        ${ch.thumbnailUrl 
+                            ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
+                            : p.icon
+                        }
+                    </div>
+                    <div class="channel-info">
                         <div class="channel-name">${ch.name} ${filterBadge}</div>
                         <div class="channel-meta">
-                            <span class="platform-tag ${ch.platform}">${p.label}</span>
+                            <span class="platform-tag ${ch.platform}"><span style="display:inline-block; margin-right:4px">${p.icon}</span>${p.label}</span>
                             <span class="channel-id">${ch.channelId}</span>
                         </div>
                     </div>
                     <div class="channel-status-group">
                         ${statusBadge}
                         <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">Watch</span>
-                        <label class="toggle-switch" title="${ch.active ? 'Watching' : 'Paused'}">
+                        <label class="toggle-switch" onclick="event.stopPropagation()" title="${ch.active ? 'Watching' : 'Paused'}">
                             <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
                             <span class="toggle-slider"></span>
                         </label>
@@ -525,16 +548,16 @@
                             <span class="meta-label">Conditions:</span>
                             <span class="meta-value">
                                 <a href="/channels/${ch.id}/conditions"
-                                   onclick="navigate('/channels/${ch.id}/conditions'); return false;">
+                                   onclick="event.stopPropagation(); navigate('/channels/${ch.id}/conditions'); return false;">
                                    ${condCount} rule${condCount !== 1 ? 's' : ''}
                                 </a>
                             </span>
                         </div>
                     </div>
                     <div class="channel-actions">
-                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')" title="Stream filter"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg></button>
-                        <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
-                        <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑</button>
+                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="event.stopPropagation(); openFilterModal('${ch.id}')" title="Stream filter"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg></button>
+                        <button class="action-btn edit" onclick="event.stopPropagation(); openEditChannelModal('${ch.id}')">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="event.stopPropagation(); deleteChannel('${ch.id}')">🗑</button>
                     </div>
                 </div>
             </div>`;
@@ -578,7 +601,12 @@
             </div>
             <div class="channel-detail-card">
                 <div class="channel-detail-header">
-                    <div class="platform-icon ${ch.platform} large">${p.icon}</div>
+                    <div class="platform-icon ${ch.platform} large">
+                        ${ch.thumbnailUrl 
+                            ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
+                            : p.icon
+                        }
+                    </div>
                     <div class="channel-detail-info">
                         <h1>${ch.name}</h1>
                         <div class="channel-meta">
@@ -781,6 +809,7 @@
             await apiRequest('PATCH', `/watches/update?id=${channelId}`, { is_active: checkbox.checked });
             const ch = CHANNELS.find(c => c.id === channelId);
             if (ch) ch.active = checkbox.checked;
+            renderChannelListView();
         } catch (e) {
             checkbox.checked = !checkbox.checked;
             alert('Failed to update channel: ' + e.message);
@@ -1448,11 +1477,16 @@
     function openConfirm(channel) {
         selectedChannel = channel;
         const meta = PLATFORM_META[channel.platform] || { icon: '📺', label: channel.platform };
+        const thumbHTML = channel.thumbnail
+            ? `<img style="width:100%; height:100%; object-fit:cover; border-radius:4px;" src="${esc(channel.thumbnail)}" alt="">`
+            : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:32px;">${meta.icon}</div>`;
         document.getElementById('confirmPreview').innerHTML = `
-            <div class="cf-platform-icon ${esc(channel.platform)}">${meta.icon}</div>
+            <div class="cf-platform-icon ${esc(channel.platform)}" style="position:relative; width:80px; height:80px; border-radius:4px; flex-shrink:0; overflow:hidden;">
+                ${thumbHTML}
+            </div>
             <div class="cf-channel-info">
                 <strong>${esc(channel.name)}</strong>
-                <span>${esc(meta.label)} · ${esc(channel.channelId)}</span>
+                <span>${meta.icon} ${esc(meta.label)} · ${esc(channel.channelId)}</span>
             </div>`;
         document.getElementById('confirmName').value = channel.name || '';
         document.getElementById('confirmActive').checked = true;
@@ -1486,17 +1520,22 @@
         btn.textContent = 'Adding…';
         document.getElementById('confirmError').style.display = 'none';
         try {
-            await apiRequest('POST', '/watches', {
+            const body = {
                 platform:   selectedChannel.platform,
                 channel_id: selectedChannel.channelId,
                 name,
                 is_active: active,
-            });
+            };
+            if (selectedChannel.thumbnail) {
+                body.thumbnail_url = selectedChannel.thumbnail;
+            }
+            await apiRequest('POST', '/watches', body);
             existingWatchSet.add(selectedChannel.platform + ':' + selectedChannel.channelId);
             cancelConfirm();
             showMonToast(`✅ "${name}" added!`);
             await loadWatches();
             renderChannelListView();
+            renderAccordionList();
         } catch (e) {
             showConfirmError(e.message || 'Failed to add channel.');
             btn.disabled = false;
