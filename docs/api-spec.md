@@ -633,6 +633,7 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | `channel_id` | string | Platform channel identifier |
 | `is_active` | bool | Whether polling is enabled |
 | `status` | string | `"live"`, `"offline"`, `"paused"` |
+| `thumbnail` | string (URL) | Channel thumbnail image URL (nullable) |
 | `stream_filter` | object\|null | Optional filter — see below |
 | `last_stream_at` | timestamp | When we last detected a live stream |
 
@@ -1065,17 +1066,65 @@ Each channel has per-platform event conditions (see Conditions below).
   "channel_id": "string",
   "is_active": true,
   "status": "live | offline | paused",
+  "thumbnail_url": "string | null (Channel thumbnail image URL)",
   "last_stream_at": "2026-05-25T14:00:00Z"
 }
 ```
 
+#### Watches — Thumbnail Management
+
+**Auto-fetching (if available):**
+When a watch is created (`POST /watches`), the API automatically fetches the channel's thumbnail from the platform provider. Works for:
+- ✅ YouTube: Channel profile picture
+- ✅ Twitch: Channel profile image  
+- ❌ NicoNico: Not yet supported (returns `null`)
+- ❌ Other platforms: May not be available
+
+**Manual thumbnail URL (for platforms without auto-fetch):**
+If auto-fetch fails or the provider doesn't support it, the frontend can provide the thumbnail URL directly:
+
+```bash
+POST /watches
+{
+  "name": "Channel Name",
+  "platform": "niconico",
+  "channel_id": "co1234567",
+  "is_active": true,
+  "thumbnail_url": "https://example.com/image.jpg"  # Optional — if you have the URL
+}
+```
+
+**Update thumbnail after creation:**
+```bash
+PATCH /watches/update?id=watch_123
+{
+  "thumbnail_url": "https://example.com/new-image.jpg"  # Set new URL
+}
+```
+
+**Clear thumbnail:**
+```bash
+PATCH /watches/update?id=watch_123
+{
+  "clear_thumbnail": true  # Explicitly set to NULL
+}
+```
+
+**Field details:**
+- **thumbnail_url**: nullable, automatically populated if provider supports it
+- **Frontend usage**: Use directly in `<img>` tags (no server proxying needed)
+- **Null behavior**: If not provided and auto-fetch fails, remains `null` in database (no error)
+
+---
+
 | Method | Path | Body / Params | Description |
 |--------|------|---------------|-------------|
 | GET | `/watches` | — | List all watches for the authenticated user |
-| POST | `/watches` | `{ name, platform, channel_id, is_active }` | Create a new watched channel |
+| POST | `/watches` | `{ name, platform, channel_id, is_active, [thumbnail_url] }` | Create a new watched channel (thumbnail optional) |
+| PATCH | `/watches/update?id=<id>` | `{ [thumbnail_url], [clear_thumbnail] }` | Update thumbnail for a watch |
 | DELETE | `/watches?id=<id>` | — | Delete a watch (also removes its conditions) |
 
-> `GET /watches/get` and `PATCH /watches/update` already exist — just need list + create + delete.
+> `GET /watches/get` already exists.
 
 ---
 
