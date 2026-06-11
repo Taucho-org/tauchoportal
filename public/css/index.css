@@ -79,79 +79,31 @@ h1 {
    Login Modal Styles
    ============================================ */
 
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    animation: fadeIn 0.3s ease-in;
-    overflow-y: auto;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.modal-content {
-    background-color: white;
-    margin: 10% auto;
-    padding: 30px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease-out;
-    position: relative;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.close {
-    color: #999;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 20px;
-    transition: color 0.3s;
-}
-
-.close:hover,
-.close:focus {
-    color: #667eea;
-}
-
-.modal-header {
+/* Index-specific modal header override: centered text */
+#loginModal .modal-header {
     text-align: center;
-    margin-bottom: 20px;
     cursor: move;
     user-select: none;
 }
 
-.modal-header h2 {
-    margin: 0 0 5px 0;
-    color: #333;
+#loginModal .modal-header h2 {
     font-size: 1.5em;
 }
 
-.modal-header p {
-    margin: 0;
+.modal-footer {
+    text-align: center;
+    margin-top: 20px;
     color: #999;
     font-size: 0.9em;
+}
+
+.modal-footer a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.modal-footer a:hover {
+    text-decoration: underline;
 }
 
 .form-group {

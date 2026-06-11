@@ -1,6 +1,7 @@
 {{define "page"}}{{template "base" .}}{{end}}
 
 {{define "head"}}
+<link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/devices.css">
 {{end}}
 
@@ -29,78 +30,87 @@
         </div>
     </div>
 
-    <!-- Add / Edit Device Modal (2-step) -->
+    <!-- Add / Edit Device Modal (Accordion Style) -->
     <div id="deviceModal" class="modal">
         <div class="modal-content modal-wide">
-            <span class="close" onclick="closeModal()">&times;</span>
-
-            <!-- Step 1: Choose Brand -->
-            <div id="step1">
-                <div class="modal-header">
-                    <h2>Add Device — Step 1: Choose Brand</h2>
-                    <p>Select the manufacturer of your smart home device.</p>
+            <div class="modal-header">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <!-- Step 1 Header -->
+                <div id="step1-header">
+                    <h2>Add Device — Select Brand & Product</h2>
+                    <p>Select a brand to see available products, or choose Custom to define your own device.</p>
                 </div>
-                <div class="brand-grid" id="brandGrid"></div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="step1NextBtn" onclick="goToStep2()" disabled>Next →</button>
-                </div>
-            </div>
-
-            <!-- Step 2: Device Details -->
-            <div id="step2" style="display:none">
-                <div class="modal-header">
-                    <div id="step2BrandBadge"></div>
+                <!-- Step 2 Header -->
+                <div id="step2-header" style="display:none">
+                    <div id="step2BrandBadge" style="margin-bottom: 0.5rem;"></div>
                     <h2 id="step2Title">Configure Device</h2>
                     <p id="step2Desc">Fill in the details and API credentials for your device.</p>
                 </div>
-                <form id="deviceForm" onsubmit="saveDevice(event)">
-                    <div class="form-group">
-                        <label for="devName">Display Name</label>
-                        <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
-                        <small class="form-help">A friendly name to identify this device.</small>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Step 1: Brand Accordion -->
+                <div id="step1-body">
+                    <!-- Brand Accordion Container -->
+                    <div class="brand-accordion" id="brandAccordion">
+                        <!-- Populated by renderBrandAccordion() -->
                     </div>
-                    
-                    <!-- Catalog Device: Product Model -->
-                    <div class="form-group" id="catalogProductGroup">
-                        <label for="devProduct">Product Model</label>
-                        <select id="devProduct">
-                            <option value="">Select product model...</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Custom Device: Product Name -->
-                    <div class="form-group" id="customProductGroup" style="display:none">
-                        <label for="customProductName">Device Type / Model</label>
-                        <input type="text" id="customProductName" placeholder="e.g., Smart LED Controller, Home Automation Hub">
-                        <small class="form-help">Describe what kind of device this is.</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
-                        <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
-                    </div>
-                    
-                    <!-- Catalog Device: API Credentials -->
-                    <fieldset class="form-section" id="credFieldset">
-                        <legend>API Credentials</legend>
-                        <div id="credFields"></div>
-                        <div id="credDocsLink"></div>
-                    </fieldset>
-                    
-                    <!-- Custom Device: HTTP Actions -->
-                    <fieldset class="form-section" id="customActionsFieldset" style="display:none">
-                        <legend>Custom Actions</legend>
-                        <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">Define HTTP requests for device actions (e.g., turn_on, turn_off, set_brightness).</p>
-                        <div id="customActionsList"></div>
-                        <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">+ Add Action</button>
-                    </fieldset>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back</button>
-                        <button type="submit" class="btn btn-primary" id="devSaveBtn">Add Device</button>
-                    </div>
-                </form>
+                </div>
+                
+                <!-- Step 2: Configure Device Form -->
+                <div id="step2-body" style="display:none">
+                    <form id="deviceForm" onsubmit="saveDevice(event)">
+                        <div class="form-group">
+                            <label for="devName">Display Name</label>
+                            <input type="text" id="devName" required placeholder="e.g., Gaming Room Strip">
+                            <small class="form-help">A friendly name to identify this device.</small>
+                        </div>
+                        
+                        <!-- Catalog Device: Product Model (read-only display) -->
+                        <div class="form-group" id="catalogProductGroup">
+                            <label for="devProductDisplay">Product Model</label>
+                            <input type="text" id="devProductDisplay" readonly>
+                            <input type="hidden" id="devProduct">
+                        </div>
+                        
+                        <!-- Custom Device: Product Name -->
+                        <div class="form-group" id="customProductGroup" style="display:none">
+                            <label for="customProductName">Device Type / Model</label>
+                            <input type="text" id="customProductName" placeholder="e.g., Smart LED Controller, Home Automation Hub">
+                            <small class="form-help">Describe what kind of device this is.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="devRoom">Room / Location <span class="optional-label">(optional)</span></label>
+                            <input type="text" id="devRoom" placeholder="e.g., Gaming Room, Office, Living Room">
+                        </div>
+                        
+                        <!-- Catalog Device: API Credentials -->
+                        <fieldset class="form-section" id="credFieldset">
+                            <legend>API Credentials</legend>
+                            <div id="credFields"></div>
+                            <div id="credDocsLink"></div>
+                        </fieldset>
+                        
+                        <!-- Custom Device: HTTP Actions -->
+                        <fieldset class="form-section" id="customActionsFieldset" style="display:none">
+                            <legend>Custom Actions</legend>
+                            <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">Define HTTP requests for device actions (e.g., turn_on, turn_off, set_brightness).</p>
+                            <div id="customActionsList"></div>
+                            <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">+ Add Action</button>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div id="step1-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+                <div id="step2-footer" style="display:none">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">← Back to Selection</button>
+                    <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">Add Device</button>
+                </div>
             </div>
         </div>
     </div>
@@ -255,22 +265,27 @@
 
     async function loadBrandsAndProducts() {
         try {
-            // Load brands from catalog
+            // Load brands from catalog only (products loaded on demand)
             const brandList = await apiRequest('GET', '/catalog/brands?active_only=true');
             BRANDS = brandList || [];
-            
-            // Load products for each brand
-            for (const brand of BRANDS) {
-                try {
-                    const products = await apiRequest('GET', `/catalog/products?brand_id=${brand.id}`);
-                    PRODUCTS[brand.id] = products || [];
-                } catch (e) {
-                    console.warn(`Failed to load products for brand ${brand.id}:`, e);
-                    PRODUCTS[brand.id] = [];
-                }
-            }
         } catch (e) {
-            console.error('Failed to load catalog:', e);
+            console.error('Failed to load brands:', e);
+            alert('Failed to load device brands: ' + e.message);
+        }
+    }
+    
+    async function loadProductsForBrand(brandId) {
+        try {
+            // Load products for a specific brand (on-demand, lazy loading)
+            if (!PRODUCTS[brandId]) {
+                const products = await apiRequest('GET', `/catalog/products?brand_id=${brandId}`);
+                PRODUCTS[brandId] = products || [];
+            }
+            return PRODUCTS[brandId];
+        } catch (e) {
+            console.warn(`Failed to load products for brand ${brandId}:`, e);
+            PRODUCTS[brandId] = [];
+            return [];
         }
     }
 
@@ -402,8 +417,9 @@
     function openAddModal() {
         editingId = null;
         selectedBrand = null;
-        renderBrandGrid();
-        document.getElementById('step1NextBtn').disabled = true;
+        selectedProduct = null;
+        window.customActions = [];
+        renderBrandAccordion();
         showStep(1);
         document.getElementById('deviceModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -413,16 +429,29 @@
         editingId = devId;
         const dev = MY_DEVICES.find(d => d.id === devId);
         if (!dev) return;
-        selectedBrand = dev.brand;
-        const brand = BRANDS.find(b => b.id === dev.brand);
-        setStep2Brand(brand);
-        populateProductSelect(dev.brand);
-        renderCredFields(dev.brand);
+        
         try {
             const fullDev = await apiRequest('GET', `/devices/get?id=${devId}`);
+            selectedBrand = dev.brand;
+            selectedProduct = dev.product_id;
+            
+            if (dev.brand === 'custom') {
+                setStep2Custom();
+                document.getElementById('customProductName').value = dev.product_id;
+            } else {
+                const brand = BRANDS.find(b => b.id === dev.brand);
+                if (brand) {
+                    setStep2Brand(brand);
+                    const product = (PRODUCTS[dev.brand] || []).find(p => p.id === dev.product_id);
+                    document.getElementById('devProductDisplay').value = product ? product.name : dev.product_id;
+                    document.getElementById('devProduct').value = dev.product_id;
+                }
+                renderCredFields(dev.brand);
+            }
+            
             document.getElementById('devName').value = fullDev.name;
-            document.getElementById('devProduct').value = fullDev.product_id;
             document.getElementById('devRoom').value = fullDev.room || '';
+            
             const creds = fullDev.credentials || {};
             const brandCred = BRAND_CREDS[dev.brand];
             if (brandCred) {
@@ -437,6 +466,7 @@
             alert('Failed to load device details: ' + e.message);
             return;
         }
+        
         document.getElementById('devSaveBtn').textContent = 'Save Changes';
         showStep(2);
         document.getElementById('deviceModal').style.display = 'block';
@@ -444,55 +474,156 @@
     }
 
     function closeModal() {
-        document.getElementById('deviceModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
+        const modal = document.getElementById('deviceModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
     }
+
+    // Close modal when clicking outside of modal-content
+    document.addEventListener('click', e => {
+        const modal = document.getElementById('deviceModal');
+        if (!modal) return;
+        
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
 
     function showStep(n) {
-        document.getElementById('step1').style.display = n === 1 ? 'block' : 'none';
-        document.getElementById('step2').style.display = n === 2 ? 'block' : 'none';
+        // Toggle body visibility
+        document.getElementById('step1-body').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-body').style.display = n === 2 ? 'block' : 'none';
+        
+        // Toggle header visibility
+        document.getElementById('step1-header').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-header').style.display = n === 2 ? 'block' : 'none';
+        
+        // Toggle footer visibility
+        document.getElementById('step1-footer').style.display = n === 1 ? 'block' : 'none';
+        document.getElementById('step2-footer').style.display = n === 2 ? 'block' : 'none';
     }
 
-    function renderBrandGrid() {
-        const catalogCards = BRANDS.map(b => {
+    function renderBrandAccordion() {
+        const catalogItems = BRANDS.map(b => {
+            const products = PRODUCTS[b.id] || [];
             const logoHtml = b.logo_url 
-                ? `<img src="${b.logo_url}" alt="${b.name}" class="brand-card-logo">`
-                : `<div class="brand-card-icon">📱</div>`;
+                ? `<img src="${b.logo_url}" alt="${b.name}" class="accordion-brand-logo">`
+                : `<div class="accordion-brand-icon">📱</div>`;
+            
+            // Show products if loaded, otherwise show placeholder for lazy loading
+            const productsHtml = PRODUCTS[b.id] !== undefined
+                ? (products.length > 0
+                    ? `<div class="accordion-products">
+                        ${products.map(p => `
+                            <div class="product-item" onclick="selectProduct('${b.id}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                                <div class="product-info">
+                                    <span class="product-name">${p.name}</span>
+                                    <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                                </div>
+                                ${b.affiliate_url ? `<button type="button" class="product-buy-btn" onclick="openAffiliate(event, '${b.affiliate_url}')">🛍 Buy</button>` : ''}
+                            </div>
+                        `).join('')}
+                       </div>`
+                    : `<div class="accordion-products"><p style="color:#999; padding:1rem">No products available</p></div>`)
+                : `<div class="accordion-products"><p class="loading-placeholder">Click to load products...</p></div>`;
+            
+            const productCount = PRODUCTS[b.id] !== undefined ? products.length : '?';
+            
             return `
-            <div class="brand-card ${selectedBrand === b.id ? 'selected' : ''}"
-                 onclick="selectBrand('${b.id}', this)">
-                ${logoHtml}
-                <div class="brand-card-name">${b.name}</div>
-            </div>`;
+                <div class="accordion-item" data-brand-id="${b.id}">
+                    <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
+                        <span class="accordion-toggle-icon">▶</span>
+                        ${logoHtml}
+                        <span class="accordion-brand-name">${b.name}</span>
+                        <span class="accordion-count">${productCount} product${productCount !== 1 ? 's' : ''}</span>
+                    </button>
+                    ${productsHtml}
+                </div>`;
         }).join('');
         
-        const customCard = `
-            <div class="brand-card ${selectedBrand === 'custom' ? 'selected' : ''}"
-                 onclick="selectBrand('custom', this)">
-                <div class="brand-card-icon">✏️</div>
-                <div class="brand-card-name">Custom</div>
+        const customItem = `
+            <div class="accordion-item">
+                <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
+                    <span class="accordion-toggle-icon">▶</span>
+                    <div class="accordion-brand-icon">✏️</div>
+                    <span class="accordion-brand-name">Custom Device</span>
+                    <span class="accordion-count">define your own</span>
+                </button>
+                <div class="accordion-products">
+                    <div class="product-item" onclick="selectProduct('custom', 'custom', 'Custom Device')">
+                        <div class="product-info">
+                            <span class="product-name">Create Custom Device</span>
+                            <span class="product-actions">HTTP-based actions</span>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         
-        document.getElementById('brandGrid').innerHTML = catalogCards + customCard;
+        document.getElementById('brandAccordion').innerHTML = catalogItems + customItem;
     }
-
-    function selectBrand(brandId, card) {
-        selectedBrand = brandId;
-        document.querySelectorAll('.brand-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        document.getElementById('step1NextBtn').disabled = false;
-    }
-
-    function goToStep2() {
-        if (!selectedBrand) return;
+    
+    async function toggleAccordion(headerBtn) {
+        const item = headerBtn.closest('.accordion-item');
+        const isOpen = item.classList.contains('open');
         
-        if (selectedBrand === 'custom') {
+        // If opening and products not yet loaded, load them
+        if (!isOpen) {
+            const brandId = item.dataset.brandId;
+            if (brandId && PRODUCTS[brandId] === undefined) {
+                // Show loading state
+                const productsContainer = item.querySelector('.accordion-products');
+                if (productsContainer) {
+                    productsContainer.innerHTML = '<p class="loading-placeholder">⏳ Loading products...</p>';
+                }
+                
+                // Load products for this brand
+                await loadProductsForBrand(brandId);
+                
+                // Refresh the accordion item with loaded products
+                const products = PRODUCTS[brandId] || [];
+                const productsHtml = products.length > 0
+                    ? products.map(p => `
+                        <div class="product-item" onclick="selectProduct('${brandId}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                            <span class="product-name">${p.name}</span>
+                            <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                        </div>
+                    `).join('')
+                    : '<p style="color:#999; padding:1rem">No products available</p>';
+                
+                productsContainer.innerHTML = productsHtml;
+                
+                // Update product count in header
+                const countSpan = item.querySelector('.accordion-count');
+                if (countSpan) {
+                    countSpan.textContent = `${products.length} product${products.length !== 1 ? 's' : ''}`;
+                }
+            }
+        }
+        
+        // Close all other accordion items
+        document.querySelectorAll('.accordion-item.open').forEach(i => {
+            if (i !== item) i.classList.remove('open');
+        });
+        
+        // Toggle current item
+        item.classList.toggle('open', !isOpen);
+    }
+    
+    function selectProduct(brandId, productId, productName) {
+        selectedBrand = brandId;
+        selectedProduct = productId;
+        selectedProductName = productName;
+        
+        if (brandId === 'custom') {
             setStep2Custom();
         } else {
-            const brand = BRANDS.find(b => b.id === selectedBrand);
+            const brand = BRANDS.find(b => b.id === brandId);
             setStep2Brand(brand);
-            populateProductSelect(selectedBrand);
-            renderCredFields(selectedBrand);
+            document.getElementById('devProductDisplay').value = productName;
+            document.getElementById('devProduct').value = productId;
+            renderCredFields(brandId);
         }
         
         document.getElementById('deviceForm').reset();
@@ -500,18 +631,25 @@
         showStep(2);
     }
 
+    function openAffiliate(event, affiliateUrl) {
+        event.stopPropagation(); // Prevent triggering selectProduct
+        event.preventDefault();
+        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+    }
+
     function goToStep1() {
-        renderBrandGrid();
+        renderBrandAccordion();
         showStep(1);
     }
 
     function setStep2Brand(brand) {
-        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
-        document.getElementById('step2Desc').textContent = 'Fill in the details and API credentials for your device.';
+        // Update step 2 header with brand info
         const brandColor = brand.brand_color || '#888';
         const brandIcon = brand.icon || '🔌';
         document.getElementById('step2BrandBadge').innerHTML =
             `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' ' + brand.name + ' Device';
+        document.getElementById('step2Desc').textContent = 'Fill in the details and API credentials for your device.';
         
         // Show catalog UI, hide custom UI
         document.getElementById('catalogProductGroup').style.display = 'block';
@@ -522,10 +660,11 @@
     }
     
     function setStep2Custom() {
-        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' Custom Device';
-        document.getElementById('step2Desc').textContent = 'Define your custom device with HTTP-based actions.';
+        // Update step 2 header for custom device
         document.getElementById('step2BrandBadge').innerHTML =
             `<span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ Custom Device</span>`;
+        document.getElementById('step2Title').textContent = (editingId ? 'Edit' : 'Configure') + ' Custom Device';
+        document.getElementById('step2Desc').textContent = 'Define your custom device with HTTP-based actions.';
         
         // Hide catalog UI, show custom UI
         document.getElementById('catalogProductGroup').style.display = 'none';
@@ -537,13 +676,6 @@
         // Initialize custom actions list
         window.customActions = [];
         renderCustomActionsList();
-    }
-
-    function populateProductSelect(brandId) {
-        const products = PRODUCTS[brandId] || [];
-        document.getElementById('devProduct').innerHTML =
-            '<option value="">Select product model...</option>' +
-            products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
 
     function renderCredFields(brandId) {
@@ -742,9 +874,10 @@
         }
     }
 
-    window.onclick = e => {
-        if (e.target === document.getElementById('deviceModal')) closeModal();
-    };
-(async () => { await loadBrandsAndProducts(); await loadDevices(); renderPage(); })();
+    (async () => {
+        await loadBrandsAndProducts();
+        await loadDevices();
+        renderPage();
+    })();
     </script>
 {{end}}
