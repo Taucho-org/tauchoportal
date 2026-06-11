@@ -386,6 +386,7 @@ body {
 }
 
 .brand-card-icon { font-size: 1.6rem; margin-bottom: 0.4rem; }
+.brand-card-logo { max-height: 50px; width: auto; object-fit: contain; margin-bottom: 0.4rem; display: block; }
 .brand-card-name { font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 0.2rem; }
 .brand-card-type { font-size: 0.72rem; color: #aaa; line-height: 1.3; }
 
