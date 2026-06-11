@@ -457,8 +457,14 @@ body {
     background: #fafafa;
 }
 
-.product-name {
+.product-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.product-name {
     font-weight: 500;
     color: #333;
 }
@@ -466,8 +472,33 @@ body {
 .product-actions {
     font-size: 0.8rem;
     color: #999;
-    text-align: right;
     white-space: nowrap;
+}
+
+.product-buy-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    background: #4CAF50;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.product-item:hover .product-buy-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.product-buy-btn:hover {
+    background: #45a049;
 }
 
 .loading-placeholder {

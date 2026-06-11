@@ -518,8 +518,11 @@
                     ? `<div class="accordion-products">
                         ${products.map(p => `
                             <div class="product-item" onclick="selectProduct('${b.id}', '${p.id}', '${p.name.replace(/'/g, "\\'")}')">
-                                <span class="product-name">${p.name}</span>
-                                <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                                <div class="product-info">
+                                    <span class="product-name">${p.name}</span>
+                                    <span class="product-actions">${p.supported_actions?.slice(0,2).join(', ') || 'N/A'}</span>
+                                </div>
+                                ${b.affiliate_url ? `<button type="button" class="product-buy-btn" onclick="openAffiliate(event, '${b.affiliate_url}')">🛍 Buy</button>` : ''}
                             </div>
                         `).join('')}
                        </div>`
@@ -550,8 +553,10 @@
                 </button>
                 <div class="accordion-products">
                     <div class="product-item" onclick="selectProduct('custom', 'custom', 'Custom Device')">
-                        <span class="product-name">Create Custom Device</span>
-                        <span class="product-actions">HTTP-based actions</span>
+                        <div class="product-info">
+                            <span class="product-name">Create Custom Device</span>
+                            <span class="product-actions">HTTP-based actions</span>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -624,6 +629,12 @@
         document.getElementById('deviceForm').reset();
         document.getElementById('devSaveBtn').textContent = 'Add Device';
         showStep(2);
+    }
+
+    function openAffiliate(event, affiliateUrl) {
+        event.stopPropagation(); // Prevent triggering selectProduct
+        event.preventDefault();
+        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
     }
 
     function goToStep1() {

@@ -105,6 +105,80 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 
 ---
 
+## Platform Implementation Status
+
+This chart shows the implementation completeness of each platform's integration across the full feature stack:
+- **Login** — OAuth login flow implemented
+- **User Info** — Fetch authenticated user's account/channel info (e.g. `GET /platform/{provider}/user/mine`)
+- **Search** — Search for channels/users on the platform (e.g. `GET /platform/{provider}/search?q=...`)
+- **Check Live** — Detect active livestreams on a channel (poller → provider → CheckLive)
+- **Listen** — Real-time listener for livestream events (poller → listener → comments/gifts/etc)
+- **Subinfo** — Parse live comments, gift donations, and other viewer interactions
+- **OAuth Keys** — Whether API credentials are obtained and in production
+- **Verified** — Whether officially app-verified by the platform for production use
+
+| Platform | Login | User Info | Search | Check Live | Listen | Subinfo | OAuth Keys | Verified |
+|---|---|---|---|---|---|---|---|---|
+| **YouTube** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Twitch** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **NicoNico** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Instagram** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | ✅ | 🚫 |
+| **Facebook** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | ✅ | 🚫 |
+| **TikTok** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | 🔲 | 🚫 |
+| **Kick** | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ |
+| **X (Twitter)** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | 🔲 | 🚫 |
+| **Bilibili** | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
+
+### Legend
+- **✅ Complete** — Fully implemented and production-ready
+- **⚠️ Partial** — Implemented but incomplete; framework exists, missing full feature coverage
+- **🔲 Not Implemented** — Returns `501 Not Implemented` or placeholder response
+- **🚫 Blocked** — Intentionally unavailable or platform does not support the feature (e.g., business verification required)
+
+### Implementation Details
+
+**Fully Supported (Production Ready):**
+- **YouTube** — Complete OAuth + YouTube Data API v3 + real-time live chat ingestion
+- **Twitch** — Complete OAuth + Twitch API v5 + WebSocket IRC for chat/events
+- **NicoNico** — Session-proxy login (not standard OAuth) + API + WebSocket for comments
+
+**Partially Supported (Login + Discovery):**
+- **Instagram, Facebook** — OAuth login and user/page discovery via Graph API; livestream detection and comment ingestion not yet fully implemented (framework exists; requires Graph API streaming endpoints)
+- **TikTok** — OAuth login and channel discovery; live-streaming detection and comment ingestion not implemented (TikTok restricts live APIs)
+- **X** — OAuth login and user search; livestream detection and real-time comment ingestion not fully implemented (requires API v2 streaming)
+
+**Minimal/Not Implemented:**
+- **Kick** — OAuth login and channel discovery; livestream detection and real-time listener not implemented
+- **Bilibili** — OAuth login and user search; livestream detection and real-time listener not implemented
+
+### OAuth Credentials Status
+
+| Platform | Credentials Obtained | Can Use in Dev | Production Verification | Notes |
+|---|---|---|---|---|
+| YouTube | ✅ | ✅ | ✅ | Google Cloud project verified as business account; full API access |
+| Twitch | ✅ | ✅ | ✅ | Verified application; all APIs available |
+| NicoNico | ✅ | ✅ | ✅ | Session-based login; no business verification required |
+| Instagram | ✅ | ✅ | 🚫 | Credentials obtained but business verification needed for production (see Meta requirements below) |
+| Facebook | ✅ | ✅ | 🚫 | Credentials obtained but business verification needed for production |
+| TikTok | 🔲 | 🔲 | 🚫 | Pending: Requires developer approval and app review |
+| Kick | ✅ | ✅ | ✅ | Credentials obtained; app verified |
+| X | 🔲 | 🔲 | 🚫 | Pending: Requires developer approval and app review |
+| Bilibili | 🔲 | 🔲 | 🚫 | Pending: Credentials not yet obtained |
+
+### Meta Business Verification (Instagram/Facebook)
+
+To use Instagram and Facebook OAuth in production, you must:
+1. Create a **Meta Business Account** (already done)
+2. Create an **App** on Meta Developer Platform (already done)
+3. Submit app for **Business Verification**:
+   - Provide company legal name, address, and tax ID / business registration
+   - Provide company website with privacy policy and terms of service
+   - Meta reviews and approves (typical turnaround: 7-14 days)
+
+Once verified, Instagram and Facebook OAuth listeners can be enabled for production by setting feature flags (not yet implemented in UI).
+
+---
+
 ## Data Storage
 
 When `DATABASE_URL` is set, all resources (users, watches, conditions, devices, stream accounts) are persisted in PostgreSQL. If `DATABASE_URL` is not set, the service starts with in-memory stores (data is lost on restart) and auth/OAuth endpoints return `503`.
@@ -1088,6 +1162,7 @@ Registered smart home devices. Credentials are stored per-brand.
 | wled | `device_ip` |
 | wyze | `api_key`, `api_key_id`, `device_mac` |
 | amazon | `endpoint_id` |
+| custom | *(empty; actions are user-defined HTTP requests)* |
 
 > **Storage note:** `credentials` is stored as a JSONB column in PostgreSQL. The flat layout (no brand nesting) is intentional — brand is a separate column and nesting would be redundant.  
 > **Security note:** Credentials contain API keys and local IPs. Omit or mask the `credentials` field from `GET /devices` list responses; include it only in `GET /devices/get?id=<id>`.
@@ -1157,6 +1232,8 @@ Example custom action body template:
 | POST | `/custom-products` | `{ name, description? }` | Create a custom product |
 | PATCH | `/custom-products/update?id=<id>` | `{ name?, description? }` | Update custom product metadata |
 | DELETE | `/custom-products?id=<id>` | — | Delete custom product (and cascade all its actions) |
+| GET | `/custom-actions?product_id=<id>` | — | List all actions for a custom product |
+| GET | `/custom-actions/get?id=<id>` | — | Get a single custom action (with product details) |
 | POST | `/custom-actions` | `{ custom_product_id, action_name, http_method, http_url, http_headers?, http_body_template? }` | Create a custom action |
 | PATCH | `/custom-actions/update?id=<id>` | any of above fields | Update custom action |
 | DELETE | `/custom-actions?id=<id>` | — | Delete a custom action |
@@ -1215,6 +1292,18 @@ It is **not user-scoped** — any authenticated user can read it for populating 
 > are not constrained to. This is intentional: users can register unknown/unreleased devices, and
 > obsolete products can be removed from the catalog without breaking existing devices.
 
+### Brands — Affiliate & Monetization Fields
+
+Each brand now includes optional monetization metadata:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `affiliate_url` | string (nullable) | Direct link to purchase devices from the brand (for affiliate tracking) |
+| `affiliate_commission_percent` | decimal (nullable) | Commission rate earned per sale through the affiliate link (e.g., `5.50` for 5.5%) |
+| `requires_brand_credentials` | boolean | Flag indicating if the brand may require brand-level OAuth or credentials in the future (for planning purposes) |
+
+**Frontend usage:** When displaying brands to users registering devices, show a "Buy on [Brand]" link next to brands with `affiliate_url` populated. This enables monetization while helping users discover and purchase devices.
+
 ---
 
 ### GET /catalog/brands
@@ -1229,8 +1318,20 @@ List all brands.
 **Response `200`:**
 ```json
 [
-  { "id": "govee", "name": "Govee", "website": "https://www.govee.com", "logo_url": "", "brand_color": "#005DAA", "is_active": true, "created_at": "...", "updated_at": "..." },
-  { "id": "hue",   "name": "Philips Hue", "website": "https://www.philips-hue.com", ... }
+  {
+    "id": "govee",
+    "name": "Govee",
+    "website": "https://www.govee.com",
+    "logo_url": "",
+    "brand_color": "#005DAA",
+    "affiliate_url": "https://govee.mention-me.com/your-tracking-id",
+    "affiliate_commission_percent": 5.50,
+    "requires_brand_credentials": false,
+    "is_active": true,
+    "created_at": "...",
+    "updated_at": "..."
+  },
+  { "id": "hue", "name": "Philips Hue", "website": "https://www.philips-hue.com", ... }
 ]
 ```
 
@@ -1264,6 +1365,9 @@ Create a brand. (Admin operation — access control is portal-side for now.)
   "website": "https://acme.example.com",
   "logo_url": "https://cdn.example.com/acme.png",
   "brand_color": "#FF5733", // optional — hex color for device card accent
+  "affiliate_url": "https://acme.example.com/ref?code=TAUCHO", // optional — affiliate link for purchasing
+  "affiliate_commission_percent": 5.50, // optional — commission rate (e.g., 5.50%)
+  "requires_brand_credentials": false, // optional — flag for future brand-level OAuth support
   "is_active": true      // optional, default true
 }
 ```
