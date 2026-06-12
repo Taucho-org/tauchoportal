@@ -295,6 +295,14 @@
             { value: 'stream_start', label: '▶ Stream starts' },
             { value: 'stream_end',   label: '⏹ Stream ends' },
         ],
+        twitcasting: [
+            { value: 'comment',   label: '💬 Comment (ぶっこ抜き) received' },
+            { value: 'gift',      label: '🎁 Gift item received' },
+            { value: 'follow',    label: '💖 New follower' },
+            { value: 'supporter', label: '⭐ New supporter' },
+            { value: 'stream_start', label: '▶ Stream starts' },
+            { value: 'stream_end',   label: '⏹ Stream ends' },
+        ],
         instagram: [
             { value: 'comment',   label: '💬 Comment received' },
             { value: 'like',      label: '❤ Like received' },
@@ -353,15 +361,16 @@
 
     const PI = window.__platformIcons || {};
     const PLATFORM_META = {
-        youtube:   { icon: PI.youtube   || '▶',  label: 'YouTube' },
-        twitch:    { icon: PI.twitch    || '🟣', label: 'Twitch' },
-        niconico:  { icon: PI.niconico  || '🔵', label: 'NicoNico' },
-        instagram: { icon: PI.instagram || '📷', label: 'Instagram' },
-        tiktok:    { icon: PI.tiktok    || '🎵', label: 'TikTok' },
-        kick:      { icon: PI.kick      || '🟢', label: 'Kick' },
-        facebook:  { icon: PI.facebook  || '🔷', label: 'Facebook' },
-        x:         { icon: PI.x         || '✖',  label: 'X' },
-        bilibili:  { icon: PI.bilibili  || '📺', label: 'Bilibili' },
+        youtube:     { icon: PI.youtube     || '▶',  label: 'YouTube' },
+        twitch:      { icon: PI.twitch      || '🟣', label: 'Twitch' },
+        niconico:    { icon: PI.niconico    || '🔵', label: 'NicoNico' },
+        instagram:   { icon: PI.instagram   || '📷', label: 'Instagram' },
+        tiktok:      { icon: PI.tiktok      || '🎵', label: 'TikTok' },
+        kick:        { icon: PI.kick        || '🟢', label: 'Kick' },
+        facebook:    { icon: PI.facebook    || '🔷', label: 'Facebook' },
+        x:           { icon: PI.x           || '✖',  label: 'X' },
+        bilibili:    { icon: PI.bilibili    || '📺', label: 'Bilibili' },
+        twitcasting: { icon: PI.twitcasting || '🎙', label: 'TwitCasting' },
     };
 
     // =============================================
@@ -1216,18 +1225,19 @@
     function esc(s) { return escHtml(s); }
 
     const PLATFORMS = [
-        { id: 'youtube',   label: 'YouTube',   hasOAuth: true,  publicAccess: false },
-        { id: 'twitch',    label: 'Twitch',    hasOAuth: true,  publicAccess: true  },
-        { id: 'niconico',  label: 'NicoNico',  hasOAuth: true,  publicAccess: false },
-        { id: 'kick',      label: 'Kick',      hasOAuth: false, publicAccess: true  },
-        { id: 'bilibili',  label: 'Bilibili',  hasOAuth: false, publicAccess: true  },
-        { id: 'instagram', label: 'Instagram', hasOAuth: false, publicAccess: false },
-        { id: 'tiktok',    label: 'TikTok',    hasOAuth: false, publicAccess: false },
-        { id: 'facebook',  label: 'Facebook',  hasOAuth: false, publicAccess: false },
-        { id: 'x',         label: 'X',         hasOAuth: false, publicAccess: false },
+        { id: 'youtube',      label: 'YouTube',      hasOAuth: true,  publicAccess: false },
+        { id: 'twitch',       label: 'Twitch',       hasOAuth: true,  publicAccess: true  },
+        { id: 'niconico',     label: 'NicoNico',     hasOAuth: true,  publicAccess: false },
+        { id: 'twitcasting',  label: 'TwitCasting',  hasOAuth: true,  publicAccess: false },
+        { id: 'kick',         label: 'Kick',         hasOAuth: false, publicAccess: true  },
+        { id: 'bilibili',     label: 'Bilibili',     hasOAuth: false, publicAccess: true  },
+        { id: 'instagram',    label: 'Instagram',    hasOAuth: false, publicAccess: false },
+        { id: 'tiktok',       label: 'TikTok',       hasOAuth: false, publicAccess: false },
+        { id: 'facebook',     label: 'Facebook',     hasOAuth: false, publicAccess: false },
+        { id: 'x',            label: 'X',            hasOAuth: false, publicAccess: false },
     ];
 
-    const PROVIDER_MAP = { google: 'youtube', twitch: 'twitch', niconico: 'niconico' };
+    const PROVIDER_MAP = { google: 'youtube', twitch: 'twitch', niconico: 'niconico', twitcasting: 'twitcasting' };
 
     let connectedSet    = new Set();
     let existingWatchSet = new Set();

@@ -1127,7 +1127,7 @@ input[type="range"] {
 }
 
 .add-sidebar.closed .add-sidebar-header h2 {
-    display: none;
+    visibility: hidden;
 }
 .add-sidebar.closed .accordion-list {
     overflow-x: hidden;
