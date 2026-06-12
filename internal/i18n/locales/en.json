@@ -7,6 +7,10 @@
   "nav.accountSettings": "Account Settings",
   "nav.signOut": "Sign Out",
 
+  "welcome.titleline": "Taucho",
+  "welcome.subtitleline": "Bring your live streams to life — automate your smart home with every chat, gift, and reaction.",
+  "welcome.image": "/image/welcome.png",
+
   "metrics.trendViewers": "+45 in last 5m",
   "metrics.trendStarted": "Started ",
   "metrics.trendSystemsNormal": "All systems normal",

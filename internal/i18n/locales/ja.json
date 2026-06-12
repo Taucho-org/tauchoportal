@@ -7,6 +7,10 @@
   "nav.accountSettings": "アカウント設定",
   "nav.signOut": "サインアウト",
 
+  "welcome.titleline": "たうっちょ！",
+  "welcome.subtitleline": "たうっちょだよ！！",
+  "welcome.image": "/image/welcomej.png",
+
   "metrics.trendViewers": "過去5分間に+45",
   "metrics.trendStarted": "開始 ",
   "metrics.trendSystemsNormal": "すべてのシステムが正常です",

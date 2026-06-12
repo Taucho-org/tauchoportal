@@ -7,8 +7,8 @@
 
 {{define "content"}}
 <div class="container">
-        <h1>🌊 TauchoPortal</h1>
-        <p class="subtitle">Bring your live streams to life — automate your smart home with every chat, gift, and reaction.</p>
+        <h1><img src="{{.I18n.T "welcome.image"}}" >{{.I18n.T "welcome.titleline"}}</h1>
+        <p class="subtitle">{{.I18n.T "welcome.subtitleline"}}</p>
 
         <div class="features">
             <div class="feature">
@@ -30,7 +30,7 @@
         </div>
 
         <div class="cta-buttons" data-auth="unauthenticated">
-            <button onclick="openLoginModal()" class="btn btn-primary">Sign In</button>
+            <a href="#" onclick="openLoginModal()" class="btn btn-primary">Sign In</a>
             <a href="/register" class="btn btn-primary">Create Account</a>
             <a href="/about" class="btn btn-secondary">Learn More</a>
         </div>
