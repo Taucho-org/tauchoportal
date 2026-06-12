@@ -30,7 +30,7 @@
                 </div>
                 <div id="connectionsMsg" class="status-msg">Loading…</div>
                 <div id="providersList" class="providers-list"></div>
-                <p class="section-note">Google (YouTube), Twitch, Instagram, and Facebook OAuth are active. Other providers are reserved for future integration.</p>
+                <p class="section-note">Google (YouTube), Twitch, NicoNico, TwitCasting, Instagram, and Facebook OAuth are active. Other providers are reserved for future integration.</p>
             </section>
 
             <!-- ── Profile ────────────────────────────────────────────── -->
@@ -165,18 +165,19 @@
 <script>
     // ── Provider definitions ──────────────────────────────────────────────
     const PROVIDERS = [
-        { id: 'google',    name: 'YouTube',     icon: 'youtube'   },
-        { id: 'twitch',    name: 'Twitch',      icon: 'twitch'    },
-        { id: 'niconico',  name: 'NicoNico',    icon: 'niconico'  },
-        { id: 'instagram', name: 'Instagram',   icon: 'instagram' },
-        { id: 'tiktok',    name: 'TikTok',      icon: 'tiktok'    },
-        { id: 'kick',      name: 'Kick',        icon: 'kick'      },
-        { id: 'facebook',  name: 'Facebook',    icon: 'facebook'  },
-        { id: 'x',         name: 'X (Twitter)', icon: 'x'         },
-        { id: 'bilibili',  name: 'Bilibili',    icon: 'bilibili'  },
+        { id: 'google',      name: 'YouTube',     icon: 'youtube'   },
+        { id: 'twitch',      name: 'Twitch',      icon: 'twitch'    },
+        { id: 'niconico',    name: 'NicoNico',    icon: 'niconico'  },
+        { id: 'twitcasting', name: 'TwitCasting', icon: 'twitcasting' },
+        { id: 'instagram',   name: 'Instagram',   icon: 'instagram' },
+        { id: 'tiktok',      name: 'TikTok',      icon: 'tiktok'    },
+        { id: 'kick',        name: 'Kick',        icon: 'kick'      },
+        { id: 'facebook',    name: 'Facebook',    icon: 'facebook'  },
+        { id: 'x',           name: 'X (Twitter)', icon: 'x'         },
+        { id: 'bilibili',    name: 'Bilibili',    icon: 'bilibili'  },
     ];
     // Providers with real OAuth wired up (niconico uses its own flow, not listed here)
-    const WIRED = new Set(['google', 'twitch', 'instagram', 'facebook']);
+    const WIRED = new Set(['google', 'twitch', 'niconico', 'twitcasting', 'instagram', 'facebook']);
 
     let connections = [];
     let nicoStatus  = null; // { connected, nico_user_id, nico_username, nico_picture, connected_at }
@@ -207,6 +208,16 @@
             throw new Error(t || String(r.status));
         }
         return r.status === 204 ? null : r.json();
+    }
+
+    // ── Date utilities ────────────────────────────────────────────────────────
+    function isZeroDate(dateStr) {
+        return dateStr === '0001-01-01T00:00:00Z' || dateStr === '0001-01-01' || !dateStr;
+    }
+
+    function formatDate(dateStr, fallback = '-') {
+        if (isZeroDate(dateStr)) return fallback;
+        return new Date(dateStr).toLocaleDateString();
     }
 
     // ── Load all account data (profile + connections) in one call ─────────
@@ -273,8 +284,7 @@
                 const channelName = conn.provider_channel_name ? esc(conn.provider_channel_name) : '';
                 const displayName = conn.provider_username     ? esc(conn.provider_username)     : '';
                 const email       = conn.provider_email        ? esc(conn.provider_email)        : '';
-                const since       = conn.connected_at
-                    ? new Date(conn.connected_at).toLocaleDateString() : '';
+                const since       = formatDate(conn.connected_at, '');
                 if (channelName) subParts.push(`<span class="sub-channel">📺 ${channelName}</span>`);
                 if (displayName && displayName !== channelName) subParts.push(`<span class="sub-name">@${displayName}</span>`);
                 if (email) subParts.push(`<span class="sub-email">${email}</span>`);
@@ -318,7 +328,7 @@
         let subParts = [];
         if (isConnected) {
             if (ns.nico_username) subParts.push(`<span class="sub-name">${esc(ns.nico_username)}</span>`);
-            if (ns.connected_at)  subParts.push(`<span class="sub-since">since ${new Date(ns.connected_at).toLocaleDateString()}</span>`);
+            if (!isZeroDate(ns.connected_at)) subParts.push(`<span class="sub-since">since ${formatDate(ns.connected_at)}</span>`);
         } else {
             subParts.push(`<span class="sub-coming-soon">Session-proxy login (official OAuth pending)</span>`);
         }

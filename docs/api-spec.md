@@ -31,7 +31,7 @@ One email account is the master identity. OAuth logins are children of that acco
 {
   "id": "integer (auto-increment PK)",
   "user_id": "integer (FK → users.id, CASCADE DELETE)",
-  "provider": "google | twitch | niconico | instagram | tiktok | kick | facebook | x | bilibili",
+  "provider": "google | twitch | niconico | twitcasting | instagram | tiktok | kick | facebook | x | bilibili",
   "oauth_id": "string (provider's user ID — unique per provider)",
   "provider_email": "string (email from the OAuth provider, nullable)",
   "provider_username": "string (display name / handle from the OAuth provider, nullable — e.g. 'Don Taucho', 'don_twitch')",
@@ -44,7 +44,7 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 > **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
-> All OAuth providers (Google, Twitch, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented. NicoNico uses a session-proxy login mechanism (not standard OAuth).
+> All OAuth providers (Google, Twitch, NicoNico, TwitCasting, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented.
 
 ### OAuth login flow
 | Scenario | Behaviour |
@@ -64,6 +64,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 |----------|--------------------|------------------------|
 | Google | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
 | Twitch | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| NicoNico | `http://localhost:8080/auth/callback/niconico` | `https://taucho.org/auth/callback/niconico` |
+| TwitCasting | `http://localhost:8080/auth/callback/twitcasting` | `https://taucho.org/auth/callback/twitcasting` |
 | Instagram | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | Facebook | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 | TikTok | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
@@ -74,6 +76,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 **Where to register each redirect URI:**
 - **Google** — Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client → Authorized redirect URIs
 - **Twitch** — Twitch Developer Console → your app → OAuth Redirect URLs
+- **NicoNico** — NicoNico Developer Console → your app → OAuth Redirect URLs
+- **TwitCasting** — TwitCasting Developer Dashboard → your app → OAuth settings → Authorized Redirect URIs
 - **Instagram** — Meta App Dashboard → Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings → OAuth Redirect URIs
 - **Facebook** — Same Meta App Dashboard → Facebook Login → Settings → Valid OAuth Redirect URIs
 - **TikTok** — TikTok Developer Portal → your app → Authorization Settings → Redirect URLs
@@ -92,6 +96,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 | `PORTAL_BASE_URL` | `http://localhost:8080` | `https://taucho.org` |
 | `GOOGLE_REDIRECT_URL` | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
 | `TWITCH_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| `NICONICO_REDIRECT_URL` | `http://localhost:8080/auth/callback/niconico` | `https://taucho.org/auth/callback/niconico` |
+| `TWITCASTING_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitcasting` | `https://taucho.org/auth/callback/twitcasting` |
 | `INSTAGRAM_REDIRECT_URL` | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | `FACEBOOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 | `TIKTOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
@@ -633,6 +639,7 @@ Either register them at `/watches/...` on the API server, or change the proxy st
 | `channel_id` | string | Platform channel identifier |
 | `is_active` | bool | Whether polling is enabled |
 | `status` | string | `"live"`, `"offline"`, `"paused"` |
+| `thumbnail` | string (URL) | Channel thumbnail image URL (nullable) |
 | `stream_filter` | object\|null | Optional filter — see below |
 | `last_stream_at` | timestamp | When we last detected a live stream |
 
@@ -1065,17 +1072,65 @@ Each channel has per-platform event conditions (see Conditions below).
   "channel_id": "string",
   "is_active": true,
   "status": "live | offline | paused",
+  "thumbnail_url": "string | null (Channel thumbnail image URL)",
   "last_stream_at": "2026-05-25T14:00:00Z"
 }
 ```
 
+#### Watches — Thumbnail Management
+
+**Auto-fetching (if available):**
+When a watch is created (`POST /watches`), the API automatically fetches the channel's thumbnail from the platform provider. Works for:
+- ✅ YouTube: Channel profile picture
+- ✅ Twitch: Channel profile image  
+- ❌ NicoNico: Not yet supported (returns `null`)
+- ❌ Other platforms: May not be available
+
+**Manual thumbnail URL (for platforms without auto-fetch):**
+If auto-fetch fails or the provider doesn't support it, the frontend can provide the thumbnail URL directly:
+
+```bash
+POST /watches
+{
+  "name": "Channel Name",
+  "platform": "niconico",
+  "channel_id": "co1234567",
+  "is_active": true,
+  "thumbnail_url": "https://example.com/image.jpg"  # Optional — if you have the URL
+}
+```
+
+**Update thumbnail after creation:**
+```bash
+PATCH /watches/update?id=watch_123
+{
+  "thumbnail_url": "https://example.com/new-image.jpg"  # Set new URL
+}
+```
+
+**Clear thumbnail:**
+```bash
+PATCH /watches/update?id=watch_123
+{
+  "clear_thumbnail": true  # Explicitly set to NULL
+}
+```
+
+**Field details:**
+- **thumbnail_url**: nullable, automatically populated if provider supports it
+- **Frontend usage**: Use directly in `<img>` tags (no server proxying needed)
+- **Null behavior**: If not provided and auto-fetch fails, remains `null` in database (no error)
+
+---
+
 | Method | Path | Body / Params | Description |
 |--------|------|---------------|-------------|
 | GET | `/watches` | — | List all watches for the authenticated user |
-| POST | `/watches` | `{ name, platform, channel_id, is_active }` | Create a new watched channel |
+| POST | `/watches` | `{ name, platform, channel_id, is_active, [thumbnail_url] }` | Create a new watched channel (thumbnail optional) |
+| PATCH | `/watches/update?id=<id>` | `{ [thumbnail_url], [clear_thumbnail] }` | Update thumbnail for a watch |
 | DELETE | `/watches?id=<id>` | — | Delete a watch (also removes its conditions) |
 
-> `GET /watches/get` and `PATCH /watches/update` already exist — just need list + create + delete.
+> `GET /watches/get` already exists.
 
 ---
 

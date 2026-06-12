@@ -45,6 +45,10 @@
         <span class="oauth-icon">{{platformIcon "niconico"}}</span>
         <span>NicoNico</span>
     </button>
+    <button type="button" onclick="startOAuthLogin('twitcasting')" class="oauth-btn twitcasting-btn">
+        <span class="oauth-icon">{{platformIcon "twitcasting"}}</span>
+        <span>TwitCasting</span>
+    </button>
     <button type="button" onclick="startOAuthLogin('instagram')" class="oauth-btn instagram-btn">
         <span class="oauth-icon">{{platformIcon "instagram"}}</span>
         <span>Instagram</span>
@@ -161,7 +165,6 @@
 
     // If already logged in, go straight to dashboard
     document.addEventListener('DOMContentLoaded', async () => {
-        setupLoginModalDrag();
         const user = window.__user;
         if (user) window.location.replace('/dashboard');
     });

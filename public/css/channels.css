@@ -1115,7 +1115,7 @@ input[type="range"] {
 }
 
 .add-sidebar.closed .add-sidebar-header h2 {
-    display: none;
+    visibility: hidden;
 }
 .add-sidebar.closed .accordion-list {
     overflow-x: hidden;
@@ -1142,6 +1142,7 @@ input[type="range"] {
     padding: 1rem 1.25rem 0.75rem;
     border-bottom: 1px solid #313244;
     flex-shrink: 0;
+    overflow-x: hidden;
 }
 
 .add-sidebar-header h2 {
@@ -1150,6 +1151,7 @@ input[type="range"] {
     font-weight: 600;
     color: #cdd6f4;
     letter-spacing: 0.02em;
+    min-width: 13em;
 }
 
 .add-sidebar-footer {
