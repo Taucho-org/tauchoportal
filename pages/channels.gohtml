@@ -3,7 +3,6 @@
 {{define "head"}}
 <link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/channels.css">
-<link rel="stylesheet" href="/css/add-channel.css">
 {{end}}
 
 {{define "content"}}
@@ -80,55 +79,6 @@
 </div>
 
 <div id="monToast" class="mon-toast"></div>
-
-    <!-- Add/Edit Channel Modal -->
-    <div id="channelModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="close" onclick="closeModal('channelModal')">&times;</span>
-                <h2 id="channelModalTitle">Edit Channel</h2>
-                <p>Update the details for this monitored channel.</p>
-            </div>
-            <div class="modal-body">
-                <form id="channelForm" onsubmit="saveChannel(event)">
-                    <div class="form-group">
-                        <label for="chName">Display Name</label>
-                        <input type="text" id="chName" required placeholder="e.g., Gaming Stream">
-                    </div>
-                    <div class="form-group">
-                        <label for="chPlatform">Platform</label>
-                        <select id="chPlatform" required>
-                            <option value="">Select platform...</option>
-                            <option value="youtube">YouTube</option>
-                            <option value="twitch">Twitch</option>
-                            <option value="niconico">NicoNico</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="kick">Kick</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="x">X</option>
-                            <option value="bilibili">Bilibili</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="chId">Channel ID / Username</label>
-                        <input type="text" id="chId" required placeholder="e.g., @YourChannel or UC...">
-                        <small class="form-help">The unique identifier used by the platform.</small>
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="chActive" checked>
-                            <span>Start watching immediately</span>
-                        </label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('channelModal')">Cancel</button>
-                <button type="submit" form="channelForm" class="btn btn-primary" id="chSaveBtn">Save Changes</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Stream Filter Modal -->
     <div id="filterModal" class="modal">
@@ -529,31 +479,17 @@
                 : '';
             return `
             <div class="channel-card ${ch.status === 'live' ? 'live' : ''} ${!ch.active ? 'paused' : ''}" id="ch-${ch.id}" style="cursor:pointer" onclick="navigate('/channels/${ch.id}')">
-                <div class="channel-main">
-                    <div class="platform-icon ${ch.platform}">
-                        ${ch.thumbnailUrl 
-                            ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
-                            : p.icon
-                        }
-                    </div>
-                    <div class="channel-info">
-                        <div class="channel-name">${ch.name} ${filterBadge}</div>
-                        <div class="channel-meta">
-                            <span class="platform-tag ${ch.platform}"><span style="display:inline-block; margin-right:4px">${p.icon}</span>${p.label}</span>
-                            <span class="channel-id">${ch.channelId}</span>
-                        </div>
-                    </div>
-                    <div class="channel-status-group">
-                        ${statusBadge}
-                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">Watch</span>
-                        <label class="toggle-switch" onclick="event.stopPropagation()" title="${ch.active ? 'Watching' : 'Paused'}">
-                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+                <div class="platform-icon ${ch.platform}">
+                    ${ch.thumbnailUrl 
+                        ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
+                        : p.icon
+                    }
                 </div>
-                <div class="channel-footer">
-                    <div class="footer-meta">
+                <div class="channel-info">
+                    <div class="channel-name editable-name" onclick="startEditDisplayName(event, '${ch.id}', '${escHtml(ch.name)}', false)">${escHtml(ch.name)} <span class="name-edit-pencil">✏️</span> ${filterBadge}</div>
+                    <div class="channel-meta">
+                        <span class="platform-tag ${ch.platform}"><span style="display:inline-block; margin-right:4px">${p.icon}</span>${p.label}</span>
+                        <span class="channel-id">${ch.channelId}</span>
                         <div class="meta-item">
                             <span class="meta-label">Last stream:</span>
                             <span class="meta-value">${ch.lastStream}</span>
@@ -562,17 +498,24 @@
                             <span class="meta-label">Conditions:</span>
                             <span class="meta-value">
                                 <a href="/channels/${ch.id}/conditions"
-                                   onclick="event.stopPropagation(); navigate('/channels/${ch.id}/conditions'); return false;">
-                                   ${condCount} rule${condCount !== 1 ? 's' : ''}
+                                    onclick="event.stopPropagation(); navigate('/channels/${ch.id}/conditions'); return false;">
+                                    ${condCount} rule${condCount !== 1 ? 's' : ''}
                                 </a>
                             </span>
                         </div>
                     </div>
-                    <div class="channel-actions">
-                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="event.stopPropagation(); openFilterModal('${ch.id}')" title="Stream filter"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg></button>
-                        <button class="action-btn edit" onclick="event.stopPropagation(); openEditChannelModal('${ch.id}')">✏️ Edit</button>
-                        <button class="action-btn delete" onclick="event.stopPropagation(); deleteChannel('${ch.id}')">🗑</button>
-                    </div>
+                </div>
+                <div class="channel-status-group">
+                    ${statusBadge}
+                </div>
+                <div class="channel-edit">
+                    <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">Watch</span>
+                    <label class="toggle-switch" onclick="event.stopPropagation()" title="${ch.active ? 'Watching' : 'Paused'}">
+                        <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="event.stopPropagation(); openFilterModal('${ch.id}')" title="Stream filter"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg></button>
+                    <button class="action-btn delete" onclick="event.stopPropagation(); deleteChannel('${ch.id}')">🗑</button>
                 </div>
             </div>`;
         }).join('');
@@ -608,46 +551,46 @@
         document.getElementById('view-channel').innerHTML = `
             <div class="page-header">
                 <nav class="breadcrumb">
-                    <a href="/channels" onclick="navigate('/channels'); return false;">📡 Watched Channels</a>
+                    <img src="/image/channels_s.png">
+                    <a href="/channels" onclick="navigate('/channels'); return false;">Watched Channels</a>
                     <span class="breadcrumb-sep">›</span>
                     <span>${ch.name}</span>
                 </nav>
             </div>
             <div class="channel-detail-card">
-                <div class="channel-detail-header">
-                    <div class="platform-icon ${ch.platform} large">
-                        ${ch.thumbnailUrl 
-                            ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
-                            : p.icon
-                        }
-                    </div>
-                    <div class="channel-detail-info">
-                        <h1>${ch.name}</h1>
-                        <div class="channel-meta">
-                            <span class="platform-tag ${ch.platform}">${p.label}</span>
-                            ${statusBadge}
-                            <div class="meta-item">
-                                <span class="meta-label">Last stream</span>
-                                <span class="meta-value">${ch.lastStream}</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-label">Platform ID</span>
-                                <span class="meta-value mono">${ch.channelId}</span>
-                            </div>
+                <div class="platform-icon ${ch.platform} large">
+                    ${ch.thumbnailUrl 
+                        ? `<img src="${ch.thumbnailUrl}" alt="${ch.name}" style="width:100%; height:100%; object-fit:cover; border-radius:4px">`
+                        : p.icon
+                    }
+                </div>
+                <div class="channel-detail-info">
+                    <h1 class="editable-name" onclick="startEditDisplayName(event, '${ch.id}', '${escHtml(ch.name)}', true)">${escHtml(ch.name)} <span class="name-edit-pencil">✏️</span></h1>
+                    <div class="channel-meta">
+                        <span class="platform-tag ${ch.platform}"><span style="display:inline-block; margin-right:4px">${p.icon}</span>${p.label}</span>
+                        <div class="meta-item">
+                            <span class="meta-label">Last stream</span>
+                            <span class="meta-value">${ch.lastStream}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Platform ID</span>
+                            <span class="meta-value mono">${ch.channelId}</span>
                         </div>
                     </div>
-                    <div class="channel-detail-edit">
-                        <div class="channel-detail-toggle">
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
-                                <span class="toggle-slider"></span>
-                            </label>
-                            <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
-                        </div>
-                        <button class="action-btn edit" onclick="openEditChannelModal('${ch.id}')">✏️ Edit</button>
-                        <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg>Filter</button>
-                        <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑Remove</button>
+                </div>
+                <div class="channel-status-group">
+                    ${statusBadge}
+                </div>
+                <div class="channel-edit">
+                    <div class="channel-detail-toggle">
+                         <label class="toggle-switch">
+                            <input type="checkbox" ${ch.active ? 'checked' : ''} onchange="toggleChannel('${ch.id}', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="watch-toggle-label ${!ch.active ? 'paused' : ''}">${ch.active ? 'Watching' : 'Paused'}</span>
                     </div>
+                    <button class="action-btn filter ${hasActiveFilter(ch.streamFilter) ? 'active' : ''}" onclick="openFilterModal('${ch.id}')"><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg>Filter</button>
+                    <button class="action-btn delete" onclick="deleteChannel('${ch.id}')">🗑Remove</button>
                 </div>
             </div>
 
@@ -694,7 +637,8 @@
         document.getElementById('view-conditions').innerHTML = `
             <div class="page-header">
                 <nav class="breadcrumb">
-                    <a href="/channels" onclick="navigate('/channels'); return false;">📡 Watched Channels</a>
+                    <img src="/image/channels_s.png">
+                    <a href="/channels" onclick="navigate('/channels'); return false;">Watched Channels</a>
                     <span class="breadcrumb-sep">›</span>
                     <a href="/channels/${ch.id}" onclick="navigate('/channels/${ch.id}'); return false;">${ch.name}</a>
                     <span class="breadcrumb-sep">›</span>
@@ -770,52 +714,66 @@
     // =============================================
     // Channel CRUD
     // =============================================
-    let editingChannelId = null;
 
-    function openAddChannelModal() {
-        editingChannelId = null;
-        document.getElementById('channelModalTitle').textContent = 'Add Channel';
-        document.getElementById('chSaveBtn').textContent = 'Add Channel';
-        document.getElementById('channelForm').reset();
-        openModal('channelModal');
-    }
-
-    function openEditChannelModal(channelId) {
-        editingChannelId = channelId;
-        const ch = CHANNELS.find(c => c.id === channelId);
-        document.getElementById('channelModalTitle').textContent = 'Edit Channel';
-        document.getElementById('chSaveBtn').textContent = 'Save Changes';
-        document.getElementById('chName').value = ch.name;
-        document.getElementById('chPlatform').value = ch.platform;
-        document.getElementById('chId').value = ch.channelId;
-        document.getElementById('chActive').checked = ch.active;
-        openModal('channelModal');
-    }
-
-    async function saveChannel(e) {
-        e.preventDefault();
-        const btn = document.getElementById('chSaveBtn');
-        btn.disabled = true;
-        try {
-            const body = {
-                name: document.getElementById('chName').value,
-                platform: document.getElementById('chPlatform').value,
-                channel_id: document.getElementById('chId').value,
-                is_active: document.getElementById('chActive').checked
-            };
-            if (editingChannelId) {
-                await apiRequest('PATCH', `/watches/update?id=${editingChannelId}`, body);
-            } else {
-                await apiRequest('POST', '/watches', body);
-            }
-            closeModal('channelModal');
-            await loadWatches();
-            renderChannelListView();
-        } catch (e) {
-            alert('Failed to save channel: ' + e.message);
-        } finally {
-            btn.disabled = false;
+    async function updateDisplayName(channelId, newName) {
+        const trimmed = (newName || '').trim();
+        if (!trimmed) {
+            alert('Display name cannot be empty');
+            return false;
         }
+        
+        try {
+            await apiRequest('PATCH', `/watches/update?id=${channelId}`, { name: trimmed });
+            const ch = CHANNELS.find(c => c.id === channelId);
+            if (ch) ch.name = trimmed;
+            
+            // Re-render based on current view
+            if (currentChannel && currentChannel.id === channelId) {
+                currentChannel.name = trimmed;
+                renderChannelDetailView();
+            } else {
+                renderChannelListView();
+            }
+            return true;
+        } catch (e) {
+            alert('Failed to update display name: ' + e.message);
+            return false;
+        }
+    }
+
+    function startEditDisplayName(event, channelId, currentName, isDetailView = false) {
+        event.stopPropagation();
+        const nameSpan = event.target.closest('.editable-name');
+        if (!nameSpan) return;
+
+        // Replace the span with an input field
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-edit-input';
+        input.value = currentName;
+
+        nameSpan.innerHTML = '';
+        nameSpan.appendChild(input);
+        input.focus();
+        input.select();
+
+        const finishEdit = async () => {
+            const newName = input.value;
+            if (await updateDisplayName(channelId, newName)) {
+                // The re-render will replace the input with the new name
+            } else {
+                // Restore the original on error
+                nameSpan.innerHTML = currentName + ' <span class="name-edit-pencil">✏️</span>';
+            }
+        };
+
+        input.addEventListener('blur', finishEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') finishEdit();
+            if (e.key === 'Escape') {
+                nameSpan.innerHTML = currentName + ' <span class="name-edit-pencil">✏️</span>';
+            }
+        });
     }
 
     async function toggleChannel(channelId, checkbox) {
@@ -1214,7 +1172,7 @@
     }
 
     window.onclick = function(e) {
-        ['channelModal', 'conditionModal', 'filterModal'].forEach(id => {
+        ['conditionModal', 'filterModal'].forEach(id => {
             if (e.target === document.getElementById(id)) closeModal(id);
         });
     };
