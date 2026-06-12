@@ -255,6 +255,16 @@ h1 {
     border-color: #252525;
 }
 
+.twitcasting-btn {
+    border-color: #23a502;
+    color: #23a502;
+}
+
+.twitcasting-btn:hover {
+    background: #e0ffd9;
+    border-color: #23a502;
+}
+
 .instagram-btn {
     border-color: #E1306C;
     color: #E1306C;

@@ -31,7 +31,7 @@ One email account is the master identity. OAuth logins are children of that acco
 {
   "id": "integer (auto-increment PK)",
   "user_id": "integer (FK → users.id, CASCADE DELETE)",
-  "provider": "google | twitch | niconico | instagram | tiktok | kick | facebook | x | bilibili",
+  "provider": "google | twitch | niconico | twitcasting | instagram | tiktok | kick | facebook | x | bilibili",
   "oauth_id": "string (provider's user ID — unique per provider)",
   "provider_email": "string (email from the OAuth provider, nullable)",
   "provider_username": "string (display name / handle from the OAuth provider, nullable — e.g. 'Don Taucho', 'don_twitch')",
@@ -44,7 +44,7 @@ Unique constraints: `(provider, oauth_id)` and `(user_id, provider)` — one acc
 > **Note:** `provider_email`, `provider_username`, and `provider_channel_name` are populated at connect time from the OAuth userinfo response and stored for display. They are **not** re-synced on every login — they reflect the values at the time of connection. `provider_channel_name` is only meaningful for streaming platforms (YouTube channel name, Twitch display name, etc.).
 
 > **Note:** `provider = "google"` represents a Google account used for YouTube. The portal shows YouTube branding for this provider.  
-> All OAuth providers (Google, Twitch, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented. NicoNico uses a session-proxy login mechanism (not standard OAuth).
+> All OAuth providers (Google, Twitch, NicoNico, TwitCasting, Instagram, Facebook, TikTok, Kick, X, and Bilibili) are now fully implemented.
 
 ### OAuth login flow
 | Scenario | Behaviour |
@@ -64,6 +64,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 |----------|--------------------|------------------------|
 | Google | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
 | Twitch | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| NicoNico | `http://localhost:8080/auth/callback/niconico` | `https://taucho.org/auth/callback/niconico` |
+| TwitCasting | `http://localhost:8080/auth/callback/twitcasting` | `https://taucho.org/auth/callback/twitcasting` |
 | Instagram | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | Facebook | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 | TikTok | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
@@ -74,6 +76,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 **Where to register each redirect URI:**
 - **Google** — Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client → Authorized redirect URIs
 - **Twitch** — Twitch Developer Console → your app → OAuth Redirect URLs
+- **NicoNico** — NicoNico Developer Console → your app → OAuth Redirect URLs
+- **TwitCasting** — TwitCasting Developer Dashboard → your app → OAuth settings → Authorized Redirect URIs
 - **Instagram** — Meta App Dashboard → Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings → OAuth Redirect URIs
 - **Facebook** — Same Meta App Dashboard → Facebook Login → Settings → Valid OAuth Redirect URIs
 - **TikTok** — TikTok Developer Portal → your app → Authorization Settings → Redirect URLs
@@ -92,6 +96,8 @@ The portal handles the OAuth callback — the provider redirects the user's brow
 | `PORTAL_BASE_URL` | `http://localhost:8080` | `https://taucho.org` |
 | `GOOGLE_REDIRECT_URL` | `http://localhost:8080/auth/callback/google` | `https://taucho.org/auth/callback/google` |
 | `TWITCH_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitch` | `https://taucho.org/auth/callback/twitch` |
+| `NICONICO_REDIRECT_URL` | `http://localhost:8080/auth/callback/niconico` | `https://taucho.org/auth/callback/niconico` |
+| `TWITCASTING_REDIRECT_URL` | `http://localhost:8080/auth/callback/twitcasting` | `https://taucho.org/auth/callback/twitcasting` |
 | `INSTAGRAM_REDIRECT_URL` | `http://localhost:8080/auth/callback/instagram` | `https://taucho.org/auth/callback/instagram` |
 | `FACEBOOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/facebook` | `https://taucho.org/auth/callback/facebook` |
 | `TIKTOK_REDIRECT_URL` | `http://localhost:8080/auth/callback/tiktok` | `https://taucho.org/auth/callback/tiktok` |
