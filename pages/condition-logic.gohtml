@@ -1,13 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Condition Logic — TauchoPortal</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/condition-logic.css">
-</head>
-<body>
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/modals.css">
+<link rel="stylesheet" href="/css/channels.css">
+{{end}}
+
+{{define "content"}}
+
+
     <div class="page-wrapper">
         <header class="navbar">
             <div class="navbar-content">
@@ -310,5 +310,4 @@
     window.addEventListener('popstate', route);
     route();
 </script>
-</body>
-</html>
+{{end}}

@@ -53,12 +53,12 @@ var pageRoutes = map[string]pageConfig{
 	"/dashboard":        {Name: "dashboard", Title: "Dashboard", RequireAuth: true},
 	"/channels":         {Name: "channels", Title: "Watched Channels", RequireAuth: true},
 	"/devices":          {Name: "devices", Title: "My Devices", RequireAuth: true},
-	"/conditions":       {Name: "conditions", Title: "Conditions", RequireAuth: true},
 	"/about":            {Name: "about", Title: "About", RequireAuth: false},
 	"/account-settings": {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
 	"/privacy-policy":   {Name: "privacy-policy", Title: "Privacy Policy", RequireAuth: false},
 	"/terms-of-service": {Name: "terms-of-service", Title: "Terms of Service", RequireAuth: false},
 	"/data-deletion":    {Name: "data-deletion", Title: "Data Deletion", RequireAuth: false},
+	"/condition-logic":  {Name: "condition-logic", Title: "Condition Logic", RequireAuth: true},
 }
 
 type Server struct {
@@ -348,7 +348,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cfg, ok := pageRoutes[r.URL.Path]
 	if !ok {
 		if strings.HasPrefix(r.URL.Path, "/channels/") {
-			cfg = pageRoutes["/channels"]
+			// Check for specific pattern: /channels/{watch_id}/conditions/{condition_id}/logic
+			parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
+			if len(parts) == 5 && parts[0] == "channels" && parts[2] == "conditions" && parts[4] == "logic" {
+				cfg = pageRoutes["/condition-logic"]
+			} else {
+				cfg = pageRoutes["/channels"]
+			}
 		} else {
 			http.NotFound(w, r)
 			return
