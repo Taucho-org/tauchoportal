@@ -109,6 +109,10 @@ body {
     border-radius: 8px;
     overflow: hidden;
     transition: box-shadow 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
 }
 
 .channel-card:hover {
@@ -123,13 +127,6 @@ body {
 .channel-card.paused {
     opacity: 0.7;
     border-left: 4px solid #bdbdbd;
-}
-
-.channel-main {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
 }
 
 /* Platform Icon */
@@ -175,11 +172,12 @@ body {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 600;
+    border: 1px solid #AAAAAA;
 }
 
 .platform-tag.youtube  { background: #ffcdd2; color: #b71c1c; }
 .platform-tag.twitch   { background: #e1bee7; color: #6a1b9a; }
-.platform-tag.niconico { background: #bbdefb; color: #0d47a1; }
+.platform-tag.niconico { background: #ffffff; color: #0d47a1; }
 
 .channel-id {
     font-size: 0.8rem;
@@ -277,22 +275,6 @@ body {
 }
 
 /* Channel Footer */
-.channel-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    background: #fafafa;
-    border-top: 1px solid #f0f0f0;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.footer-meta {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-}
 
 .meta-item {
     display: flex;
@@ -321,27 +303,21 @@ body {
 }
 
 /* Channel Actions */
-.channel-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
 .action-btn {
     background: none;
     border: none;
     padding: 0.4rem 0.7rem;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 0.82rem;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
+    vertical-align: top;
 }
 
-.action-btn.edit   { background: #e3f2fd; color: #1976d2; }
-.action-btn.edit:hover   { background: #1976d2; color: white; }
-.action-btn.delete { background: #ffebee; color: #c62828; }
+.action-btn.delete { background: #ffebee; color: #c62828; border: 1px solid #f3bcbc }
 .action-btn.delete:hover { background: #c62828; color: white; }
 
 /* Empty State */
@@ -482,24 +458,24 @@ body {
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 1.5rem 1.5rem 0 1.5rem;
+    padding: 1.5rem;
     margin-bottom: 1.5rem;
-}
-
-.channel-detail-edit {
-    max-width: 92px;
-}
-
-.channel-detail-edit button {
-    min-width: 90px;
-    height: 2.4em;
-}
-.channel-detail-header {
     display: flex;
     align-items: flex-start;
     gap: 1.25rem;
-    margin-bottom: 1.25rem;
     flex-wrap: wrap;
+}
+
+.channel-edit {
+    max-width: 92px;
+}
+
+.channel-edit button {
+    height: 34px;
+    width: 34px;
+}
+.channel-detail-card .channel-edit button {
+    min-width: 90px;
 }
 
 .platform-icon.large {
@@ -844,11 +820,10 @@ body {
 
 /* Filter button in channel actions */
 .action-btn.filter {
-    background: transparent;
+    background: #ffffff;
     border: 1px solid #ddd;
     color: #888;
     padding: 4px 10px;
-    border-radius: 6px;
     cursor: pointer;
     font-size: 0.85rem;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
@@ -1078,6 +1053,22 @@ input[type="range"] {
     width: 100%;
     margin-top: 0.5rem;
     accent-color: #4CAF50;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .channels-container { padding: 1rem; }
+    .page-header-top { flex-direction: column; }
+    .channel-card { flex-wrap: wrap; }
+    .stats-row { gap: 0.5rem; }
+    .stat-card { min-width: 80px; padding: 0.75rem 1rem; }
+    .channel-detail-card { flex-direction: column; }
+    .channel-detail-toggle { flex-direction: row; }
+    .detail-section-header { flex-direction: column; }
+    .rule-header { flex-direction: column; align-items: flex-start; }
+    .rule-controls { width: 100%; justify-content: flex-end; }
+    .rule-detail-row { flex-direction: column; gap: 0.75rem; }
+    .filter-tab { padding: 0.5rem 0.75rem; font-size: 0.82rem; }
 }
 
 /* ================================================================
@@ -1495,7 +1486,7 @@ input[type="range"] {
     transform: translateY(0);
 }
 
-/* ── Confirm drawer (reuse add-channel.css for drawer, augment here) ─ */
+/* ── Platform icon styles (for confirmation drawer) ─ */
 .cf-platform-icon {
     width: 44px;
     height: 44px;
@@ -1507,15 +1498,6 @@ input[type="range"] {
     background: #2a2a3e;
     border: 1px solid #45475a;
     flex-shrink: 0;
-}
-
-.confirm-channel-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #313244;
 }
 
 .cf-channel-info {
@@ -1534,6 +1516,168 @@ input[type="range"] {
     font-size: 0.82rem;
 }
 
+/* ── Channel search results ──────────────────────────────────────────── */
+.channel-results { display: flex; flex-direction: column; gap: 0.5rem; }
+.result-loading { color: var(--color-text-muted, #888); font-size: 0.875rem; padding: 0.5rem 0; }
+.result-empty   { color: var(--color-text-muted, #888); font-size: 0.875rem; padding: 0.5rem 0; }
+.result-error   { color: #f88; font-size: 0.875rem; padding: 0.5rem 0; }
+.stub-notice {
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #888);
+    background: rgba(255,200,60,0.07);
+    border: 1px solid rgba(255,200,60,0.18);
+    border-radius: 7px;
+    padding: 0.6rem 0.875rem;
+}
+
+/* ── Confirmation drawer ─────────────────────────────────────────────────── */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 90;
+}
+.confirm-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-surface, #1e1e2e);
+    border-top: 1px solid var(--color-border, rgba(255,255,255,0.1));
+    border-radius: 16px 16px 0 0;
+    padding: 1.5rem;
+    z-index: 100;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.35);
+}
+.confirm-drawer.open { transform: translateY(0); }
+.confirm-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.confirm-channel-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+.confirm-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.confirm-thumb-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+.confirm-channel-info { flex: 1; min-width: 0; }
+.confirm-channel-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.confirm-channel-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted, #888);
+    margin-top: 0.2rem;
+}
+.confirm-plat-icon svg { width: 14px; height: 14px; vertical-align: middle; fill: currentColor; }
+.dot-sep { opacity: 0.4; }
+.confirm-cid { font-family: monospace; }
+
+.confirm-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.cf-row { display: flex; flex-direction: column; gap: 0.3rem; }
+.cf-row label { font-size: 0.8rem; font-weight: 600; }
+.cf-row input {
+    padding: 0.55rem 0.875rem;
+    border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+    border-radius: 7px;
+    background: var(--color-bg, #13131d);
+    color: var(--color-text, #e0e0e0);
+    font-size: 0.9375rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.cf-row input:focus { border-color: var(--color-primary, #7c6af7); }
+.cf-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+.cf-error {
+    font-size: 0.875rem;
+    color: #f88;
+    padding: 0.4rem 0;
+}
+.cf-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+.btn-cancel {
+    padding: 0.55rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, rgba(255,255,255,0.15));
+    background: transparent;
+    color: var(--color-text-muted, #888);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+.btn-cancel:hover { background: rgba(255,255,255,0.05); }
+.btn-add {
+    padding: 0.55rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    background: var(--color-primary, #7c6af7);
+    color: #fff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.btn-add:disabled { opacity: 0.55; cursor: default; }
+.btn-add:not(:disabled):hover { opacity: 0.85; }
+
+/* ── Toast (add-channel style) ───────────────────────────────────────────── */
+.ac-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #4caf82;
+    color: #fff;
+    padding: 0.65rem 1.5rem;
+    border-radius: 24px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+}
+.ac-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -1581,4 +1725,47 @@ input[type="range"] {
         border-bottom: unset;
         flex-shrink: unset;
     }
+}
+
+/* Inline Display Name Editing */
+.editable-name {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.editable-name:hover .name-edit-pencil {
+    opacity: 1;
+}
+
+.name-edit-pencil {
+    opacity: 0;
+    margin-left: 0.25rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    display: inline-block;
+    font-size: 0.85em;
+}
+
+.name-edit-input {
+    font-size: 1em;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    font-family: inherit;
+    background-color: #f8f9fa;
+    color: #222;
+    min-width: 200px;
+}
+
+.name-edit-input:focus {
+    outline: none;
+    border-color: #0056b3;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.name-edit-input.error {
+    border-color: #dc3545;
+    background-color: #fff5f5;
 }
