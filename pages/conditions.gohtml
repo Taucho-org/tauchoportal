@@ -1,0 +1,208 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/modals.css">
+<link rel="stylesheet" href="/css/channels.css">
+{{end}}
+
+{{define "content"}}
+<div class="unified-layout">
+    <aside class="add-sidebar" id="addSidebar">
+        <div class="add-sidebar-header">
+            <h2>Select Checking Channel</h2>
+        </div>
+        <div class="accordion-list" id="accordionList">
+            <div class="acc-init-loading">Loading platforms…</div>
+        </div>
+        <div class="add-sidebar-footer">
+            <div class="align-right">
+                <a class="closebutton" href="#" onclick="closeAllAcc();document.getElementById('addSidebar').classList.add('closed')">|&lt;</a>
+                <a class="openbutton" href="#" onclick="closeAllAcc();document.getElementById('addSidebar').classList.remove('closed')">&gt;|</a>
+            </div>
+        </div>
+    </aside>
+
+    <div class="channels-panel">
+        <div id="view-conditions" class="view channels-view"></div>
+    </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="cancelConfirm()"></div>
+<div class="confirm-drawer" id="confirmDrawer">
+    <div class="confirm-inner">
+        <div class="confirm-channel-preview" id="confirmPreview"></div>
+        <div class="confirm-form">
+            <div class="cf-row">
+                <label>Display Name</label>
+                <input type="text" id="confirmName" placeholder="e.g., Gaming Stream">
+            </div>
+            <label class="cf-check">
+                <input type="checkbox" id="confirmActive" checked>
+                <span>Start watching immediately</span>
+            </label>
+            <div class="cf-error" id="confirmError" style="display:none"></div>
+            <div class="cf-actions">
+                <button class="btn-cancel" onclick="cancelConfirm()">Cancel</button>
+                <button class="btn-add" id="confirmAddBtn" onclick="confirmAdd()">+ Add Channel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="monToast" class="mon-toast"></div>
+
+<div id="filterModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <span class="close" onclick="closeModal('filterModal')">&times;</span>
+            <h2><svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#ffffff" stroke="black" stroke-width="6%" d="M296,464a23.88,23.88,0,0,1-7.55-1.23l-80.15-26.67A23.92,23.92,0,0,1,192,413.32V294.11a.44.44,0,0,0-.09-.13L23.26,97.54A30,30,0,0,1,46.05,48H466a30,30,0,0,1,22.79,49.54L320.09,294a.77.77,0,0,0-.09.13V440a23.93,23.93,0,0,1-24,24Z"></path></svg> Stream Filter</h2>
+            <p id="filterModalSubtitle">Control which live streams are tracked for this channel.</p>
+        </div>
+        <div class="modal-body">
+            <p class="filter-intro">Even if you're watching a channel, you can skip streams that match certain keywords or only track streams whose titles contain specific words.</p>
+            <fieldset class="form-section">
+                <legend>Skip if title contains <span class="optional-label">(blacklist)</span></legend>
+                <p class="section-note">Streams whose title includes <strong>any</strong> of these keywords will be ignored. One keyword per line, case-insensitive.</p>
+                <textarea id="filterSkipTitle" class="filter-textarea" rows="3"></textarea>
+            </fieldset>
+            <fieldset class="form-section">
+                <legend>Skip if description contains <span class="optional-label">(blacklist)</span></legend>
+                <p class="section-note">Streams whose description includes <strong>any</strong> of these keywords will be ignored.</p>
+                <textarea id="filterSkipDesc" class="filter-textarea" rows="3"></textarea>
+            </fieldset>
+            <fieldset class="form-section">
+                <legend>Only track if title contains <span class="optional-label">(whitelist)</span></legend>
+                <p class="section-note">If set, only streams whose title contains <strong>at least one</strong> of these keywords will be tracked. Leave empty to track all streams (after blacklist check).</p>
+                <textarea id="filterRequireTitle" class="filter-textarea" rows="3"></textarea>
+            </fieldset>
+            <div class="filter-clear-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filterClearAll">
+                    <span>Clear all filters (track every stream)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('filterModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="filterSaveBtn" onclick="saveFilter()">Save Filter</button>
+        </div>
+    </div>
+</div>
+
+<div id="conditionModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <span class="close" onclick="closeModal('conditionModal')">&times;</span>
+            <h2 id="condModalTitle">Add Condition</h2>
+            <p id="condModalSubtitle">Define when to trigger an action on this channel.</p>
+        </div>
+        <div class="modal-body">
+            <form id="conditionForm" onsubmit="saveCondition(event)">
+                <div class="form-group">
+                    <label for="condName">Condition Name</label>
+                    <input type="text" id="condName" required>
+                </div>
+                <fieldset class="form-section">
+                    <legend>Event</legend>
+                    <div class="form-group">
+                        <label for="condEventType">Event Type</label>
+                        <select id="condEventType" required onchange="updateCondEventFields()"><option value="">Select event type...</option></select>
+                    </div>
+                    <div class="form-group" id="condFilterGroup" style="display:none">
+                        <label for="condFilter" id="condFilterLabel">Keyword filter <span class="optional-label">(optional)</span></label>
+                        <input type="text" id="condFilter">
+                        <small class="form-help" id="condFilterHelp">Only trigger when a comment contains this keyword. Leave empty to match all comments.</small>
+                    </div>
+                </fieldset>
+                <fieldset class="form-section device-action-section">
+                    <legend>Device Action</legend>
+                    <p class="section-note">Select a smart home device to trigger when this condition is met. Manage devices on the <a href="/devices">Devices page</a>.</p>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="condHasDevice" onchange="toggleDeviceAction(this)">
+                            <span>Trigger a device action when this condition fires</span>
+                        </label>
+                    </div>
+                    <div id="deviceActionFields" style="display:none">
+                        <div class="form-group">
+                            <label for="condDeviceSelect">Device</label>
+                            <select id="condDeviceSelect" onchange="updateCondActionSelect()"><option value="">Select a device...</option></select>
+                        </div>
+                        <div class="form-group" id="condActionSelectGroup" style="display:none">
+                            <label for="condActionSelect">Action</label>
+                            <select id="condActionSelect" onchange="updateCondActionParams()"><option value="">Select action...</option></select>
+                        </div>
+                        <div class="form-group" id="condColorGroup" style="display:none">
+                            <label>Color</label>
+                            <div class="color-presets">
+                                <button type="button" class="color-preset selected" style="background:#ff2020" data-color="#ff2020" onclick="selectCondColor(this)" title="Red"></button>
+                                <button type="button" class="color-preset" style="background:#ff7700" data-color="#ff7700" onclick="selectCondColor(this)" title="Orange"></button>
+                                <button type="button" class="color-preset" style="background:#ffee00" data-color="#ffee00" onclick="selectCondColor(this)" title="Yellow"></button>
+                                <button type="button" class="color-preset" style="background:#00cc44" data-color="#00cc44" onclick="selectCondColor(this)" title="Green"></button>
+                                <button type="button" class="color-preset" style="background:#00ccff" data-color="#00ccff" onclick="selectCondColor(this)" title="Cyan"></button>
+                                <button type="button" class="color-preset" style="background:#0055ff" data-color="#0055ff" onclick="selectCondColor(this)" title="Blue"></button>
+                                <button type="button" class="color-preset" style="background:#aa00ff" data-color="#aa00ff" onclick="selectCondColor(this)" title="Purple"></button>
+                                <button type="button" class="color-preset" style="background:#ff00cc" data-color="#ff00cc" onclick="selectCondColor(this)" title="Pink"></button>
+                                <button type="button" class="color-preset" style="background:#ffffff;border-color:#ccc" data-color="#ffffff" onclick="selectCondColor(this)" title="White"></button>
+                            </div>
+                        </div>
+                        <div class="form-group" id="condBrightnessGroup" style="display:none">
+                            <label for="condBrightness">Brightness: <span id="condBrightnessVal">50</span>%</label>
+                            <input type="range" id="condBrightness" min="1" max="100" value="50" oninput="document.getElementById('condBrightnessVal').textContent=this.value">
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="condEnabled" checked>
+                        <span>Enable this condition immediately</span>
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('conditionModal')">Cancel</button>
+            <button type="submit" form="conditionForm" class="btn btn-primary" id="condSaveBtn">Add Condition</button>
+        </div>
+    </div>
+</div>
+
+<div id="testConditionModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <span class="close" onclick="closeModal('testConditionModal')">&times;</span>
+            <h2 id="testConditionTitle">Test Condition</h2>
+            <p>Simulate an event to see if this condition would trigger.</p>
+        </div>
+        <div class="modal-body">
+            <div class="test-event-form">
+                <div class="form-group">
+                    <label for="testEventType">Event type</label>
+                    <select id="testEventType" onchange="updateTestEventParams()"><option value="">Select event type...</option></select>
+                </div>
+                <div id="testEventParamsContainer"></div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="testTriggerRealDevice">
+                        <span>Actually trigger device (dangerous!)</span>
+                    </label>
+                </div>
+            </div>
+            <div id="testResultsContainer" style="display:none; margin-top:1.5rem; padding:1rem; background:#f0f0f0; border-radius:4px;">
+                <h4>Test Results:</h4>
+                <div id="testResultsContent"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('testConditionModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="testConditionBtn" onclick="runConditionTest()">Test Condition</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/channels-shared.js"></script>
+<script src="/js/channels-sidebar.js"></script>
+<script src="/js/conditions-list.js"></script>
+{{end}}
+
+
