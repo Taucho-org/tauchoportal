@@ -54,7 +54,7 @@ var pageRoutes = map[string]pageConfig{
 	"/channels":         {Name: "channels", Title: "Watched Channels", RequireAuth: true},
 	"/channel":          {Name: "channel", Title: "Channel Details", RequireAuth: true},
 	"/conditions":       {Name: "conditions", Title: "Channel Conditions", RequireAuth: true},
-	"/condition-logic":  {Name: "condition-logic", Title: "Condition Logic", RequireAuth: true},
+	"/condition":        {Name: "condition", Title: "Condition Logic", RequireAuth: true},
 	"/devices":          {Name: "devices", Title: "My Devices", RequireAuth: true},
 	"/about":            {Name: "about", Title: "About", RequireAuth: false},
 	"/account-settings": {Name: "account-settings", Title: "Account Settings", RequireAuth: true},
@@ -359,9 +359,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				} else if len(parts) == 3 && parts[2] == "conditions" {
 					// /channels/{channel_id}/conditions
 					cfg = pageRoutes["/conditions"]
-				} else if (len(parts) == 4 && parts[2] == "conditions") || (len(parts) == 5 && parts[2] == "conditions" && parts[4] == "logic") {
-					// /channels/{channel_id}/conditions/{condition_id}[/logic]
-					cfg = pageRoutes["/condition-logic"]
+				} else if len(parts) > 3 && parts[2] == "conditions" {
+					// /channels/{channel_id}/conditions/{condition_id}
+					cfg = pageRoutes["/condition"]
 				} else {
 					cfg = pageRoutes["/channels"]
 				}
