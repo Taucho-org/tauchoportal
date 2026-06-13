@@ -211,6 +211,43 @@
             </div>
         </div>
     </div>
+
+    <!-- Test Condition Modal -->
+    <div id="testConditionModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('testConditionModal')">&times;</span>
+                <h2 id="testConditionTitle">Test Condition</h2>
+                <p>Simulate an event to see if this condition would trigger.</p>
+            </div>
+            <div class="modal-body">
+                <div class="test-event-form">
+                    <div class="form-group">
+                        <label for="testEventType">Event type</label>
+                        <select id="testEventType" onchange="updateTestEventParams()">
+                            <option value="">Select event type...</option>
+                        </select>
+                    </div>
+                    <div id="testEventParamsContainer"></div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="testTriggerRealDevice">
+                            <span>Actually trigger device (dangerous!)</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="testResultsContainer" style="display:none; margin-top:1.5rem; padding:1rem; background:#f0f0f0; border-radius:4px;">
+                    <h4>Test Results:</h4>
+                    <div id="testResultsContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('testConditionModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="testConditionBtn" onclick="runConditionTest()">Test Condition</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     // =============================================
     // API data
@@ -300,7 +337,91 @@
         ],
     };
 
-    // Maps event type value → CSS badge class
+    // Event parameters configuration for test UI
+    const EVENT_PARAMETERS = {
+        comment: [
+            { name: 'event_message', label: 'Message text', type: 'text', value: '' },
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+            { name: 'event_is_member', label: 'Is member?', type: 'checkbox', value: false },
+            { name: 'event_is_mod', label: 'Is moderator?', type: 'checkbox', value: false },
+        ],
+        superchat: [
+            { name: 'event_message', label: 'Message', type: 'text', value: '' },
+            { name: 'event_amount', label: 'Amount (USD)', type: 'number', value: '0' },
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+        ],
+        cheer: [
+            { name: 'event_message', label: 'Message', type: 'text', value: '' },
+            { name: 'event_amount', label: 'Bits', type: 'number', value: '0' },
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+        ],
+        gift: [
+            { name: 'event_amount', label: 'Gift count', type: 'number', value: '1' },
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+        ],
+        sticker: [
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+        ],
+        member: [
+            { name: 'event_sender_name', label: 'Member name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Member ID', type: 'text', value: '' },
+        ],
+        follow: [
+            { name: 'event_sender_name', label: 'Follower name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Follower ID', type: 'text', value: '' },
+        ],
+        sub: [
+            { name: 'event_sender_name', label: 'Subscriber name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Subscriber ID', type: 'text', value: '' },
+        ],
+        nicoru: [
+            { name: 'event_sender_name', label: 'Sender name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Sender ID', type: 'text', value: '' },
+        ],
+        raid: [
+            { name: 'event_sender_name', label: 'Raider name', type: 'text', value: '' },
+            { name: 'event_sender_id', label: 'Raider ID', type: 'text', value: '' },
+        ],
+        hype_train: [
+            { name: 'event_message', label: 'Message', type: 'text', value: 'Hype train!' },
+        ],
+        stream_start: [
+            { name: 'event_message', label: 'Notification', type: 'text', value: 'Stream started' },
+        ],
+        stream_end: [
+            { name: 'event_message', label: 'Notification', type: 'text', value: 'Stream ended' },
+        ],
+    };
+
+    // Common default parameters for all events
+    function buildTestEvent(eventType, platform, customParams = {}) {
+        const event = {
+            id: 'evt_test_' + Date.now(),
+            user_id: 1,
+            watch_target_id: currentChannel ? currentChannel.id : 'watch_1',
+            platform: platform,
+            event_type: eventType,
+            message: customParams.event_message || '',
+            amount_value: parseInt(customParams.event_amount) || 0,
+            amount_currency: 'USD',
+            amount_display: customParams.event_amount ? `$${customParams.event_amount}` : '$0',
+            sender_name: customParams.event_sender_name || 'TestUser',
+            sender_id: customParams.event_sender_id || 'user_test_123',
+            sender_avatar: '',
+            is_member: customParams.event_is_member === true || customParams.event_is_member === 'true',
+            is_mod: customParams.event_is_mod === true || customParams.event_is_mod === 'true',
+            badges: [],
+            received_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+        };
+        return event;
+    }
+
     const EVENT_BADGE_CLASS = {
         comment: 'comment',
         superchat: 'gift', sticker: 'gift', cheer: 'gift', gift: 'gift',
@@ -600,11 +721,14 @@
                         <h2>⚙️ Conditions <span class="conditions-count-badge">${condCount}</span></h2>
                         <p>Events to react to on <strong>${ch.name}</strong> — comments, gifts, effects, follows, etc.</p>
                     </div>
-                    <a class="btn btn-primary"
-                       href="/channels/${ch.id}/conditions"
-                       onclick="navigate('/channels/${ch.id}/conditions'); return false;">
-                        Manage Conditions →
-                    </a>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" onclick="openTestAllConditionsModal()" title="Test all conditions for this channel">🧪 Test Conditions</button>
+                        <a class="btn btn-primary"
+                           href="/channels/${ch.id}/conditions"
+                           onclick="navigate('/channels/${ch.id}/conditions'); return false;">
+                            Manage Conditions →
+                        </a>
+                    </div>
                 </div>
                 <div class="conditions-preview">${previewRows}</div>
             </div>`;
@@ -680,6 +804,8 @@
                         <input type="checkbox" ${cond.enabled ? 'checked' : ''} onchange="toggleCondition('${cond.id}', this)">
                         <span class="toggle-slider"></span>
                     </label>
+                    <button class="action-btn test" onclick="event.stopPropagation(); openTestConditionModal('${cond.id}')" title="Test this condition">🧪 Test</button>
+                    <button class="action-btn logic" onclick="editConditionLogic('${cond.id}')" title="Edit condition logic">⚙️ Logic</button>
                     <button class="action-btn edit" onclick="openEditConditionModal('${cond.id}')">✏️ Edit</button>
                     <button class="action-btn delete" onclick="deleteCondition('${cond.id}')">🗑</button>
                 </div>
@@ -1040,9 +1166,170 @@
         }
     }
 
-    // =============================================
-    // Device Action (condition modal)
-    // =============================================
+    let testingConditionId = null;
+
+    function openTestConditionModal(condId) {
+        testingConditionId = condId;
+        const cond = currentChannel.conditions.find(c => c.id === condId);
+        document.getElementById('testConditionTitle').textContent = `Test Condition: ${cond.name}`;
+        
+        // Populate event types for the channel's platform
+        const eventTypes = PLATFORM_EVENTS[currentChannel.platform] || [];
+        const select = document.getElementById('testEventType');
+        select.innerHTML = '<option value="">Select event type...</option>' +
+            eventTypes.map(e => `<option value="${e.value}">${e.label}</option>`).join('');
+        
+        // Pre-select the condition's event type if available
+        if (cond.type) {
+            select.value = cond.type;
+        }
+        
+        document.getElementById('testTriggerRealDevice').checked = false;
+        document.getElementById('testResultsContainer').style.display = 'none';
+        updateTestEventParams();
+        openModal('testConditionModal');
+    }
+
+    function openTestAllConditionsModal() {
+        testingConditionId = null;
+        document.getElementById('testConditionTitle').textContent = 'Test All Conditions';
+        
+        // Populate event types for the channel's platform
+        const eventTypes = PLATFORM_EVENTS[currentChannel.platform] || [];
+        const select = document.getElementById('testEventType');
+        select.innerHTML = '<option value="">Select event type...</option>' +
+            eventTypes.map(e => `<option value="${e.value}">${e.label}</option>`).join('');
+        
+        document.getElementById('testTriggerRealDevice').checked = false;
+        document.getElementById('testResultsContainer').style.display = 'none';
+        updateTestEventParams();
+        openModal('testConditionModal');
+    }
+
+    function updateTestEventParams() {
+        const eventType = document.getElementById('testEventType').value;
+        const container = document.getElementById('testEventParamsContainer');
+        container.innerHTML = '';
+
+        if (!eventType) return;
+
+        const params = EVENT_PARAMETERS[eventType] || [];
+        params.forEach(param => {
+            let inputHtml = '';
+            if (param.type === 'text') {
+                inputHtml = `<input type="text" id="param_${param.name}" placeholder="${param.label}" value="${param.value}">`;
+            } else if (param.type === 'number') {
+                inputHtml = `<input type="number" id="param_${param.name}" placeholder="${param.label}" value="${param.value}">`;
+            } else if (param.type === 'checkbox') {
+                inputHtml = `<label class="checkbox-label"><input type="checkbox" id="param_${param.name}" ${param.value ? 'checked' : ''}><span>${param.label}</span></label>`;
+            }
+            
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            formGroup.innerHTML = `<label>${param.label}</label>${inputHtml}`;
+            container.appendChild(formGroup);
+        });
+    }
+
+    async function runConditionTest() {
+        const eventType = document.getElementById('testEventType').value;
+        if (!eventType) {
+            alert('Please select an event type');
+            return;
+        }
+
+        const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
+        const btn = document.getElementById('testConditionBtn');
+        btn.disabled = true;
+
+        try {
+            // Collect custom parameters from form inputs
+            const customParams = {};
+            const params = EVENT_PARAMETERS[eventType] || [];
+            params.forEach(param => {
+                const inputEl = document.getElementById(`param_${param.name}`);
+                if (inputEl) {
+                    customParams[param.name] = param.type === 'checkbox' ? inputEl.checked : inputEl.value;
+                }
+            });
+
+            // Build test event
+            const testEvent = buildTestEvent(eventType, currentChannel.platform, customParams);
+
+            if (testingConditionId) {
+                // Test single condition
+                const response = await apiRequest('POST', `/conditions/${testingConditionId}/test`, {
+                    test_event: testEvent,
+                    trigger_real_device: triggerRealDevice
+                });
+                displayTestResults(response, true);
+            } else {
+                // Test all conditions
+                const response = await apiRequest('POST', '/conditions/test-all', {
+                    watch_target_id: currentChannel.id,
+                    test_event: testEvent,
+                    trigger_real_device: triggerRealDevice
+                });
+                displayTestResults(response, false);
+            }
+        } catch (e) {
+            alert('Failed to test condition: ' + e.message);
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function displayTestResults(response, isSingleCondition) {
+        const container = document.getElementById('testResultsContainer');
+        const content = document.getElementById('testResultsContent');
+        container.style.display = 'block';
+
+        if (isSingleCondition) {
+            // Single condition result
+            const matched = response.matched ? '✅ MATCHED' : '❌ NO MATCH';
+            const details = `
+                <p><strong>${matched}</strong></p>
+                <p><strong>Would trigger device:</strong> ${response.would_trigger ? 'Yes' : 'No'}</p>
+                <p><strong>Device:</strong> ${response.device_id || 'None'}</p>
+                <p><strong>Action:</strong> ${response.device_action || 'None'}</p>
+                ${response.computed_values && response.computed_values.length > 0 
+                    ? `<p><strong>Computed values:</strong> ${response.computed_values.map(v => `<code>${v}</code>`).join(', ')}</p>` 
+                    : ''}
+                ${response.execution_error ? `<p style="color:red"><strong>Error:</strong> ${response.execution_error}</p>` : ''}
+                ${response.execution_result ? `<p style="color:green"><strong>Result:</strong> ${response.execution_result}</p>` : ''}
+            `;
+            content.innerHTML = details;
+        } else {
+            // All conditions result
+            const details = `
+                <p><strong>Total tested:</strong> ${response.total_conditions}</p>
+                <p><strong>Matched:</strong> ${response.matched}</p>
+                <p><strong>Would trigger:</strong> ${response.triggered}</p>
+                <p><strong>Errors:</strong> ${response.errors}</p>
+                ${response.results && response.results.length > 0 
+                    ? `<hr><h5>Details:</h5>
+                       <div style="max-height: 300px; overflow-y: auto;">
+                       ${response.results.map(r => `
+                           <div style="margin: 0.5rem 0; padding: 0.5rem; background: ${r.matched ? '#e8f5e9' : '#ffebee'}; border-radius: 4px;">
+                               <strong>${r.condition_name}:</strong> ${r.matched ? '✅ Matched' : '❌ No match'}
+                               ${r.would_trigger ? ' (would trigger)' : ''}
+                               ${r.computed_values && r.computed_values.length > 0 
+                                   ? `<br>Values: ${r.computed_values.map(v => `<code>${v}</code>`).join(', ')}` 
+                                   : ''}
+                           </div>
+                       `).join('')}
+                       </div>`
+                    : ''}
+            `;
+            content.innerHTML = details;
+        }
+    }
+
+    function editConditionLogic(condId) {
+        navigate(`/channels/${currentChannel.id}/conditions/${condId}/logic`);
+    }
+
     const PRODUCTS = {
         'govee-h6159': { actions: ['on','off','color','brightness','scene','flash'] },
         'govee-h6052': { actions: ['on','off','color','brightness','color_temp'] },

@@ -713,6 +713,11 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 | POST | `/conditions` | Create a condition |
 | PATCH | `/conditions/update?id=<id>` | Update a condition |
 | DELETE | `/conditions?id=<id>` | Delete a condition |
+| POST | `/conditions/test-draft` | Test unsaved condition logic *(new)* |
+| POST | `/conditions/{id}/test` | Test existing condition *(new)* |
+| POST | `/conditions/test-all` | Test all user conditions *(new)* |
+
+**See `/docs/condition-logic-api.md` for detailed documentation on the condition logic structure and testing endpoints.**
 
 ### Devices (`/devices/...`)
 | Method | Path | Description |
@@ -1059,6 +1064,8 @@ Channel search uses the public Bilibili search API.
 
 ### Watched Channels — full CRUD (`/watches/...`)
 
+> **🔒 Authorization Required:** All endpoints in this section require authentication via `X-User-ID` header. The API verifies that the authenticated user owns each resource before allowing access. Attempting to access another user's watch, device, or condition will return `403 Forbidden`.
+
 The **Watched Channels** page (`/monitors`) lists all channels the polling service monitors.  
 Each channel has per-platform event conditions (see Conditions below).
 
@@ -1136,6 +1143,8 @@ PATCH /watches/update?id=watch_123
 
 ### Conditions (`/conditions/...`)
 
+> **🔒 Authorization Required:** All endpoints in this section require authentication via `X-User-ID` header. The API verifies that the authenticated user owns the watch associated with each condition before allowing access. Attempting to access another user's condition will return `403 Forbidden`.
+
 Conditions belong to a watched channel. When the API polling service detects a matching
 stream event, it can trigger a device action.
 
@@ -1185,6 +1194,8 @@ stream event, it can trigger a device action.
 ---
 
 ### Devices (`/devices/...`)
+
+> **🔒 Authorization Required:** All endpoints in this section require authentication via `X-User-ID` header. The API verifies that the authenticated user owns each device before allowing access. Attempting to access another user's device will return `403 Forbidden`.
 
 Registered smart home devices. Credentials are stored per-brand.
 

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Condition Logic — TauchoPortal</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/condition-logic.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <header class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">
+                    <img src="/image/logo.png" alt="TauchoPortal" class="logo">
+                    TauchoPortal
+                </a>
+                <nav class="nav-links">
+                    <a href="/channels" onclick="navigate('/channels'); return false;">Channels</a>
+                    <a href="/devices" onclick="navigate('/devices'); return false;">Devices</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="condition-logic-view" class="condition-logic-container">
+                <!-- Content will be rendered here -->
+            </div>
+        </main>
+    </div>
+
+    <div id="monToast" class="mon-toast"></div>
+
+<script>
+    // =============================================
+    // State
+    // =============================================
+    let currentCondition = null;
+    let currentChannel = null;
+    const API_BASE = '';
+
+    // =============================================
+    // API Requests
+    // =============================================
+    async function apiRequest(method, path, body) {
+        const opts = { method, credentials: 'include', headers: {} };
+        if (body) {
+            opts.headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body);
+        }
+        const resp = await fetch(API_BASE + path, opts);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        const data = resp.json ? await resp.json() : null;
+        return data;
+    }
+
+    // =============================================
+    // Router
+    // =============================================
+    async function route() {
+        const path = window.location.pathname;
+        // Match: /channels/{watchId}/conditions/{condId} or /condition/{condId}
+        const m = path.match(/^\/(?:channels\/([^\/]+)\/)?conditions?\/([^\/]+)(?:\/logic)?$/);
+        
+        if (!m) {
+            showError('Invalid URL');
+            return;
+        }
+
+        const watchId = m[1];
+        const condId = m[2];
+
+        try {
+            // Load condition
+            const cond = await apiRequest('GET', `/conditions/get?id=${condId}`);
+            currentCondition = cond;
+
+            // Load watch/channel if we have the ID
+            if (watchId) {
+                const watches = await apiRequest('GET', '/watches');
+                currentChannel = watches.find(w => w.id === watchId);
+            }
+
+            renderConditionLogicEditor();
+        } catch (e) {
+            showError('Failed to load condition: ' + e.message);
+            console.error(e);
+        }
+    }
+
+    // =============================================
+    // UI Rendering
+    // =============================================
+    function renderConditionLogicEditor() {
+        const container = document.getElementById('condition-logic-view');
+        const condLogicJson = currentCondition.condition_logic 
+            ? JSON.stringify(currentCondition.condition_logic, null, 2)
+            : '{}';
+
+        const breadcrumb = currentChannel
+            ? `
+                <nav class="breadcrumb">
+                    <a href="/channels" onclick="navigate('/channels'); return false;">Channels</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <a href="/channels/${currentChannel.id}" onclick="navigate('/channels/${currentChannel.id}'); return false;">${currentChannel.name}</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <a href="/channels/${currentChannel.id}/conditions" onclick="navigate('/channels/${currentChannel.id}/conditions'); return false;">Conditions</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <span>${currentCondition.name}</span>
+                </nav>
+            `
+            : `
+                <nav class="breadcrumb">
+                    <a href="/channels" onclick="navigate('/channels'); return false;">Channels</a>
+                    <span class="breadcrumb-sep">›</span>
+                    <span>Condition Logic</span>
+                </nav>
+            `;
+
+        container.innerHTML = `
+            <div class="page-header">
+                ${breadcrumb}
+                <div class="page-header-top">
+                    <div>
+                        <h1>Edit Condition Logic</h1>
+                        <p class="condition-name"><strong>${escHtml(currentCondition.name)}</strong> on <strong>${currentChannel ? escHtml(currentChannel.name) : 'Unknown Channel'}</strong></p>
+                        <p class="event-type-info">Event type: <code>${currentCondition.type}</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <div class="editor-section">
+                    <h2>Condition Logic (JSON)</h2>
+                    <p class="editor-help">
+                        Edit the JSON structure below to define complex logic for this condition. 
+                        See <a href="https://docs.example.com/condition-logic" target="_blank">documentation</a> for syntax.
+                    </p>
+                    
+                    <textarea id="conditionLogicInput" class="condition-logic-textarea" placeholder="Enter condition logic JSON...">${condLogicJson}</textarea>
+                    
+                    <div class="editor-actions">
+                        <button class="btn btn-secondary" onclick="goBack()">Cancel</button>
+                        <button class="btn btn-primary" id="saveBtn" onclick="saveConditionLogic()">Save Condition Logic</button>
+                    </div>
+                </div>
+
+                <div class="editor-sidebar">
+                    <div class="sidebar-card">
+                        <h3>Condition Info</h3>
+                        <dl>
+                            <dt>Condition ID</dt>
+                            <dd><code>${escHtml(currentCondition.id)}</code></dd>
+                            <dt>Name</dt>
+                            <dd>${escHtml(currentCondition.name)}</dd>
+                            <dt>Event Type</dt>
+                            <dd><code>${escHtml(currentCondition.type)}</code></dd>
+                            <dt>Status</dt>
+                            <dd>${currentCondition.enabled ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-warning">Disabled</span>'}</dd>
+                        </dl>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Quick Reference</h3>
+                        <div class="quick-ref">
+                            <p><strong>Operators:</strong></p>
+                            <ul>
+                                <li>AND, OR, NOT</li>
+                                <li>EQUALS, GREATER_THAN, LESS_THAN</li>
+                                <li>INCLUDES, REGEX_MATCH</li>
+                                <li>ADD, SUBTRACT, MULTIPLY, DIVIDE</li>
+                                <li>PARAM (leaf nodes)</li>
+                            </ul>
+                        </div>
+                        <div class="quick-ref">
+                            <p><strong>Common Params:</strong></p>
+                            <ul>
+                                <li>event_message</li>
+                                <li>event_amount</li>
+                                <li>event_sender_name</li>
+                                <li>event_sender_id</li>
+                                <li>event_is_member</li>
+                                <li>event_is_mod</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card">
+                        <h3>Example</h3>
+                        <pre class="example-json">{
+  "operator": "AND",
+  "subconditions": [
+    {
+      "operator": "GREATER_THAN",
+      "variables": ["100"],
+      "subconditions": [{
+        "operator": "PARAM",
+        "variables": ["event_amount"]
+      }]
+    },
+    {
+      "operator": "EQUALS",
+      "variables": ["VIP"],
+      "subconditions": [{
+        "operator": "PARAM",
+        "variables": ["event_sender_name"]
+      }]
+    }
+  ]
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div id="validateResult" class="validate-result" style="display: none;"></div>
+        `;
+    }
+
+    // =============================================
+    // Actions
+    // =============================================
+    async function saveConditionLogic() {
+        const jsonText = document.getElementById('conditionLogicInput').value.trim();
+        
+        if (!jsonText) {
+            alert('Condition logic cannot be empty');
+            return;
+        }
+
+        let conditionLogic;
+        try {
+            conditionLogic = JSON.parse(jsonText);
+        } catch (e) {
+            showValidationError('Invalid JSON: ' + e.message);
+            return;
+        }
+
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+
+        try {
+            await apiRequest('PATCH', `/conditions/update?id=${currentCondition.id}`, {
+                condition_logic: conditionLogic
+            });
+
+            currentCondition.condition_logic = conditionLogic;
+            showToast('Condition logic saved successfully!', 'success');
+            
+            // Go back after a short delay
+            setTimeout(() => {
+                goBack();
+            }, 1500);
+        } catch (e) {
+            alert('Failed to save condition logic: ' + e.message);
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function goBack() {
+        if (currentChannel) {
+            navigate(`/channels/${currentChannel.id}/conditions`);
+        } else {
+            navigate('/channels');
+        }
+    }
+
+    // =============================================
+    // Utilities
+    // =============================================
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showError(msg) {
+        const container = document.getElementById('condition-logic-view');
+        container.innerHTML = `
+            <div class="error-message">
+                <h1>Error</h1>
+                <p>${escHtml(msg)}</p>
+                <button class="btn btn-primary" onclick="navigate('/channels')">Go back to Channels</button>
+            </div>
+        `;
+    }
+
+    function showValidationError(msg) {
+        const resultDiv = document.getElementById('validateResult');
+        resultDiv.innerHTML = `<div class="error">${escHtml(msg)}</div>`;
+        resultDiv.style.display = 'block';
+    }
+
+    function showToast(msg, type = 'info') {
+        const toast = document.getElementById('monToast');
+        toast.textContent = msg;
+        toast.className = `mon-toast show ${type}`;
+        setTimeout(() => {
+            toast.className = 'mon-toast';
+        }, 3000);
+    }
+
+    function navigate(url) {
+        window.history.pushState({}, '', url);
+        route();
+    }
+
+    // =============================================
+    // Init
+    // =============================================
+    window.addEventListener('popstate', route);
+    route();
+</script>
+</body>
+</html>
