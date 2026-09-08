@@ -376,7 +376,7 @@
   "condition.or-notset": "Condición no establecida",
   "condition.not-sentense": "No {0}",
   "condition.not-notset": "Condición no establecida",
-  "condition.some-sentense_prefix": "",
+  "condition.some-sentense_prefix": "Las siguientes condiciones se cumplen: ",
   "condition.some-sentense_joint": "~",
   "condition.some-sentense": "{0} condición cumplida",
   "condition.some-sentense_suffix": "condición cumplida",

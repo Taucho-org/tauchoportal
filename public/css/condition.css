@@ -304,6 +304,7 @@ legend{
 }
 fieldset{
     border: none;
+    margin-right: 0.5em;
 }
 .item.equals,
 .item.includes,
@@ -903,7 +904,8 @@ fieldset.item.last .param .variable {
 fieldset.item.regex_extract > .icons,
 fieldset.item.substring > .icons,
 fieldset.item.first > .icons,
-fieldset.item.last > .icons {
+fieldset.item.last > .icons,
+fieldset.item.parseint > .icons {
     display:none;
 }
 fieldset.item.and > .icons > .edit,

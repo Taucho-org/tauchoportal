@@ -379,7 +379,7 @@
   "condition.or-notset": "조건이 설정되지 않음",
   "condition.not-sentense": "{0}이 아닙니다.",
   "condition.not-notset": "조건이 설정되지 않음",
-  "condition.some-sentense_prefix": "",
+  "condition.some-sentense_prefix": "다음 조건 중 ",
   "condition.some-sentense_joint": "~",
   "condition.some-sentense": "{0}이 조건을 충족",
   "condition.some-sentense_suffix": "만 조건을 충족",

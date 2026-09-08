@@ -379,7 +379,7 @@
   "condition.or-notset": "條件未設定",
   "condition.not-sentense": "不是 {0}",
   "condition.not-notset": "條件未設定",
-  "condition.some-sentense_prefix": "",
+  "condition.some-sentense_prefix": "以下條件中：",
   "condition.some-sentense_joint": "～",
   "condition.some-sentense": "{0} 滿足條件",
   "condition.some-sentense_suffix": "僅滿足條件",

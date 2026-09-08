@@ -376,7 +376,7 @@
   "condition.or-notset": "Bedingung nicht festgelegt",
   "condition.not-sentense": "Nicht {0}",
   "condition.not-notset": "Bedingung nicht festgelegt",
-  "condition.some-sentense_prefix": "",
+  "condition.some-sentense_prefix": "Die folgenden Bedingungen sind erfüllt: ",
   "condition.some-sentense_joint": "~",
   "condition.some-sentense": "{0} Bedingung erfüllt",
   "condition.some-sentense_suffix": "nur Bedingung erfüllt",

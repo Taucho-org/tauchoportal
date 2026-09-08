@@ -212,7 +212,7 @@ class ConditionEditor {
         if (operator == "SOME") {
             const somefield = document.createElement("div");
             const prefix = document.createElement("span");
-            prefix.innerText = translations["some-sentense_prefix"] || "Some";
+            prefix.innerText = translations["some-sentense_prefix"] == undefined ? "Some" : translations["some-sentense_prefix"];
             somefield.append(prefix);
             const frombutton = document.createElement("input");
             frombutton.type = "number";
@@ -226,7 +226,7 @@ class ConditionEditor {
             frombutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 ? jsonnode.Variables[0].split("-")[0] : "";
             somefield.append(frombutton);
             const joint = document.createElement("span");
-            joint.innerText = translations["some-sentense_joint"] || "to";
+            joint.innerText = translations["some-sentense_joint"] == undefined ? "to" : translations["some-sentense_joint"];
             somefield.append(joint);
             const tobutton = document.createElement("input");
             tobutton.type = "number";
@@ -239,7 +239,7 @@ class ConditionEditor {
             tobutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 && jsonnode.Variables[0].indexOf("-") ? jsonnode.Variables[0].split("-")[1] : "";
             somefield.append(tobutton);
             const suffix = document.createElement("span");
-            suffix.innerText = translations["some-sentense_suffix"] || "conditions";
+            suffix.innerText = translations["some-sentense_suffix"] == undefined ? "conditions" : translations["some-sentense_suffix"];
             somefield.append(suffix);
             area.append(somefield);
         }
@@ -262,7 +262,9 @@ class ConditionEditor {
             for (const is in jsonnode.SubConditions) {
                 const childarea = document.createElement("fieldset");
                 childarea.classList.add("item");
-                childarea.onclick = function () { this.classList.toggle("focus") }
+                if (path.indexOf("/") < 1) {
+                    childarea.onclick = function () { this.classList.toggle("focus") }
+                }
                 this._jsonLoader(jsonnode.SubConditions[is], childarea, path + "/" + is);
                 subconarea.append(childarea);
             }
@@ -298,8 +300,7 @@ class ConditionEditor {
                 area.append(addbutton);
             }
         } else if (this.compoperators.includes(operator) && (
-            (!jsonnode.Variables || jsonnode.Variables.length < 1)||
-            (!jsonnode.SubConditions || jsonnode.SubConditions.length < 1)
+            ((jsonnode.Variables?.length || 0) + (jsonnode.SubConditions?.length || 0)) < 2
         )) {
             const addcompbutton = document.createElement("div");
             addcompbutton.classList.add("addcompbutton");

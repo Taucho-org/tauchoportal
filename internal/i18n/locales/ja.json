@@ -376,7 +376,7 @@
   "condition.or-notset": "条件が未設定です",
   "condition.not-sentense": "{0}ではない",
   "condition.not-notset": "条件が未設定です",
-  "condition.some-sentense_prefix": "",
+  "condition.some-sentense_prefix": "以下の条件のうち",
   "condition.some-sentense_joint": "～",
   "condition.some-sentense": "{0}が条件を満たす",
   "condition.some-sentense_suffix": "のみが条件を満たす",
