@@ -96,21 +96,9 @@ func EscapeHTML(s string) string {
 // GetPlatformMetadata returns metadata for all supported platforms
 // Icon data is fetched from the SVG files via icons.Get() in templates
 func GetPlatformMetadata(cond Conditions) map[string]map[string]interface{} {
-	platforms := []string{
-		"youtube",
-		"twitch",
-		"niconico",
-		"bilibili",
-		"tiktok",
-		"instagram",
-		"facebook",
-		"kick",
-		"twitcasting",
-		"x",
-	}
-
+	metadata := cond.ListEventMetadata()
 	platformMeta := make(map[string]map[string]interface{})
-	for _, platform := range platforms {
+	for platform := range metadata.Providers {
 		platformMeta[platform] = map[string]interface{}{
 			"label": capitalize(platform),
 		}
@@ -144,31 +132,37 @@ func GetEventBadgeClasses(cond Conditions) map[string]string {
 
 // GetEventFieldOptions returns available fields from the event schema with translated labels
 func GetEventFieldOptions(cond Conditions, platform, eventType string, translator *i18n.Translator) []EventFieldOption {
-	// Fetch available parameters from platform config API
-	platformConfig := PlatformConfig{}
-	parameters := platformConfig.GetAvailableParameters(platform, eventType)
+	metadata := cond.GetEventMetadata(platform, eventType)
 
 	var options []EventFieldOption
+	fields := append([]EventSchemaField(nil), metadata.Fields...)
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Name < fields[j].Name
+	})
 
-	// Convert parameters to field options with platform-specific translations.
-	for _, param := range parameters {
-		label := param.Name
+	// Convert event metadata fields to options with platform-specific translations.
+	for _, field := range fields {
+		fieldName := field.Name
+		if fieldName == "" {
+			continue
+		}
+		label := field.Name
 		if translator != nil {
 			// A field can have different meanings on different platforms, so keep the
 			// platform in the key: condition.schema.{platform}.{field}.label.
-			translationKey := "condition.schema." + platform + "." + param.Name + ".label"
+			translationKey := "condition.schema." + platform + "." + fieldName + ".label"
 			translatedLabel := translator.T(translationKey)
 			// If translation found (not the key itself), use it
 			if translatedLabel != "" && translatedLabel != translationKey {
 				label = translatedLabel
-			} else if param.Description != "" {
+			} else if field.Description != "" {
 				// The API description is the best fallback for newly added fields that
 				// have not yet received a locale entry.
-				label = param.Description
+				label = field.Description
 			}
 		}
 		options = append(options, EventFieldOption{
-			Name:  param.Name,
+			Name:  fieldName,
 			Label: label,
 		})
 	}

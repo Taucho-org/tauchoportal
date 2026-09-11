@@ -44,14 +44,14 @@ func (EventMetadata) GetTemplatesForEvent(platform, eventType string) TemplatesF
 }
 
 func getEventPropertySchemas(platform, eventType string) []EventSchemaField {
-	var result []EventSchemaField
-	apiRequest(&result, http.MethodGet, fmt.Sprintf("/event-metadata/%s/%s", platform, eventType))
-	return result
+	metadata := Conditions{}.GetEventMetadata(platform, eventType)
+	return metadata.Fields
 }
 
 func (EventMetadata) GetEventTypes(platform string) map[string][]string {
+	response := Conditions{}.ListEventTypes(platform)
 	allEvents := map[string][]string{
-		platform: getAllEventTypesForPlatform(platform),
+		platform: response.Events,
 	}
 	return allEvents
 }
@@ -62,26 +62,6 @@ func normalizeEventType(eventType string) string {
 		return group
 	}
 	return eventType
-}
-
-func getAllEventTypesForPlatform(platform string) []string {
-	platformEvents := map[string][]string{
-		"youtube":     {"comment", "superchat", "sticker", "member"},
-		"twitch":      {"comment", "gift", "cheer", "member", "follow", "sub", "raid", "hype_train"},
-		"niconico":    {"comment", "nicoru", "gift", "follow"},
-		"bilibili":    {"comment", "superchat", "member", "gift", "viewer_join"},
-		"tiktok":      {"comment", "gift", "like", "viewer_join", "follow"},
-		"instagram":   {"comment"},
-		"facebook":    {"comment", "reaction"},
-		"kick":        {"comment", "gift", "member", "follow"},
-		"twitcasting": {"comment", "gift"},
-		"x":           {"comment"},
-	}
-
-	if events, exists := platformEvents[platform]; exists {
-		return events
-	}
-	return []string{}
 }
 
 // Template event type groups - maps specific event types to template groups

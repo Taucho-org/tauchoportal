@@ -1,8 +1,7 @@
 (function () {
     'use strict';
-    const { PLATFORM_META, PLATFORM_EVENTS, PRODUCTS, apiRequest, escHtml, formatDate, formatDateTime, openModal, closeModal, getEventLabel, buildTestEvent, getEventParameters } = window;
+    const { PLATFORM_META, PLATFORM_EVENTS, PRODUCTS, apiRequest, escHtml, formatDate, formatDateTime, openModal, closeModal, getEventLabel, createTestEventFromMetadata, getEventParameters } = window;
     const t = window.conditionsListTranslations || {}; // Fallback to empty object
-    const EVENT_BADGE_CLASS = { comment: 'comment', superchat: 'gift', sticker: 'gift', cheer: 'gift', gift: 'gift', member: 'follow', follow: 'follow', sub: 'follow', nicoru: 'effect', hype_train: 'stream', raid: 'stream', stream_start: 'stream', stream_end: 'stream' };
     let CHANNELS = [], testingConditionId = null, deviceCache = null;
 
     async function loadWatches() { 
@@ -305,8 +304,9 @@
                 const input = document.getElementById(`param_${param.name}`); 
                 if (input) customParams[param.name] = param.type === 'checkbox' ? input.checked : input.value; 
             }); 
+            const testEvent = await createTestEventFromMetadata(platform, eventType, customParams, { watchTargetId: getChannelIdFromUrl() });
             displayTestResults(await apiRequest('POST', `/conditions/${testingConditionId}/test`, { 
-                test_event: buildTestEvent(eventType, platform, customParams), 
+                test_event: testEvent, 
                 trigger_real_device: document.getElementById('testTriggerRealDevice').checked 
             })); 
         } catch (error) { 

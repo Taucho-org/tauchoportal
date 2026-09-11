@@ -224,6 +224,24 @@
         </div>
     </div>
 
+    <div id="textRangeModal" class="modal">
+        <div class="modal-content modal-middle">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('textRangeModal')">×</span>
+                <p>{{.I18n.T "condition.modal.range.description"}}</p>
+            </div>
+            <div id="textRangeBody" class="modal-body textselection">
+                <input id="textRangeFrom" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
+                <span class="rangeconnection">{{.I18n.T "condition.modal.range.connection"}}</span>
+                <input id="textRangeTo"   type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('textRangeModal')">{{.I18n.T "condition.button.cancel"}}</button>
+                <button id="textRangeSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
+            </div>
+        </div>
+    </div>
+
     <div id="textConditionModal" class="modal">
         <div class="modal-content modal-small">
             <div class="modal-header">
@@ -463,7 +481,7 @@ async function openTestModal() {
         events.forEach(event => {
             const option = document.createElement('option');
             option.value = event.value;
-            option.textContent = event.value;
+            option.textContent = window.getEventLabel ? window.getEventLabel(event.value, platform) : event.value;
             eventTypeSelect.appendChild(option);
         });
     } catch (e) {
@@ -560,7 +578,7 @@ function getTestEventParams() {
 }
 
 // Run the condition test
-function runConditionTest() {
+async function runConditionTest() {
     const eventType = document.getElementById('testEventType').value;
     const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
     
@@ -578,13 +596,22 @@ function runConditionTest() {
         return;
     }
     
-    // Use the shared buildTestEvent function if available
+    if (!window.createTestEventFromMetadata) {
+        alert('Test event metadata builder not available');
+        return;
+    }
     let sampleEvent;
-    if (window.buildTestEvent) {
+    try {
         const customParams = getTestEventParams();
-        sampleEvent = window.buildTestEvent(eventType, '{{.CurrentChannel.Platform}}', customParams);
-    } else {
-        alert('Test event builder not available');
+        const platform = conditionToolboxContext.platform || '{{.CurrentChannel.Platform}}';
+        sampleEvent = await window.createTestEventFromMetadata(
+            platform,
+            eventType,
+            customParams,
+            { watchTargetId: '{{.CurrentChannel.ID}}' }
+        );
+    } catch (error) {
+        alert('Failed to load event metadata: ' + error.message);
         return;
     }
     

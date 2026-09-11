@@ -5,9 +5,9 @@
     let eventMetadataCache = {};
     let platformEventsCache = {};
 
-    // Stub vars - will be populated from API
-    let PLATFORM_EVENTS = {};
-    let EVENT_PARAMETERS = {};
+    // Stub vars - kept for compatibility; event data is fetched from API helpers.
+    const PLATFORM_EVENTS = {};
+    const EVENT_PARAMETERS = {};
 
     // API helper that will be defined later
     let apiGet_func = null;
@@ -65,7 +65,7 @@
     }
 
     // Convert API field response to form field structure
-    // API returns: { platform, event_type, fields: { name: { name, type, description, optional }, ... } }
+    // API returns: { platform, event_type, fields: [{ name, type, description, optional }, ...] }
     // We need: [{ name: 'field_name', label: 'field_name', type: 'text/number/checkbox', value: '' }, ...]
     async function getEventParameters(platform, eventType) {
         const metadata = await getEventMetadata(platform, eventType);
@@ -77,27 +77,17 @@
             'number': 'number',
             'boolean': 'checkbox',
             'timestamp': 'text',
-            'array': 'text'
+            'array': 'text',
+            'object': 'text'
         };
         
-        return Object.entries(metadata.fields)
-            .filter(([_, field]) => !field.optional) // Only include non-optional fields
-            .map(([fieldName, field]) => ({
-                name: fieldName,
-                label: field.name || fieldName, // Use field.name from API, fallback to key
+        return getEventMetadataFields(metadata)
+            .map((field) => ({
+                name: field.name,
+                label: field.name,
                 type: typeMapping[field.type] || 'text',
-                value: field.type === 'boolean' ? false : (field.type === 'number' ? '0' : '')
+                value: formatEventFieldValueForInput(defaultEventFieldValue(field.name, field, platform, eventType))
             }));
-    }
-
-    // Initialize event metadata from API
-    async function initializeEventMetadata() {
-        try {
-            const events = await getPlatformEvents();
-            PLATFORM_EVENTS = events;
-        } catch (e) {
-            console.error('Failed to initialize event metadata:', e);
-        }
     }
 
     // Note: Device actions are now fetched from backend API (/devices/{id}/actions)
@@ -143,7 +133,106 @@
         const translated = i18n[translationKey];
         return translated || type;
     }
-    function buildTestEvent(eventType, platform, customParams = {}) { const activeChannel = typeof window.currentChannel !== 'undefined' ? window.currentChannel : null; return { id: 'evt_test_' + Date.now(), user_id: 1, watch_target_id: activeChannel ? activeChannel.id : 'watch_1', platform, event_type: eventType, message: customParams.event_message || '', amount_value: parseInt(customParams.event_amount, 10) || 0, amount_currency: 'USD', amount_display: customParams.event_amount ? `$${customParams.event_amount}` : '$0', sender_name: customParams.event_sender_name || 'TestUser', sender_id: customParams.event_sender_id || 'user_test_123', sender_avatar: '', is_member: customParams.event_is_member === true || customParams.event_is_member === 'true', is_mod: customParams.event_is_mod === true || customParams.event_is_mod === 'true', badges: [], received_at: new Date().toISOString(), created_at: new Date().toISOString() }; }
+
+    function getActiveWatchTargetId(fallback = '') {
+        const activeChannel = typeof window.currentChannel !== 'undefined' ? window.currentChannel : null;
+        return fallback || activeChannel?.id || '';
+    }
+
+    function defaultEventFieldValue(fieldName, field, platform, eventType, options = {}) {
+        const now = options.now || new Date().toISOString();
+        const watchTargetId = getActiveWatchTargetId(options.watchTargetId);
+        const defaultsByName = {
+            id: 'evt_test_' + Date.now(),
+            user_id: 1,
+            watch_target_id: watchTargetId,
+            stream_event_id: 'stream_evt_test_' + Date.now(),
+            platform,
+            event_type: eventType,
+            received_at: now,
+            created_at: now
+        };
+        if (Object.prototype.hasOwnProperty.call(defaultsByName, fieldName)) return defaultsByName[fieldName];
+        switch (field.type) {
+            case 'number':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'array':
+                return [];
+            case 'object':
+                return {};
+            case 'timestamp':
+                return now;
+            default:
+                return '';
+        }
+    }
+
+    function formatEventFieldValueForInput(value) {
+        if (Array.isArray(value) || (value && typeof value === 'object')) {
+            return JSON.stringify(value);
+        }
+        return value;
+    }
+
+    function coerceEventFieldValue(value, field, fallback) {
+        if (value === undefined || value === null || value === '') return fallback;
+        switch (field.type) {
+            case 'number': {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : Number(fallback) || 0;
+            }
+            case 'boolean':
+                return value === true || value === 'true';
+            case 'array':
+                if (Array.isArray(value)) return value;
+                try {
+                    const parsed = JSON.parse(value);
+                    return Array.isArray(parsed) ? parsed : fallback;
+                } catch {
+                    return String(value).split(',').map((item) => item.trim()).filter(Boolean);
+                }
+            case 'object':
+                if (typeof value === 'object') return value;
+                try {
+                    const parsed = JSON.parse(value);
+                    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+                } catch {
+                    return fallback;
+                }
+            default:
+                return String(value);
+        }
+    }
+
+    function getEventMetadataFields(metadata) {
+        if (!metadata || !metadata.fields) return [];
+        if (Array.isArray(metadata.fields)) {
+            return metadata.fields.filter((field) => field && field.name);
+        }
+        return Object.entries(metadata.fields)
+            .map(([fieldName, field]) => ({ ...field, name: field.name || fieldName }))
+            .filter((field) => field.name);
+    }
+
+    async function createTestEventFromMetadata(platform, eventType, customParams = {}, options = {}) {
+        const metadata = await getEventMetadata(platform, eventType);
+        if (!metadata || !metadata.fields) {
+            throw new Error(`Event metadata not available for ${platform}/${eventType}`);
+        }
+        const event = {};
+        getEventMetadataFields(metadata).forEach((field) => {
+            const fallback = defaultEventFieldValue(field.name, field, platform, eventType, options);
+            event[field.name] = coerceEventFieldValue(customParams[field.name], field, fallback);
+        });
+        event.platform = platform;
+        event.event_type = eventType;
+        if (options.watchTargetId && Object.prototype.hasOwnProperty.call(event, 'watch_target_id')) {
+            event.watch_target_id = options.watchTargetId;
+        }
+        return event;
+    }
 
     // Set up apiGet_func for use in API fetch functions
     apiGet_func = apiGet;
@@ -392,8 +481,5 @@
         }
     };
     
-    Object.assign(window, { PLATFORM_EVENTS, EVENT_PARAMETERS, PLATFORM_META, PRODUCTS, escHtml, isZeroDate, formatDate, formatDateTime, hasActiveFilter, navigate, openModal, closeModal, showMonToast, apiRequest, apiGet, getEventLabel, buildTestEvent, getEventMetadata, getEventParameters, getEventsForPlatform, updateParamNameDropdown: window.updateParamNameDropdown, updateEvaluatorUI: window.updateEvaluatorUI, updateResultPreview: window.updateResultPreview, loadDeviceTemplates: window.loadDeviceTemplates });
+    Object.assign(window, { PLATFORM_EVENTS, EVENT_PARAMETERS, PLATFORM_META, PRODUCTS, escHtml, isZeroDate, formatDate, formatDateTime, hasActiveFilter, navigate, openModal, closeModal, showMonToast, apiRequest, apiGet, getEventLabel, createTestEventFromMetadata, getEventMetadata, getEventParameters, getEventsForPlatform, updateParamNameDropdown: window.updateParamNameDropdown, updateEvaluatorUI: window.updateEvaluatorUI, updateResultPreview: window.updateResultPreview, loadDeviceTemplates: window.loadDeviceTemplates });
 })();
-
-
-

@@ -213,7 +213,7 @@
     document.getElementById('deviceTokenInput').value = '';
     const tokenGroup = document.getElementById('deviceTokenGroup');
     if (tokenGroup) {
-      tokenGroup.style.display = meta.requiresToken ? 'block' : 'none';
+      tokenGroup.style.display = meta.requires_token ? 'block' : 'none';
     }
     openModal('localDeviceModal');
     document.getElementById('deviceIpInput').focus();
@@ -266,6 +266,31 @@
     openModal('setupWizardModal');
   }
 
+  // Generic single-step credential modal for brands that don't have a rich
+  // multi-step setup guide yet, but do expose `credential_fields` (e.g. a
+  // brand new brand like Unicorn using email/password auth). Reuses the
+  // setup wizard modal with a synthetic single step so the form is always
+  // driven by the brand's actual credential_fields, regardless of auth_type.
+  function openGenericCredentialWizard(brandId) {
+    const meta = getBrandMeta(brandId);
+    if (!meta) return;
+
+    const guide = {
+      steps: [{
+        title: `Connect ${getBrandName(brandId)}`,
+        content: ''
+      }],
+      helpFields: {}
+    };
+    // Cache under the normalized brand id so the wizard's back/next/test/save
+    // button handlers (which look up the guide from the cache) can find it.
+    setupGuidesCache.set(normalizeBrandId(brandId), guide);
+
+    setupWizardState = { brandId, currentStep: 0, credentials: {} };
+    showSetupWizardStep(brandId, 0, guide);
+    openModal('setupWizardModal');
+  }
+
   function showSetupWizardStep(brandId, stepIndex, guide) {
     if (stepIndex < 0 || stepIndex >= guide.steps.length) return;
     setupWizardState.currentStep = stepIndex;
@@ -296,6 +321,14 @@
     }
   }
 
+  // Builds the list of credential fields to render/submit for a brand.
+  // Fully data-driven from the brand's `credential_fields` (from /catalog/brands via /auth/brands),
+  // so any auth_type (api_key, local, oauth, or new ones like Unicorn's email+password) works
+  // without brand-specific JS branches.
+  function getCredentialFieldDefs(meta) {
+    return (meta && Array.isArray(meta.credential_fields)) ? meta.credential_fields : [];
+  }
+
   function renderCredentialsForm(guide, container) {
     container.innerHTML = '';
     const legend = document.createElement('legend');
@@ -305,26 +338,36 @@
     const meta = getBrandMeta(setupWizardState.brandId);
     if (!meta) return;
 
-    const fieldIds = meta.auth_type === 'api_key' 
-      ? ['api_key'] 
-      : meta.auth_type === 'local' 
-        ? ['device_ip', ...(meta.requires_token ? ['api_key'] : [])]
-        : [];
+    const fields = getCredentialFieldDefs(meta);
 
-    fieldIds.forEach(fieldId => {
+    fields.forEach(field => {
+      const fieldId = field.id;
+      if (!fieldId) return;
+
+      if (field.type === 'info') {
+        const info = document.createElement('p');
+        info.className = 'cred-info';
+        info.textContent = field.help || field.label || '';
+        container.appendChild(info);
+        return;
+      }
+
       const group = document.createElement('div');
       group.className = 'form-group';
 
       const label = document.createElement('label');
       label.htmlFor = fieldId;
-      label.textContent = fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      label.textContent = field.label || fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
       const input = document.createElement('input');
-      const isPassword = fieldId.includes('password') || fieldId === 'api_key';
+      const isPassword = field.type === 'password';
       input.type = isPassword ? 'password' : 'text';
       input.id = fieldId;
-      input.autocomplete = isPassword ? 'new-password' : 'new-password';
-      input.placeholder = fieldId.replace(/_/g, ' ');
+      input.autocomplete = isPassword ? 'new-password' : 'off';
+      input.placeholder = field.placeholder || '';
+      if (setupWizardState.credentials[fieldId] !== undefined) {
+        input.value = setupWizardState.credentials[fieldId];
+      }
       input.addEventListener('input', (e) => {
         setupWizardState.credentials[fieldId] = e.target.value;
       });
@@ -332,15 +375,27 @@
       group.appendChild(label);
       group.appendChild(input);
 
-      if (guide.helpFields && guide.helpFields[fieldId]) {
+      const helpText = (guide && guide.helpFields && guide.helpFields[fieldId]) || field.help;
+      if (helpText) {
         const hint = document.createElement('span');
         hint.className = 'field-hint';
-        hint.textContent = guide.helpFields[fieldId];
+        hint.textContent = helpText;
         group.appendChild(hint);
       }
 
       container.appendChild(group);
     });
+  }
+
+  // Builds the { fieldId: value } credentials payload directly from the brand's
+  // credential_fields, skipping "info" fields (which have no input).
+  function buildCredentialsPayload(meta) {
+    const payload = {};
+    getCredentialFieldDefs(meta).forEach(field => {
+      if (!field.id || field.type === 'info') return;
+      payload[field.id] = setupWizardState.credentials[field.id] || '';
+    });
+    return payload;
   }
 
   async function testWizardCredentials(brandId) {
@@ -359,12 +414,10 @@
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      const credentialsPayload = buildCredentialsPayload(meta);
 
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
-        auth_type: meta.authType,
+        auth_type: meta.authentication_type,
         credentials: credentialsPayload
       });
 
@@ -396,12 +449,10 @@
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      const credentialsPayload = buildCredentialsPayload(meta);
 
       await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/connect`, {
-        auth_type: meta.authType,
+        auth_type: meta.authentication_type,
         credentials: credentialsPayload
       });
 
@@ -424,16 +475,24 @@
     }
 
     // Fall back to direct auth methods if no guide
-    if (meta.auth_type === 'oauth') {
+    if (meta.authentication_type === 'oauth') {
       openOAuthFlow(meta.id);
       return;
     }
-    if (meta.auth_type === 'api-key' || meta.auth_type === 'api_key') {
+    if (meta.authentication_type === 'api-key' || meta.authentication_type === 'api_key') {
       openApiKeyModal(meta.id);
       return;
     }
-    if (meta.auth_type === 'local') {
+    if (meta.authentication_type === 'local') {
       openLocalDeviceModal(meta.id);
+      return;
+    }
+
+    // Any other/new auth_type (e.g. a brand using email+password like Unicorn)
+    // falls back to a generic credential form driven entirely by the brand's
+    // credential_fields, so new brands work without brand-specific JS.
+    if (getCredentialFieldDefs(meta).length > 0) {
+      openGenericCredentialWizard(meta.id);
     }
   }
 
