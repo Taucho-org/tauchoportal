@@ -1,42 +1,47 @@
 {{/* Philips Hue Smart Lighting - API-Driven Catalog */}}
 {{define "catalog-hue"}}
 <script>
-window._i18nCatalog = {{i18nJSON .I18n}};
+// Initialize merged i18n namespace on first load
+if (typeof window._i18nCatalog === 'undefined') {
+  window._i18nCatalog = {};
+}
+// Merge Hue + common keys into namespace
+Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "catalog.hue"}});
 </script>
 
 <div class="catalog-hue brand-catalog" data-brand="hue">
   
   <div class="catalog-header-section">
-    <h2>{{.I18n.T "catalog.hueTitle"}}</h2>
+    <h2>{{.I18n.T "catalog.hue.title"}}</h2>
     <div class="search-box">
-      <input type="text" class="hue-search-input" id="hueSearch" placeholder="{{.I18n.T "catalog.searchPlaceholder"}}">
+      <input type="text" class="hue-search-input" id="hueSearch" placeholder="{{.I18n.T "catalog.common.searchPlaceholder"}}">
       <button type="button" class="btn-icon" onclick="clearHueSearch()">✕</button>
     </div>
   </div>
 
   <div class="catalog-tabs">
-    <button class="tab-btn active" data-tab="all" onclick="switchHueTab(event, '')">{{.I18n.T "catalog.allProducts"}}</button>
-    <button class="tab-btn" data-tab="color" onclick="switchHueTab(event, 'color')">{{.I18n.T "catalog.color"}}</button>
-    <button class="tab-btn" data-tab="white" onclick="switchHueTab(event, 'white')">{{.I18n.T "catalog.white"}}</button>
-    <button class="tab-btn" data-tab="ambiance" onclick="switchHueTab(event, 'ambiance')">{{.I18n.T "catalog.ambiance"}}</button>
+    <button class="tab-btn active" data-tab="all" onclick="switchHueTab(event, '')">{{.I18n.T "catalog.common.allProducts"}}</button>
+    <button class="tab-btn" data-tab="color" onclick="switchHueTab(event, 'color')">{{.I18n.T "catalog.common.color"}}</button>
+    <button class="tab-btn" data-tab="white" onclick="switchHueTab(event, 'white')">{{.I18n.T "catalog.common.white"}}</button>
+    <button class="tab-btn" data-tab="ambiance" onclick="switchHueTab(event, 'ambiance')">{{.I18n.T "catalog.common.ambiance"}}</button>
   </div>
 
   <div class="catalog-products-wrapper">
-    <div id="hueLoading" class="loading-state" style="display: none;"><div>⏳</div><div>{{.I18n.T "catalog.loading"}}</div></div>
-    <div id="hueError" class="error-state" style="display: none;"><div>⚠️</div><div id="errorMessage"></div><button type="button" class="retry-btn" onclick="loadHueProducts()">{{.I18n.T "catalog.retry"}}</button></div>
-    <div id="hueEmpty" class="empty-state" style="display: none;"><div>📭</div><div>{{.I18n.T "catalog.noResults"}}</div></div>
+    <div id="hueLoading" class="loading-state" style="display: none;"><div>⏳</div><div>{{.I18n.T "catalog.common.loading"}}</div></div>
+    <div id="hueError" class="error-state" style="display: none;"><div>⚠️</div><div id="errorMessage"></div><button type="button" class="retry-btn" onclick="loadHueProducts()">{{.I18n.T "catalog.common.retry"}}</button></div>
+    <div id="hueEmpty" class="empty-state" style="display: none;"><div>📭</div><div>{{.I18n.T "catalog.common.noResults"}}</div></div>
     <div id="hueProductsGrid" class="catalog-products"></div>
   </div>
 
   <div id="huePagination" class="pagination-controls" style="display: none;">
-    <button type="button" onclick="previousHuePage()" disabled>{{.I18n.T "catalog.previous"}}</button>
+    <button type="button" onclick="previousHuePage()" disabled>{{.I18n.T "catalog.common.previous"}}</button>
     <div class="pageInfo">Page 1 of 1</div>
-    <button type="button" onclick="nextHuePage()" disabled>{{.I18n.T "catalog.next"}}</button>
+    <button type="button" onclick="nextHuePage()" disabled>{{.I18n.T "catalog.common.next"}}</button>
   </div>
 
   <div class="catalog-footer">
-    <span id="resultCount">{{.I18n.T "catalog.wifiEnabled"}}</span>
-    <a href="https://www.philips-hue.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "Philips Hue"}}</a>
+    <span id="resultCount">{{.I18n.T "catalog.common.wifiEnabled"}}</span>
+    <a href="https://www.philips-hue.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.common.visitBrand") "{brand}" "Philips Hue"}}</a>
   </div>
 </div>
 
@@ -70,7 +75,7 @@ async function loadHueProducts() {
     showHueLoading(false);
   } catch (error) {
     console.error('Error loading Hue products:', error);
-    showHueError(tHue('catalog.noResults'));
+    showHueError(tHue('catalog.common.noResults'));
     showHueLoading(false);
   } finally {
     hueCatalogState.isLoading = false;
@@ -85,7 +90,7 @@ function renderHueProducts(products) {
     return;
   }
   document.getElementById('hueEmpty').style.display = 'none';
-  grid.innerHTML = products.map(product => `<div class="catalog-card-v2" data-product-id="${product.id}" data-category="${product.category}"><div class="product-image"><img src="${product.thumbnail_url || '/image/catalog/product-placeholder.png'}" alt="${product.name}" loading="lazy" onerror="this.src='/image/catalog/product-placeholder.png'"></div><div class="product-details"><div><h4>${product.name}</h4><p>${tHue('catalog.productCategory', { category: product.category })}</p><div class="product-actions">${(product.supported_actions || []).map(action => { const actionLabel = { 'set_color': 'Color', 'set_brightness': 'Brightness', 'turn_on': 'Power', 'turn_off': 'Power' }[action] || action; return `<span class="action-tag-pill">${actionLabel}</span>`; }).join('')}</div></div><div style="display: flex; gap: 6px;"><button type="button" class="btn-quick-add" onclick="addHueProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'hue')">${tHue('catalog.addDevice')}</button>${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tHue('catalog.buyNow')}</a>` : ''}</div></div></div>`).join('');
+  grid.innerHTML = products.map(product => `<div class="catalog-card-v2" data-product-id="${product.id}" data-category="${product.category}"><div class="product-image"><img src="${product.thumbnail_url || '/image/catalog/product-placeholder.png'}" alt="${product.name}" loading="lazy" onerror="this.src='/image/catalog/product-placeholder.png'"></div><div class="product-details"><div><h4>${product.name}</h4><p>${tHue('catalog.common.productCategory', { category: product.category })}</p><div class="product-actions">${(product.supported_actions || []).map(action => { const actionLabel = { 'set_color': 'Color', 'set_brightness': 'Brightness', 'turn_on': 'Power', 'turn_off': 'Power' }[action] || action; return `<span class="action-tag-pill">${actionLabel}</span>`; }).join('')}</div></div><div style="display: flex; gap: 6px;"><button type="button" class="btn-quick-add" onclick="addHueProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'hue')">${tHue('catalog.common.addDevice')}</button>${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tHue('catalog.common.buyNow')}</a>` : ''}</div></div></div>`).join('');
 }
 
 function updateHuePagination(pagination) {
@@ -94,7 +99,7 @@ function updateHuePagination(pagination) {
   const pageInfo = paginationDiv.querySelector('.pageInfo');
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = pagination.total_pages;
-  pageInfo.textContent = tHue('catalog.pageInfo', { page: currentPage, total: totalPages });
+  pageInfo.textContent = tHue('catalog.common.pageInfo', { page: currentPage, total: totalPages });
   buttons[0].disabled = !pagination.has_previous;
   buttons[1].disabled = !pagination.has_next;
   if (totalPages > 1) paginationDiv.style.display = 'flex';
@@ -105,7 +110,7 @@ function updateHueResultCount(pagination) {
   const resultCount = document.getElementById('resultCount');
   const start = pagination.offset + 1;
   const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-  resultCount.textContent = tHue('catalog.showingResults', { start, end, total: pagination.total });
+  resultCount.textContent = tHue('catalog.common.showingResults', { start, end, total: pagination.total });
 }
 
 function setupHueSearchHandler() {
@@ -181,3 +186,4 @@ function addHueProduct(productId, productName, brand) {
 }
 </script>
 {{end}}
+

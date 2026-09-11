@@ -1,27 +1,34 @@
 {{/* WiZ Smart Lighting - API-Driven Catalog */}}
 {{define "catalog-wiz"}}
-<script>window._i18nCatalog = {{i18nJSON .I18n}};</script>
+<script>
+// Initialize merged i18n namespace on first load
+if (typeof window._i18nCatalog === 'undefined') {
+  window._i18nCatalog = {};
+}
+// Merge WiZ + common keys into namespace
+Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "catalog.wiz"}});
+</script>
 <div class="catalog-wiz brand-catalog" data-brand="wiz">
-  <div class="catalog-header-section"><h2>{{.I18n.T "catalog.wizTitle"}}</h2><div class="search-box"><input type="text" class="wiz-search-input" id="wizSearch" placeholder="{{.I18n.T "catalog.searchPlaceholder"}}"><button type="button" class="btn-icon" onclick="clearWizSearch()">✕</button></div></div>
+  <div class="catalog-header-section"><h2>{{.I18n.T "catalog.wiz.title"}}</h2><div class="search-box"><input type="text" class="wiz-search-input" id="wizSearch" placeholder="{{.I18n.T "catalog.common.searchPlaceholder"}}"><button type="button" class="btn-icon" onclick="clearWizSearch()">✕</button></div></div>
   <div class="catalog-tabs">
-    <button class="tab-btn active" data-tab="all" onclick="switchWizTab(event, '')">{{.I18n.T "catalog.allProducts"}}</button>
-    <button class="tab-btn" data-tab="color" onclick="switchWizTab(event, 'color')">{{.I18n.T "catalog.color"}}</button>
-    <button class="tab-btn" data-tab="white" onclick="switchWizTab(event, 'white')">{{.I18n.T "catalog.white"}}</button>
+    <button class="tab-btn active" data-tab="all" onclick="switchWizTab(event, '')">{{.I18n.T "catalog.common.allProducts"}}</button>
+    <button class="tab-btn" data-tab="color" onclick="switchWizTab(event, 'color')">{{.I18n.T "catalog.common.color"}}</button>
+    <button class="tab-btn" data-tab="white" onclick="switchWizTab(event, 'white')">{{.I18n.T "catalog.common.white"}}</button>
   </div>
   <div class="catalog-products-wrapper">
-    <div id="wizLoading" class="loading-state" style="display: none;"><div>⏳</div><div>{{.I18n.T "catalog.loading"}}</div></div>
-    <div id="wizError" class="error-state" style="display: none;"><div>⚠️</div><div id="errorMessage"></div><button type="button" class="retry-btn" onclick="loadWizProducts()">{{.I18n.T "catalog.retry"}}</button></div>
-    <div id="wizEmpty" class="empty-state" style="display: none;"><div>📭</div><div>{{.I18n.T "catalog.noResults"}}</div></div>
+    <div id="wizLoading" class="loading-state" style="display: none;"><div>⏳</div><div>{{.I18n.T "catalog.common.loading"}}</div></div>
+    <div id="wizError" class="error-state" style="display: none;"><div>⚠️</div><div id="errorMessage"></div><button type="button" class="retry-btn" onclick="loadWizProducts()">{{.I18n.T "catalog.common.retry"}}</button></div>
+    <div id="wizEmpty" class="empty-state" style="display: none;"><div>📭</div><div>{{.I18n.T "catalog.common.noResults"}}</div></div>
     <div id="wizProductsGrid" class="catalog-products"></div>
   </div>
   <div id="wizPagination" class="pagination-controls" style="display: none;">
-    <button type="button" onclick="previousWizPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
+    <button type="button" onclick="previousWizPage()" disabled>{{.I18n.T "catalog.common.previous"}}</button>
     <div class="pageInfo">Page 1 of 1</div>
-    <button type="button" onclick="nextWizPage()" disabled>{{.I18n.T "catalog.next"}}</button>
+    <button type="button" onclick="nextWizPage()" disabled>{{.I18n.T "catalog.common.next"}}</button>
   </div>
   <div class="catalog-footer">
-    <span id="resultCount">{{.I18n.T "catalog.wifiEnabled"}}</span>
-    <a href="https://www.wizconnected.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "WiZ"}}</a>
+    <span id="resultCount">{{.I18n.T "catalog.common.wifiEnabled"}}</span>
+    <a href="https://www.wizconnected.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.common.visitBrand") "{brand}" "WiZ"}}</a>
   </div>
 </div>
 <script>
@@ -49,7 +56,7 @@ async function loadWizProducts() {
     showWizLoading(false);
   } catch (error) {
     console.error('Error loading WiZ products:', error);
-    showWizError(tWiz('catalog.noResults'));
+    showWizError(tWiz('catalog.common.noResults'));
     showWizLoading(false);
   } finally {
     wizCatalogState.isLoading = false;
@@ -63,7 +70,7 @@ function renderWizProducts(products) {
     return;
   }
   document.getElementById('wizEmpty').style.display = 'none';
-  grid.innerHTML = products.map(product => `<div class="catalog-card-v2" data-product-id="${product.id}" data-category="${product.category}"><div class="product-image"><img src="${product.thumbnail_url || '/image/catalog/product-placeholder.png'}" alt="${product.name}" loading="lazy" onerror="this.src='/image/catalog/product-placeholder.png'"></div><div class="product-details"><div><h4>${product.name}</h4><p>${tWiz('catalog.productCategory', { category: product.category })}</p><div class="product-actions">${(product.supported_actions || []).map(action => { const actionLabel = { 'set_color': 'Color', 'set_brightness': 'Brightness', 'turn_on': 'Power', 'turn_off': 'Power' }[action] || action; return `<span class="action-tag-pill">${actionLabel}</span>`; }).join('')}</div></div><div style="display: flex; gap: 6px;"><button type="button" class="btn-quick-add" onclick="addWizProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'wiz')">${tWiz('catalog.addDevice')}</button>${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tWiz('catalog.buyNow')}</a>` : ''}</div></div></div>`).join('');
+  grid.innerHTML = products.map(product => `<div class="catalog-card-v2" data-product-id="${product.id}" data-category="${product.category}"><div class="product-image"><img src="${product.thumbnail_url || '/image/catalog/product-placeholder.png'}" alt="${product.name}" loading="lazy" onerror="this.src='/image/catalog/product-placeholder.png'"></div><div class="product-details"><div><h4>${product.name}</h4><p>${tWiz('catalog.common.productCategory', { category: product.category })}</p><div class="product-actions">${(product.supported_actions || []).map(action => { const actionLabel = { 'set_color': 'Color', 'set_brightness': 'Brightness', 'turn_on': 'Power', 'turn_off': 'Power' }[action] || action; return `<span class="action-tag-pill">${actionLabel}</span>`; }).join('')}</div></div><div style="display: flex; gap: 6px;"><button type="button" class="btn-quick-add" onclick="addWizProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'wiz')">${tWiz('catalog.common.addDevice')}</button>${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tWiz('catalog.common.buyNow')}</a>` : ''}</div></div></div>`).join('');
 }
 function updateWizPagination(pagination) {
   const paginationDiv = document.getElementById('wizPagination');
@@ -71,7 +78,7 @@ function updateWizPagination(pagination) {
   const pageInfo = paginationDiv.querySelector('.pageInfo');
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = pagination.total_pages;
-  pageInfo.textContent = tWiz('catalog.pageInfo', { page: currentPage, total: totalPages });
+  pageInfo.textContent = tWiz('catalog.common.pageInfo', { page: currentPage, total: totalPages });
   buttons[0].disabled = !pagination.has_previous;
   buttons[1].disabled = !pagination.has_next;
   if (totalPages > 1) paginationDiv.style.display = 'flex';
@@ -81,7 +88,7 @@ function updateWizResultCount(pagination) {
   const resultCount = document.getElementById('resultCount');
   const start = pagination.offset + 1;
   const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-  resultCount.textContent = tWiz('catalog.showingResults', { start, end, total: pagination.total });
+  resultCount.textContent = tWiz('catalog.common.showingResults', { start, end, total: pagination.total });
 }
 function setupWizSearchHandler() {
   const searchInput = document.getElementById('wizSearch');

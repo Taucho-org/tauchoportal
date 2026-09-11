@@ -9,22 +9,23 @@ import (
 type Catalog struct{}
 
 type Brand struct {
-	Id                         string                `json:"id"`
-	Name                       string                `json:"name"`
-	Website                    string                `json:"website"`
-	LogoUrl                    string                `json:"logo_url"`
-	BrandColor                 string                `json:"brand_color"`
-	AffiliateUrl               string                `json:"affiliate_url"`
-	AffiliateCommissionPercent float64               `json:"affiliate_commission_percent"`
-	RequiresBrandCredentials   bool                  `json:"requires_brand_credentials"`
-	SortOrder                  int                   `json:"sort_order"`
-	IsActive                   bool                  `json:"is_active"`
-	CreatedAt                  string                `json:"created_at"`
-	UpdatedAt                  string                `json:"updated_at"`
-	Icon                       string                `json:"icon"`
-	CredentialFields           []CredentialField     `json:"credential_fields"`
-	DocsUrl                    string                `json:"docs_url"`
-	DocsLabel                  string                `json:"docs_label"`
+	Id                            string                         `json:"id"`
+	Name                          string                         `json:"name"`
+	Website                       string                         `json:"website"`
+	LogoUrl                       string                         `json:"logo_url"`
+	BrandColor                    string                         `json:"brand_color"`
+	AffiliateUrl                  string                         `json:"affiliate_url"`
+	AffiliateCommissionPercent    float64                        `json:"affiliate_commission_percent"`
+	RequiresBrandCredentials      bool                           `json:"requires_brand_credentials"`
+	SortOrder                     int                            `json:"sort_order"`
+	IsActive                      bool                           `json:"is_active"`
+	CreatedAt                     string                         `json:"created_at"`
+	UpdatedAt                     string                         `json:"updated_at"`
+	Icon                          string                         `json:"icon"`
+	CredentialFields              []CredentialField              `json:"credential_fields"`
+	DeviceIdentificationRequireds []DeviceIdentificationRequired `json:"device_identification_required"`
+	DocsUrl                       string                         `json:"docs_url"`
+	DocsLabel                     string                         `json:"docs_label"`
 }
 
 type CredentialField struct {
@@ -33,6 +34,14 @@ type CredentialField struct {
 	Type        string `json:"type"` // "text", "password", "info"
 	Help        string `json:"help"`
 	Placeholder string `json:"placeholder"`
+}
+
+type DeviceIdentificationRequired struct {
+	Type        string `json:"type"`
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	Placeholder string `json:"placeholder"`
+	Required    bool   `json:"required"`
 }
 
 type Product struct {

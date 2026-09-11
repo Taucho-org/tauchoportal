@@ -212,6 +212,115 @@
     color: #777;
 }
 
+/* Device Test Section (NEW) */
+.wizard-device-test-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.device-test-heading {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.device-test-help {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.device-test-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.device-test-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.device-test-label {
+    display: inline;
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+    flex-grow: 1;
+    margin: 0;
+}
+
+.btn-device-test {
+    flex-shrink: 0;
+    padding: 0.45rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-device-test:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.device-test-results {
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.device-test-success {
+    background: #f0fdf4;
+    border-left-color: #22c55e;
+    color: #166534;
+}
+
+.device-test-success p {
+    margin: 0 0 0.5rem;
+}
+
+.device-test-success p:last-child {
+    margin-bottom: 0;
+}
+
+.device-test-error {
+    background: #fef2f2;
+    border-left-color: #ef4444;
+    color: #7f1d1d;
+}
+
+.device-test-error p {
+    margin: 0 0 0.5rem;
+}
+
+.device-test-error p:last-child {
+    margin-bottom: 0;
+}
+
+.test-suggestion {
+    font-size: 0.85rem;
+    color: #b91c1c;
+    font-style: italic;
+}
+
+.device-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+    list-style-type: disc;
+}
+
+.device-list li {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
     .brand-settings-page .settings-container,
     .brand-settings-page.settings-container {

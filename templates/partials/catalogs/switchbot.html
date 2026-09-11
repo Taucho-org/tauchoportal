@@ -1,20 +1,25 @@
 {{/* SwitchBot Smart Home Devices - API-Driven Catalog */}}
 {{define "catalog-switchbot"}}
 <script>
-window._i18nCatalog = {{i18nJSON .I18n}};
+// Initialize merged i18n namespace on first load
+if (typeof window._i18nCatalog === 'undefined') {
+  window._i18nCatalog = {};
+}
+// Merge SwitchBot + common keys into namespace
+Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "catalog.switchbot"}});
 </script>
 <img alt='' src='https://cdn.uppromote.com/storage/uploads/banner/switchbot-smart-home/8f6d4b1f5f8cb87117deedb88763fdfa_SwitchBot%20line-up%20products.jpg' style="width:100%;" />
 <div class="catalog-switchbot brand-catalog" data-brand="switchbot">
   
   <!-- Header with Search -->
   <div class="catalog-header-section">
-    <h2>{{.I18n.T "catalog.switchbotTitle"}}</h2>
+    <h2>{{.I18n.T "catalog.switchbot.title"}}</h2>
     <div class="search-box">
       <input 
         type="text" 
         class="switchbot-search-input" 
         id="switchbotSearch"
-        placeholder="{{.I18n.T "catalog.searchPlaceholder"}}"
+        placeholder="{{.I18n.T "catalog.common.searchPlaceholder"}}"
       >
       <button type="button" class="btn-icon" onclick="clearSwitchbotSearch()">✕</button>
     </div>
@@ -23,19 +28,19 @@ window._i18nCatalog = {{i18nJSON .I18n}};
   <!-- Tab Navigation -->
   <div class="catalog-tabs">
     <button class="tab-btn active" data-tab="all" onclick="switchSwitchbotTab(event, '')">
-      {{.I18n.T "catalog.allProducts"}}
+      {{.I18n.T "catalog.common.allProducts"}}
     </button>
     <button class="tab-btn" data-tab="hubs" onclick="switchSwitchbotTab(event, 'hubs')">
-      {{.I18n.T "catalog.hubs"}}
+      {{.I18n.T "catalog.common.hubs"}}
     </button>
     <button class="tab-btn" data-tab="remotes" onclick="switchSwitchbotTab(event, 'remotes')">
-      {{.I18n.T "catalog.remotes"}}
+      {{.I18n.T "catalog.common.remotes"}}
     </button>
     <button class="tab-btn" data-tab="meters" onclick="switchSwitchbotTab(event, 'meters')">
-      {{.I18n.T "catalog.meters"}}
+      {{.I18n.T "catalog.common.meters"}}
     </button>
     <button class="tab-btn" data-tab="others" onclick="switchSwitchbotTab(event, 'others')">
-      {{.I18n.T "catalog.others"}}
+      {{.I18n.T "catalog.common.others"}}
     </button>
   </div>
 
@@ -45,20 +50,20 @@ window._i18nCatalog = {{i18nJSON .I18n}};
     <!-- Loading State -->
     <div id="switchbotLoading" class="loading-state" style="display: none;">
       <div>⏳</div>
-      <div>{{.I18n.T "catalog.loading"}}</div>
+      <div>{{.I18n.T "catalog.common.loading"}}</div>
     </div>
 
     <!-- Error State -->
     <div id="switchbotError" class="error-state" style="display: none;">
       <div>⚠️</div>
       <div id="errorMessage"></div>
-      <button type="button" class="retry-btn" onclick="loadSwitchbotProducts()">{{.I18n.T "catalog.retry"}}</button>
+      <button type="button" class="retry-btn" onclick="loadSwitchbotProducts()">{{.I18n.T "catalog.common.retry"}}</button>
     </div>
 
     <!-- Empty State -->
     <div id="switchbotEmpty" class="empty-state" style="display: none;">
       <div>📭</div>
-      <div>{{.I18n.T "catalog.noResults"}}</div>
+      <div>{{.I18n.T "catalog.common.noResults"}}</div>
     </div>
 
     <!-- Products Grid -->
@@ -67,15 +72,15 @@ window._i18nCatalog = {{i18nJSON .I18n}};
 
   <!-- Pagination -->
   <div id="switchbotPagination" class="pagination-controls" style="display: none;">
-    <button type="button" onclick="previousSwitchbotPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
+    <button type="button" onclick="previousSwitchbotPage()" disabled>{{.I18n.T "catalog.common.previous"}}</button>
     <div class="pageInfo">Page 1 of 1</div>
-    <button type="button" onclick="nextSwitchbotPage()" disabled>{{.I18n.T "catalog.next"}}</button>
+    <button type="button" onclick="nextSwitchbotPage()" disabled>{{.I18n.T "catalog.common.next"}}</button>
   </div>
 
   <!-- Footer with links -->
   <div class="catalog-footer">
-    <span id="resultCount">{{.I18n.T "catalog.connectedHome"}}</span>
-    <a href="https://www.switchbot.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "SwitchBot"}}</a>
+    <span id="resultCount">{{.I18n.T "catalog.common.connectedHome"}}</span>
+    <a href="https://www.switchbot.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.common.visitBrand") "{brand}" "SwitchBot"}}</a>
   </div>
 </div>
 
@@ -136,7 +141,7 @@ async function loadSwitchbotProducts() {
     
   } catch (error) {
     console.error('Error loading SwitchBot products:', error);
-    showSwitchbotError(tSwitchbot('catalog.noResults'));
+    showSwitchbotError(tSwitchbot('catalog.common.noResults'));
     showSwitchbotLoading(false);
   } finally {
     switchbotCatalogState.isLoading = false;
@@ -162,7 +167,7 @@ function renderSwitchbotProducts(products) {
       <div class="product-details">
         <div>
           <h4>${product.name}</h4>
-          <p>${tSwitchbot('catalog.productCategory', { category: product.category })}</p>
+          <p>${tSwitchbot('catalog.common.productCategory', { category: product.category })}</p>
           <div class="product-actions">
             ${(product.supported_actions || []).map(action => {
               const actionLabel = {
@@ -178,8 +183,8 @@ function renderSwitchbotProducts(products) {
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button type="button" class="btn-quick-add" onclick="addSwitchbotProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'switchbot')">${tSwitchbot('catalog.addDevice')}</button>
-          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tSwitchbot('catalog.buyNow')}</a>` : ''}
+          <button type="button" class="btn-quick-add" onclick="addSwitchbotProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'switchbot')">${tSwitchbot('catalog.common.addDevice')}</button>
+          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tSwitchbot('catalog.common.buyNow')}</a>` : ''}
         </div>
       </div>
     </div>
@@ -194,7 +199,7 @@ function updateSwitchbotPagination(pagination) {
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = pagination.total_pages;
   
-  pageInfo.textContent = tSwitchbot('catalog.pageInfo', { page: currentPage, total: totalPages });
+  pageInfo.textContent = tSwitchbot('catalog.common.pageInfo', { page: currentPage, total: totalPages });
   buttons[0].disabled = !pagination.has_previous;
   buttons[1].disabled = !pagination.has_next;
   
@@ -209,7 +214,7 @@ function updateSwitchbotResultCount(pagination) {
   const resultCount = document.getElementById('resultCount');
   const start = pagination.offset + 1;
   const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-  resultCount.textContent = tSwitchbot('catalog.showingResults', { start, end, total: pagination.total });
+  resultCount.textContent = tSwitchbot('catalog.common.showingResults', { start, end, total: pagination.total });
 }
 
 function setupSwitchbotSearchHandler() {
@@ -295,3 +300,4 @@ function addSwitchbotProduct(productId, productName, brand) {
 }
 </script>
 {{end}}
+

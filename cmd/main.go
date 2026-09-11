@@ -368,6 +368,12 @@ func loadTemplates() map[string]*template.Template {
 			}
 			return t.JS()
 		},
+		"i18nJSONByPrefix": func(t *i18n.Translator, prefixes ...string) template.JS {
+			if t == nil {
+				return template.JS("{}")
+			}
+			return t.JSByPrefix(prefixes)
+		},
 		"platformIcon":      icons.Get,
 		"platformIconsJSON": icons.AllJSON,
 		"dict":              dict,
