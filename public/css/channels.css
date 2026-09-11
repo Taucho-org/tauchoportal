@@ -471,6 +471,11 @@ body {
     color: white;
 }
 
+.btnend {
+    text-align: right;
+    flex: 1;
+}
+
 /* =============================================
    Breadcrumb
    ============================================= */
@@ -739,6 +744,7 @@ body {
     border-radius: 8px;
     overflow: hidden;
     transition: box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
 }
 
 .rule-card:hover {
@@ -1829,6 +1835,19 @@ input[type="range"] {
     background-color: #fff5f5;
 }
 
+.editable-condition-filter {
+    cursor: pointer;
+    display: inline-block;
+}
+
+.editable-condition-filter:hover .name-edit-pencil {
+    opacity: 1;
+}
+
+.condition-filter-input {
+    min-width: 12rem;
+}
+
 /* Test Condition Modal */
 .modal-large {
     max-width: 700px;
@@ -1889,4 +1908,3 @@ input[type="range"] {
     font-family: monospace;
     color: #d63384;
 }
-

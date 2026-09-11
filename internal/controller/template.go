@@ -150,16 +150,21 @@ func GetEventFieldOptions(cond Conditions, platform, eventType string, translato
 
 	var options []EventFieldOption
 
-	// Convert parameters to field options with translations
+	// Convert parameters to field options with platform-specific translations.
 	for _, param := range parameters {
 		label := param.Name
 		if translator != nil {
-			// Look up translation key: condition.eventProp.{fieldname}.label
-			translationKey := "condition.eventProp." + param.Name + ".label"
+			// A field can have different meanings on different platforms, so keep the
+			// platform in the key: condition.schema.{platform}.{field}.label.
+			translationKey := "condition.schema." + platform + "." + param.Name + ".label"
 			translatedLabel := translator.T(translationKey)
 			// If translation found (not the key itself), use it
 			if translatedLabel != "" && translatedLabel != translationKey {
 				label = translatedLabel
+			} else if param.Description != "" {
+				// The API description is the best fallback for newly added fields that
+				// have not yet received a locale entry.
+				label = param.Description
 			}
 		}
 		options = append(options, EventFieldOption{
@@ -514,10 +519,12 @@ func PrepareChannelsPageData() *ChannelsPageData {
 
 // ConditionPageData contains all data needed to render the condition logic page
 type ConditionPageData struct {
-	CurrentChannel    *ChannelForTemplate
-	Condition         *ConditionForTemplate
-	PlatformMeta      map[string]map[string]interface{}
-	EventFieldOptions []EventFieldOption
+	CurrentChannel      *ChannelForTemplate
+	Condition           *ConditionForTemplate
+	PlatformMeta        map[string]map[string]interface{}
+	EventFieldOptions   []EventFieldOption
+	ConditionTemplates  []ConditionTemplate
+	ConditionProperties []EventSchemaField
 }
 
 // PrepareConditionPageData prepares all data needed to render a single condition logic page
@@ -555,10 +562,16 @@ func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Tr
 		DeviceActionParams: string(deviceActionParamsJSON),
 	}
 
+	// Fetch condition templates for this event type
+	eventMeta := EventMetadata{}
+	templatesResponse := eventMeta.GetTemplatesForEvent(currentChannel.Platform, condition.EventType)
+
 	return &ConditionPageData{
-		CurrentChannel:    currentChannel,
-		Condition:         condForTemplate,
-		PlatformMeta:      GetPlatformMetadata(cond),
-		EventFieldOptions: GetEventFieldOptions(cond, currentChannel.Platform, condition.EventType, translator),
+		CurrentChannel:     currentChannel,
+		Condition:          condForTemplate,
+		PlatformMeta:       GetPlatformMetadata(cond),
+		EventFieldOptions:  GetEventFieldOptions(cond, currentChannel.Platform, condition.EventType, translator),
+		ConditionTemplates: templatesResponse.Templates,
+		//		ConditionProperties:     templatesResponse.Properties,
 	}
 }

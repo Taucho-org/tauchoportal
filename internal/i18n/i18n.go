@@ -3,6 +3,7 @@ package i18n
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -95,8 +96,11 @@ type Translator struct {
 }
 
 // T returns the translation for key, falling back to key itself if not found.
-func (t *Translator) T(key string) string {
+func (t *Translator) T(key string, replacement ...string) string {
 	if v, ok := t.strings[key]; ok {
+		for i, r := range replacement {
+			v = strings.ReplaceAll(v, fmt.Sprintf("{%d}", i), r)
+		}
 		return v
 	}
 	return key

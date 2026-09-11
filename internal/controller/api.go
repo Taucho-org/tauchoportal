@@ -31,6 +31,7 @@ type API struct {
 	Catalog           Catalog
 	CustomProducts    CustomProducts
 	LiveEvents        LiveEvents
+	EventMetadata     EventMetadata
 }
 
 type Request interface {

@@ -48,6 +48,8 @@ type PageData struct {
 	PlatformMeta            map[string]map[string]interface{}
 	EventBadgeClass         map[string]string
 	EventFieldOptions       []controller.EventFieldOption
+	ConditionTemplates      []controller.ConditionTemplate
+	ConditionProperties     []controller.EventSchemaField
 }
 
 type UserProfile struct {
@@ -540,6 +542,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				data.Condition = pageData.Condition
 				data.PlatformMeta = pageData.PlatformMeta
 				data.EventFieldOptions = pageData.EventFieldOptions
+				data.ConditionTemplates = pageData.ConditionTemplates
+				data.ConditionProperties = pageData.ConditionProperties
 			} else {
 				// This is the conditions list page
 				pageData := controller.PrepareConditionsPageData(channelID)

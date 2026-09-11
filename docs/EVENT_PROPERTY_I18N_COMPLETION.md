@@ -1,4 +1,6 @@
-# Event Property i18n Translation Implementation - Complete
+# Event Property i18n Translation Implementation - Historical
+
+> Superseded by [CONDITION_SCHEMA_I18N.md](CONDITION_SCHEMA_I18N.md). The portal now resolves condition-event fields with `condition.schema.{platform}.{field}.label` and `.description`; the former `condition.eventProp.*` namespace was removed.
 
 ## Problem Statement
 The condition page's event parameter selection showed incomplete or untranslated options when loading available parameters via the API endpoint `GET /platform-config/platforms/{platform}/events/{event}/parameters/available`. The backend had just expanded property support from 11 to 82+ properties, but:

@@ -3,7 +3,7 @@
     const { PLATFORM_META, PLATFORM_EVENTS, PRODUCTS, apiRequest, escHtml, formatDate, formatDateTime, openModal, closeModal, getEventLabel, buildTestEvent, getEventParameters } = window;
     const t = window.conditionsListTranslations || {}; // Fallback to empty object
     const EVENT_BADGE_CLASS = { comment: 'comment', superchat: 'gift', sticker: 'gift', cheer: 'gift', gift: 'gift', member: 'follow', follow: 'follow', sub: 'follow', nicoru: 'effect', hype_train: 'stream', raid: 'stream', stream_start: 'stream', stream_end: 'stream' };
-    let CHANNELS = [], editingConditionId = null, testingConditionId = null, deviceCache = null;
+    let CHANNELS = [], testingConditionId = null, deviceCache = null;
 
     async function loadWatches() { 
         CHANNELS = (await apiRequest('GET', '/watches')).map((watch) => ({ id: watch.id, name: watch.name, platform: watch.platform, channelId: watch.channel_id, lastStream: formatDate(watch.last_stream_at, 'Never') })); 
@@ -55,8 +55,105 @@
         }); 
     }
 
+    async function updateConditionFields(conditionId, fields) {
+        try {
+            await apiRequest('PATCH', `/conditions/update?id=${encodeURIComponent(conditionId)}`, fields);
+            window.location.reload();
+            return true;
+        } catch (error) {
+            const errorMsg = error.message || 'Unknown error';
+            alert((t.updateError || 'Failed to update condition: {error}').replace('{error}', errorMsg));
+            return false;
+        }
+    }
+
+    function startEditConditionName(event, conditionId, currentName) {
+        event.stopPropagation();
+        const node = event.target.closest('.editable-name');
+        if (!node || node.querySelector('input')) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-edit-input';
+        input.value = currentName;
+        node.replaceChildren(input);
+        input.focus();
+        input.select();
+
+        const restore = () => {
+            node.replaceChildren(document.createTextNode(currentName + ' '));
+            const pencil = document.createElement('span');
+            pencil.className = 'name-edit-pencil';
+            pencil.textContent = '✏️';
+            node.appendChild(pencil);
+        };
+        const finish = async () => {
+            const name = input.value.trim();
+            if (!name) {
+                alert(window._i18nMsg?.['condition.nameEmpty'] || 'Condition name cannot be empty');
+                restore();
+                return;
+            }
+            if (name === currentName) {
+                restore();
+                return;
+            }
+            if (!(await updateConditionFields(conditionId, { name }))) restore();
+        };
+
+        input.addEventListener('blur', finish, { once: true });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') finish();
+            if (e.key === 'Escape') restore();
+        });
+    }
+
+    function startEditConditionFilter(event, conditionId, currentFilter) {
+        event.preventDefault();
+        event.stopPropagation();
+        const node = event.target.closest('.editable-condition-filter');
+        if (!node || node.querySelector('input')) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-edit-input condition-filter-input';
+        input.value = currentFilter;
+        node.replaceChildren(input);
+        input.focus();
+        input.select();
+
+        const restore = () => {
+            node.replaceChildren();
+            if (currentFilter) {
+                node.append(document.createTextNode(t.eventContaining || ' containing '));
+                const code = document.createElement('code');
+                code.textContent = `"${currentFilter}"`;
+                node.appendChild(code);
+            } else {
+                node.textContent = ` + ${window._i18nMsg?.['channelLayout.keywordFilter'] || 'Keyword Filter'} `;
+            }
+            const pencil = document.createElement('span');
+            pencil.className = 'name-edit-pencil';
+            pencil.textContent = '✏️';
+            node.appendChild(pencil);
+        };
+        const finish = async () => {
+            const filter = input.value.trim();
+            if (filter === currentFilter) {
+                restore();
+                return;
+            }
+            if (!(await updateConditionFields(conditionId, { filter }))) restore();
+        };
+
+        input.addEventListener('blur', finish, { once: true });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') finish();
+            if (e.key === 'Escape') restore();
+        });
+    }
+
     async function openAddConditionModal() { 
-        editingConditionId = null; 
         const channelName = getChannelNameFromDOM();
         const platform = getPlatformFromDOM();
         document.getElementById('condModalTitle').textContent = t.addCondition || 'Add Condition'; 
@@ -71,35 +168,6 @@
         document.getElementById('condBrightnessVal').textContent = '50'; 
         document.querySelectorAll('.color-preset').forEach((button, index) => button.classList.toggle('selected', index === 0)); 
         if (platform) populateEventSelect(platform); 
-        await toggleDeviceAction(document.getElementById('condHasDevice')); 
-        openModal('conditionModal'); 
-    }
-
-    async function openEditConditionModal(conditionId) { 
-        editingConditionId = conditionId; 
-        const card = document.querySelector(`[data-cond-id="${conditionId}"]`);
-        const channelName = getChannelNameFromDOM();
-        const platform = getPlatformFromDOM();
-        
-        const eventType = card?.dataset.type || '';
-        const conditionName = card?.querySelector('.rule-name')?.textContent || '';
-        const filterValue = card?.querySelector('.rule-detail-value')?.textContent?.match(/containing <code>"([^"]*)"<\/code>/) || null;
-        const isEnabled = card?.querySelector('input[type="checkbox"]')?.checked || false;
-        
-        document.getElementById('condModalTitle').textContent = t.editCondition || 'Edit Condition'; 
-        document.getElementById('condModalSubtitle').textContent = `${t.updateThisCondition || 'Update this condition for'} ${channelName}.`; 
-        document.getElementById('condSaveBtn').textContent = t.saveChanges || 'Save Changes'; 
-        document.getElementById('conditionForm').reset(); 
-        document.getElementById('condName').value = conditionName; 
-        if (platform) populateEventSelect(platform); 
-        document.getElementById('condEventType').value = eventType; 
-        updateCondEventFields(); 
-        document.getElementById('condFilter').value = filterValue ? filterValue[1] : ''; 
-        document.getElementById('condEnabled').checked = isEnabled; 
-        document.getElementById('condHasDevice').checked = false; 
-        document.getElementById('condBrightness').value = 50; 
-        document.getElementById('condBrightnessVal').textContent = '50'; 
-        document.querySelectorAll('.color-preset').forEach((button, index) => button.classList.toggle('selected', index === 0)); 
         await toggleDeviceAction(document.getElementById('condHasDevice')); 
         openModal('conditionModal'); 
     }
@@ -152,11 +220,7 @@
                 device_action_param_name: deviceActionParamName || null,
                 device_action_param_evaluator: deviceActionParamEvaluator
             }; 
-            if (editingConditionId) { 
-                await apiRequest('PATCH', `/conditions/update?id=${editingConditionId}`, body); 
-            } else { 
-                await apiRequest('POST', '/conditions', body); 
-            } 
+            await apiRequest('POST', '/conditions', body); 
             closeModal('conditionModal'); 
             window.location.reload(); 
         } catch (error) { 
@@ -560,7 +624,7 @@
     // ====== END Device Action Parameters Functions ======
 
     Object.assign(window, { 
-        loadWatches, filterConds, openAddConditionModal, openEditConditionModal, populateEventSelect, 
+        loadWatches, filterConds, openAddConditionModal, startEditConditionName, startEditConditionFilter, populateEventSelect, 
         updateCondEventFields, saveCondition, toggleCondition, deleteCondition, openTestConditionModal, 
         updateTestEventParams, runConditionTest, displayTestResults, toggleDeviceAction, populateDeviceDropdown, 
         updateCondActionSelect, updateCondActionParams, selectCondColor, editConditionLogic, navigate, route,

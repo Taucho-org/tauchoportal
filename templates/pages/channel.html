@@ -28,7 +28,7 @@
         {{$platformMeta := index .PlatformMeta .ChannelDetail.Platform}}
         <span class="platform-tag {{.ChannelDetail.Platform}}">
           <span style="display:inline-block; margin-right:4px">{{ platformIcon .ChannelDetail.Platform }}</span>
-          {{if $platformMeta}}{{index $platformMeta "label"}}{{else}}{{.ChannelDetail.Platform}}{{end}}
+          {{$.I18n.T (print "channels." .ChannelDetail.Platform)}}
         </span>
         <div class="meta-item">
           <span class="meta-label">{{.I18n.T "channel.lastStream"}}</span>
