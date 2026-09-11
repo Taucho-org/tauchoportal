@@ -21,6 +21,7 @@
   let activeLocalBrand = null;
   let pendingDisconnectBrand = null;
   let setupWizardState = { brandId: null, currentStep: 0, credentials: {} };
+  let setupWizardCredentialsSaved = false;
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -75,6 +76,14 @@
     if (modal) {
       modal.style.display = 'none';
     }
+    
+    // If setupWizardModal was closed and credentials were saved, reload page
+    if (modalId === 'setupWizardModal' && setupWizardCredentialsSaved) {
+      setupWizardCredentialsSaved = false; // Reset flag
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    }
   }
 
   async function apiRequest(method, path, body) {
@@ -121,11 +130,21 @@
         const lang = document.documentElement.lang || 'en';
         const result = await apiRequest('GET', `/brand/${encodeURIComponent(normalizedId)}/setup-guide?lang=${encodeURIComponent(lang)}`);
         
-        // Transform API response to match expected format
+        // Store the full API response with new credential_fields structure
         const guide = {
+          id: result.id,
+          brand_id: result.brand_id,
           steps: (result.steps || []).map(step => ({
+            order: step.order || 0,
             title: step.title || '',
-            content: step.content || ''
+            content: step.content || '',
+            step_type: step.step_type || 'info',
+            requires_credentials: step.requires_credentials || false,
+            allow_credential_test: step.allow_credential_test || false,  // Deprecated, kept for compat
+            allow_device_test: step.allow_device_test || false,  // NEW
+            device_test_label: step.device_test_label || 'Test Connection',  // NEW
+            device_test_help: step.device_test_help || '',  // NEW
+            credential_fields: step.credential_fields || []
           })),
           helpFields: result.help_fields || {}
         };
@@ -244,6 +263,7 @@
     const meta = getBrandMeta(brand);
     if (!meta) return;
     pendingDisconnectBrand = meta;
+    document.getElementById('disconnectModalDescription').textContent = (window._i18nMsg?.['brandSettings.modal.confirmDisconnectDescription'] || 'Are you sure you want to disconnect {brand}?').replace("{brand}", getBrandName(meta.id));
     openModal('disconnectModal');
   }
 
@@ -251,7 +271,11 @@
     try {
       await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/disconnect`);
       closeModal('disconnectModal');
-      showToast('✅ ' + (window._i18nMsg?.['brandSettings.status.disconnected'] || 'Brand disconnected.') + ' Please refresh to see updated status.');
+      showToast('✅ ' + (window._i18nMsg?.['brandSettings.status.disconnected'] || 'Brand disconnected.'));
+      // Reload page to reflect updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
     } catch (error) {
       showToast(`❌ ${error.message}`);
     }
@@ -285,87 +309,513 @@
     if (progressEl) progressEl.textContent = `Step ${stepIndex + 1} of ${guide.steps.length}`;
 
     if (backBtn) backBtn.style.display = stepIndex > 0 ? 'block' : 'none';
-    if (nextBtn) nextBtn.style.display = stepIndex < guide.steps.length - 1 ? 'block' : 'none';
-    if (testBtn) testBtn.style.display = stepIndex === guide.steps.length - 1 ? 'block' : 'none';
-    if (saveBtn) saveBtn.style.display = stepIndex === guide.steps.length - 1 ? 'block' : 'none';
+    
+    // Show next button only if NOT the last step AND this step doesn't require credentials
+    // If this step requires credentials, user must save before proceeding
+    const isLastStep = stepIndex === guide.steps.length - 1;
+    if (nextBtn) {
+      nextBtn.style.display = (stepIndex < guide.steps.length - 1 && !step.requires_credentials) ? 'block' : 'none';
+    }
+    
+    // Show test button only if using OLD credential test approach
+    // If allow_device_test is true, the device test section handles it inline
+    if (testBtn) {
+      // Only show old test button if:
+      // - allow_credential_test is true AND
+      // - allow_device_test is NOT being used (new approach)
+      testBtn.style.display = (step.allow_credential_test && !step.allow_device_test) ? 'block' : 'none';
+    }
+    
+    // Show save button if this step requires credentials (can save on any step that needs them)
+    if (saveBtn) saveBtn.style.display = step.requires_credentials ? 'block' : 'none';
 
-    if (stepIndex === guide.steps.length - 1 && credentialsSection) {
-      renderCredentialsForm(guide, credentialsSection);
+    // Render credentials form if this step requires credentials
+    if (step.requires_credentials && credentialsSection) {
+      renderCredentialsForm(step, credentialsSection);
     } else if (credentialsSection) {
       credentialsSection.innerHTML = '';
     }
+
+    // Render device test section independently (regardless of requires_credentials)
+    if ((step.allow_device_test || step.allow_credential_test) && credentialsSection) {
+      renderDeviceTestSection(step, credentialsSection);
+    }
   }
 
-  function renderCredentialsForm(guide, container) {
+  function renderCredentialsForm(step, container) {
     container.innerHTML = '';
+    
+    // Only render if there are credential fields
+    if (!step.credential_fields || step.credential_fields.length === 0) {
+      return;
+    }
+
+    const fieldset = document.createElement('fieldset');
+    fieldset.className = 'wizard-credentials-fieldset';
+    
     const legend = document.createElement('legend');
-    legend.textContent = 'Enter Your Credentials';
-    container.appendChild(legend);
+    legend.textContent = window._i18nMsg?.['brandSettings.modal.enterCredentials'] || 'Enter Your Credentials';
+    fieldset.appendChild(legend);
 
-    const meta = getBrandMeta(setupWizardState.brandId);
-    if (!meta) return;
-
-    const fieldIds = meta.auth_type === 'api_key' 
-      ? ['api_key'] 
-      : meta.auth_type === 'local' 
-        ? ['device_ip', ...(meta.requires_token ? ['api_key'] : [])]
-        : [];
-
-    fieldIds.forEach(fieldId => {
+    // Render each credential field from the API response
+    step.credential_fields.forEach(field => {
       const group = document.createElement('div');
       group.className = 'form-group';
 
+      // Label
       const label = document.createElement('label');
-      label.htmlFor = fieldId;
-      label.textContent = fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      label.htmlFor = field.id;
+      label.textContent = field.label || field.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      group.appendChild(label);
 
+      // Input
       const input = document.createElement('input');
-      const isPassword = fieldId.includes('password') || fieldId === 'api_key';
-      input.type = isPassword ? 'password' : 'text';
-      input.id = fieldId;
-      input.autocomplete = isPassword ? 'new-password' : 'new-password';
-      input.placeholder = fieldId.replace(/_/g, ' ');
+      input.type = field.type || 'text';
+      input.id = field.id;
+      input.name = field.id;
+      input.placeholder = field.placeholder || '';
+      input.autocomplete = (field.type === 'password') ? 'new-password' : 'off';
+      input.required = true;
+      
+      // Store input reference for credential tracking
       input.addEventListener('input', (e) => {
-        setupWizardState.credentials[fieldId] = e.target.value;
+        setupWizardState.credentials[field.id] = e.target.value;
       });
 
-      group.appendChild(label);
       group.appendChild(input);
 
-      if (guide.helpFields && guide.helpFields[fieldId]) {
+      // Help text (from help_key i18n lookup or direct help text)
+      if (field.help_key || field.help) {
         const hint = document.createElement('span');
         hint.className = 'field-hint';
-        hint.textContent = guide.helpFields[fieldId];
-        group.appendChild(hint);
+        // Try to get help from i18n by help_key, fallback to direct help text
+        if (field.help_key) {
+          hint.textContent = window._i18nMsg?.[field.help_key] || field.help || '';
+        } else {
+          hint.textContent = field.help || '';
+        }
+        if (hint.textContent) {
+          group.appendChild(hint);
+        }
       }
 
-      container.appendChild(group);
+      fieldset.appendChild(group);
     });
+
+    container.appendChild(fieldset);
+  }
+
+  function renderDeviceTestSection(step, container) {
+    const section = document.createElement('div');
+    section.className = 'wizard-device-test-section';
+    section.id = 'wizardDeviceTestSection';
+
+    // Heading
+    const heading = document.createElement('h3');
+    heading.className = 'device-test-heading';
+    heading.textContent = '📋 ' + (window._i18nMsg?.['brandSettings.modal.optionalDeviceTest'] || 'Optional: Test Device Connection');
+    section.appendChild(heading);
+
+    // Help text
+    if (step.device_test_help) {
+      const help = document.createElement('p');
+      help.className = 'device-test-help';
+      help.textContent = step.device_test_help;
+      section.appendChild(help);
+    }
+
+    // Get brand-specific device identification requirements
+    const brandMeta = getBrandMeta(setupWizardState.brandId);
+    const deviceIdentifiers = brandMeta?.device_identification_required || [];
+    
+    // If no device identifiers required for this brand, don't show test section
+    if (!deviceIdentifiers || deviceIdentifiers.length === 0) {
+      return;
+    }
+
+    // Checkbox container
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'device-test-controls';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'wizardDeviceTestCheckbox';
+    checkbox.className = 'device-test-checkbox';
+    
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = 'wizardDeviceTestCheckbox';
+    checkboxLabel.className = 'device-test-label';
+    checkboxLabel.textContent = window._i18nMsg?.['brandSettings.modal.testSpecificDevice'] || 'Test specific device';
+
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkboxLabel);
+    section.appendChild(checkboxContainer);
+
+    // Device test form (shown when checkbox is checked)
+    const deviceTestForm = document.createElement('div');
+    deviceTestForm.className = 'device-test-form';
+    deviceTestForm.style.display = 'none';
+    deviceTestForm.style.marginTop = '12px';
+    deviceTestForm.style.padding = '12px';
+    deviceTestForm.style.borderLeft = '3px solid #0969da';
+    deviceTestForm.style.backgroundColor = '#f6f8fa';
+
+    // Create input fields for all device identifiers (support multiple parameters)
+    const identifierInputs = {};
+    
+    deviceIdentifiers.forEach((identifier, index) => {
+      const inputId = `wizardDeviceIdentifier_${identifier.type}`;
+      
+      const inputLabel = document.createElement('label');
+      inputLabel.htmlFor = inputId;
+      inputLabel.style.display = 'block';
+      inputLabel.style.marginBottom = '6px';
+      inputLabel.style.fontWeight = '500';
+      inputLabel.textContent = identifier.label || identifier.type;
+      deviceTestForm.appendChild(inputLabel);
+
+      const deviceInput = document.createElement('input');
+      deviceInput.type = 'text';
+      deviceInput.id = inputId;
+      deviceInput.className = 'form-control';
+      deviceInput.placeholder = identifier.placeholder || `Enter ${identifier.label || identifier.type}...`;
+      deviceInput.style.width = '100%';
+      deviceInput.style.marginBottom = '6px';
+      deviceInput.style.padding = '6px 8px';
+      deviceInput.style.border = '1px solid #d0d7de';
+      deviceInput.style.borderRadius = '4px';
+      
+      // Store reference to input
+      identifierInputs[identifier.type] = deviceInput;
+      deviceTestForm.appendChild(deviceInput);
+
+      // Add description if available
+      if (identifier.description) {
+        const description = document.createElement('p');
+        description.style.fontSize = '12px';
+        description.style.color = '#666';
+        description.style.marginBottom = index === deviceIdentifiers.length - 1 ? '12px' : '8px';
+        description.style.marginTop = '0';
+        description.textContent = identifier.description;
+        deviceTestForm.appendChild(description);
+      } else if (index < deviceIdentifiers.length - 1) {
+        // Add spacing between fields if no description
+        const spacer = document.createElement('div');
+        spacer.style.marginBottom = '8px';
+        deviceTestForm.appendChild(spacer);
+      }
+    });
+
+    // Test button
+    const testButton = document.createElement('button');
+    testButton.type = 'button';
+    testButton.id = 'wizardDeviceTestButton';
+    testButton.className = 'btn-secondary btn-device-test';
+    testButton.textContent = step.device_test_label || window._i18nMsg?.['brandSettings.modal.testDevice'] || 'Test Device';
+    testButton.style.width = '100%';
+
+    testButton.addEventListener('click', () => {
+      // Build device identifiers object with all parameters
+      const deviceInfo = {};
+      deviceIdentifiers.forEach(identifier => {
+        const value = identifierInputs[identifier.type]?.value || '';
+        if (value.trim()) {
+          deviceInfo[identifier.type] = value.trim();
+        }
+      });
+      
+      testSpecificDevice(step, deviceInfo);
+    });
+
+    deviceTestForm.appendChild(testButton);
+    section.appendChild(deviceTestForm);
+
+    // Show/hide device test form based on checkbox
+    checkbox.addEventListener('change', () => {
+      deviceTestForm.style.display = checkbox.checked ? 'block' : 'none';
+    });
+
+    // Results container
+    const resultsContainer = document.createElement('div');
+    resultsContainer.id = 'wizardDeviceTestResults';
+    resultsContainer.className = 'device-test-results';
+    resultsContainer.style.display = 'none';
+    section.appendChild(resultsContainer);
+
+    container.appendChild(section);
+  }
+
+  async function testDeviceConnection(step) {
+    const checkbox = document.getElementById('wizardDeviceTestCheckbox');
+    const button = document.getElementById('wizardDeviceTestButton');
+    const resultsContainer = document.getElementById('wizardDeviceTestResults');
+    
+    if (!checkbox.checked) return;
+
+    // Validate credentials first
+    const missingFields = step.credential_fields.filter(
+      field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
+    );
+
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
+      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      return;
+    }
+
+    // Update button state
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = window._i18nMsg?.['brandSettings.modal.testing'] || 'Testing...';
+
+    try {
+      // Build credentials payload
+      const credentialsPayload = {};
+      step.credential_fields.forEach(field => {
+        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
+      });
+
+      const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(setupWizardState.brandId)}/test`, {
+        credentials: credentialsPayload,
+        auth_type: getBrandMeta(setupWizardState.brandId)?.authentication_type || 'unknown'
+      });
+
+      // Render results
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'block';
+
+      if (result && (result.is_valid || result.is_connected)) {
+        // Success
+        const successDiv = document.createElement('div');
+        successDiv.className = 'device-test-success';
+        
+        const message = result.message || result.is_connected
+          ? `✅ ${window._i18nMsg?.['brandSettings.modal.connectionSuccess'] || 'Connected successfully!'}`
+          : `✅ ${result.message || 'Credentials verified!'}`;
+        
+        successDiv.innerHTML = `<p>${escapeHtml(message)}</p>`;
+
+        if (result.device_count !== undefined && result.device_count > 0) {
+          const deviceList = document.createElement('ul');
+          deviceList.className = 'device-list';
+          
+          if (Array.isArray(result.devices)) {
+            result.devices.forEach(device => {
+              const li = document.createElement('li');
+              li.textContent = `${escapeHtml(device.name || device.id)} (${device.status || 'unknown'})`;
+              deviceList.appendChild(li);
+            });
+          }
+          
+          successDiv.appendChild(deviceList);
+        }
+
+        resultsContainer.appendChild(successDiv);
+      } else {
+        // Failure
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'device-test-error';
+        
+        const error = result?.error || window._i18nMsg?.['brandSettings.error.testFailed'] || 'Connection test failed';
+        const suggestion = result?.suggestion || '';
+        
+        errorDiv.innerHTML = `<p>❌ ${escapeHtml(error)}</p>`;
+        if (suggestion) {
+          errorDiv.innerHTML += `<p class="test-suggestion">${escapeHtml(suggestion)}</p>`;
+        }
+        
+        resultsContainer.appendChild(errorDiv);
+      }
+    } catch (error) {
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'block';
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'device-test-error';
+      errorDiv.innerHTML = `<p>❌ ${escapeHtml(window._i18nMsg?.['brandSettings.error.testFailed'] || 'Test failed')}: ${escapeHtml(error.message)}</p>`;
+      
+      resultsContainer.appendChild(errorDiv);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
+  async function testSpecificDevice(step, deviceInfo) {
+    const resultsContainer = document.getElementById('wizardDeviceTestResults');
+    const testButton = document.getElementById('wizardDeviceTestButton');
+
+    // Validate input - at least one identifier must be provided
+    const identifierValues = Object.values(deviceInfo);
+    if (!identifierValues || identifierValues.length === 0 || identifierValues.every(v => !v)) {
+      showToast(window._i18nMsg?.['brandSettings.validation.enterDeviceIdentifier'] || 'Please enter device identifiers');
+      return;
+    }
+
+    // Validate credentials
+    const missingFields = step.credential_fields.filter(
+      field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
+    );
+
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
+      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      return;
+    }
+
+    // Update button state
+    testButton.disabled = true;
+    const originalText = testButton.textContent;
+    testButton.textContent = window._i18nMsg?.['brandSettings.modal.testing'] || 'Testing...';
+
+    try {
+      // Build credentials payload
+      const credentialsPayload = {};
+      step.credential_fields.forEach(field => {
+        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
+      });
+
+      // Call device-specific test endpoint with all device identifiers
+      const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(setupWizardState.brandId)}/test-device`, {
+        credentials: credentialsPayload,
+        auth_type: getBrandMeta(setupWizardState.brandId)?.authentication_type || 'unknown',
+        device_info: deviceInfo  // Pass all identifiers: { device_id: "...", mac_address: "...", sku: "..." }
+      });
+
+      // Render results
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'block';
+
+      if (result && result.is_found && result.is_reachable) {
+        // Success
+        const successDiv = document.createElement('div');
+        successDiv.className = 'device-test-success';
+        
+        const message = `✅ ${result.message || 'Device found and reachable'}`;
+        successDiv.innerHTML = `<p style="font-weight: 500; margin-bottom: 8px;">${escapeHtml(message)}</p>`;
+
+        // Device details
+        const details = document.createElement('div');
+        details.style.fontSize = '14px';
+        details.style.lineHeight = '1.6';
+
+        if (result.device_name) {
+          details.innerHTML += `<div><strong>Name:</strong> ${escapeHtml(result.device_name)}</div>`;
+        }
+        if (result.device_id) {
+          details.innerHTML += `<div><strong>ID:</strong> ${escapeHtml(result.device_id)}</div>`;
+        }
+        if (result.device_type) {
+          details.innerHTML += `<div><strong>Type:</strong> ${escapeHtml(result.device_type)}</div>`;
+        }
+        if (result.status) {
+          details.innerHTML += `<div><strong>Status:</strong> ${escapeHtml(result.status)}</div>`;
+        }
+        if (result.mac_address) {
+          details.innerHTML += `<div><strong>MAC:</strong> ${escapeHtml(result.mac_address)}</div>`;
+        }
+        if (result.ip_address) {
+          details.innerHTML += `<div><strong>IP:</strong> ${escapeHtml(result.ip_address)}</div>`;
+        }
+        if (result.signal_strength !== undefined && result.signal_strength !== null) {
+          details.innerHTML += `<div><strong>Signal:</strong> ${result.signal_strength} dBm</div>`;
+        }
+        if (result.last_seen) {
+          details.innerHTML += `<div><strong>Last Seen:</strong> ${escapeHtml(result.last_seen)}</div>`;
+        }
+
+        successDiv.appendChild(details);
+        resultsContainer.appendChild(successDiv);
+      } else if (result && result.is_found === false) {
+        // Device not found
+        const notFoundDiv = document.createElement('div');
+        notFoundDiv.className = 'device-test-error';
+        
+        const message = result.message || 'Device not found';
+        notFoundDiv.innerHTML = `<p style="font-weight: 500; margin-bottom: 8px;">⚠️ ${escapeHtml(message)}</p>`;
+        
+        if (result.suggestion) {
+          notFoundDiv.innerHTML += `<p class="test-suggestion">${escapeHtml(result.suggestion)}</p>`;
+        }
+        
+        resultsContainer.appendChild(notFoundDiv);
+      } else {
+        // Other failure
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'device-test-error';
+        
+        const error = result?.error || result?.message || window._i18nMsg?.['brandSettings.error.deviceTestFailed'] || 'Device test failed';
+        const suggestion = result?.suggestion || '';
+        
+        errorDiv.innerHTML = `<p style="font-weight: 500; margin-bottom: 8px;">❌ ${escapeHtml(error)}</p>`;
+        if (suggestion) {
+          errorDiv.innerHTML += `<p class="test-suggestion">${escapeHtml(suggestion)}</p>`;
+        }
+        
+        resultsContainer.appendChild(errorDiv);
+      }
+    } catch (error) {
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'block';
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'device-test-error';
+      errorDiv.innerHTML = `<p style="font-weight: 500; margin-bottom: 8px;">❌ ${escapeHtml(window._i18nMsg?.['brandSettings.error.deviceTestFailed'] || 'Device test failed')}</p>`;
+      errorDiv.innerHTML += `<p class="test-suggestion">${escapeHtml(error.message || 'Unknown error')}</p>`;
+      
+      resultsContainer.appendChild(errorDiv);
+    } finally {
+      testButton.disabled = false;
+      testButton.textContent = originalText;
+    }
   }
 
   async function testWizardCredentials(brandId) {
-    const meta = getBrandMeta(brandId);
-    if (!meta) return;
+    const guide = setupGuidesCache.get(normalizeBrandId(brandId));
+    if (!guide || !guide.steps) {
+      showToast(window._i18nMsg?.['brandSettings.error.loadingGuide'] || 'Error loading setup guide.');
+      return;
+    }
 
-    if (!setupWizardState.credentials || Object.keys(setupWizardState.credentials).length === 0) {
-      showToast(window._i18nMsg?.['brandSettings.fillAllFields'] || 'Please fill in all credential fields.');
+    const currentStep = guide.steps[setupWizardState.currentStep];
+    // Only allow old test approach if allow_credential_test is true AND allow_device_test is NOT true
+    if (!currentStep || (!currentStep.allow_credential_test || currentStep.allow_device_test)) {
+      showToast(window._i18nMsg?.['brandSettings.error.testNotAvailable'] || 'Credential testing is not available for this step. Use the device test section below.');
+      return;
+    }
+
+    // Validate that all required credential fields have values
+    if (!currentStep.credential_fields || currentStep.credential_fields.length === 0) {
+      showToast(window._i18nMsg?.['brandSettings.error.noCredentialsRequired'] || 'No credentials to test.');
+      return;
+    }
+
+    const missingFields = currentStep.credential_fields.filter(
+      field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
+    );
+
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
+      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
       return;
     }
 
     const testBtn = document.querySelector('[data-wizard-action="test"]');
     if (testBtn) {
       testBtn.disabled = true;
-      testBtn.textContent = 'Testing...';
+      testBtn.textContent = window._i18nMsg?.['brandSettings.modal.testing'] || 'Testing...';
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      // Build credentials payload from credential_fields
+      const credentialsPayload = {};
+      currentStep.credential_fields.forEach(field => {
+        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
+      });
 
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
-        auth_type: meta.authType,
-        credentials: credentialsPayload
+        credentials: credentialsPayload,
+        auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
       });
 
       if (result && result.is_valid) {
@@ -373,42 +823,111 @@
         const msg = result.message || `✅ Credentials verified! Found ${deviceCount} device(s).`;
         showToast(msg);
       } else {
-        const error = result?.error || 'Credentials validation failed';
+        const error = result?.error || window._i18nMsg?.['brandSettings.error.validationFailed'] || 'Credentials validation failed';
         showToast(`❌ ${error}`);
       }
     } catch (error) {
-      showToast(`❌ Test failed: ${error.message}`);
+      showToast(`❌ ${window._i18nMsg?.['brandSettings.error.testFailed'] || 'Test failed'}: ${error.message}`);
     } finally {
       if (testBtn) {
         testBtn.disabled = false;
-        testBtn.textContent = 'Test Credentials';
+        testBtn.textContent = window._i18nMsg?.['brandSettings.modal.testCredentials'] || 'Test Credentials';
       }
     }
   }
 
   async function saveWizardCredentials(brandId) {
-    const meta = getBrandMeta(brandId);
-    if (!meta) return;
+    const guide = setupGuidesCache.get(normalizeBrandId(brandId));
+    if (!guide || !guide.steps) {
+      showToast(window._i18nMsg?.['brandSettings.error.loadingGuide'] || 'Error loading setup guide.');
+      return;
+    }
 
-    if (!setupWizardState.credentials || Object.keys(setupWizardState.credentials).length === 0) {
-      showToast(window._i18nMsg?.['brandSettings.fillAllFields'] || 'Please fill in all credential fields.');
+    const currentStep = guide.steps[setupWizardState.currentStep];
+    if (!currentStep || !currentStep.requires_credentials) {
+      showToast(window._i18nMsg?.['brandSettings.error.invalidStep'] || 'Invalid step.');
+      return;
+    }
+
+    // Validate that all required credential fields have values
+    if (!currentStep.credential_fields || currentStep.credential_fields.length === 0) {
+      showToast(window._i18nMsg?.['brandSettings.error.noCredentialsRequired'] || 'No credentials required for this step.');
+      return;
+    }
+
+    const missingFields = currentStep.credential_fields.filter(
+      field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
+    );
+
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
+      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
       return;
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      const saveBtn = document.querySelector('[data-wizard-action="save"]');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.saving'] || 'Saving...';
+      }
 
-      await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/connect`, {
-        auth_type: meta.authType,
-        credentials: credentialsPayload
+      // Build credentials payload from credential_fields
+      const credentialsPayload = {};
+      currentStep.credential_fields.forEach(field => {
+        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
       });
 
-      closeModal('setupWizardModal');
-      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!') + ' Please refresh to see updated status.');
+      await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/connect`, {
+        credentials: credentialsPayload,
+        auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
+      });
+
+      // Validate credentials by testing the connection
+      try {
+        const testBtn = document.querySelector('[data-wizard-action="save"]');
+        if (testBtn) {
+          testBtn.textContent = window._i18nMsg?.['brandSettings.modal.validating'] || 'Validating...';
+        }
+
+        await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
+          credentials: credentialsPayload,
+          auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
+        });
+        // Validation passed, continue to next step
+      } catch (testError) {
+        // Validation failed, prevent progression to next step
+        showToast(`❌ ${testError.message || (window._i18nMsg?.['brandSettings.error.credentialTest'] || 'Credential validation failed. Please check your credentials.')}`);
+        throw testError;
+      }
+
+      // Check if this is the last step
+      const isLastStep = setupWizardState.currentStep === guide.steps.length - 1;
+      
+      // Mark that credentials were saved (for modal close handler)
+      setupWizardCredentialsSaved = true;
+      
+      if (isLastStep) {
+        // Close dialog and show success message
+        closeModal('setupWizardModal');
+        showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!'));
+        // Reload page to reflect updated status
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      } else {
+        // Move to next step and show success message
+        showToast('✅ ' + (window._i18nMsg?.['brandSettings.stepSaved'] || 'Credentials saved. Proceeding to next step...'));
+        showSetupWizardStep(brandId, setupWizardState.currentStep + 1, guide);
+      }
     } catch (error) {
       showToast(`❌ ${error.message}`);
+    } finally {
+      const saveBtn = document.querySelector('[data-wizard-action="save"]');
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.save'] || 'Save & Connect';
+      }
     }
   }
 

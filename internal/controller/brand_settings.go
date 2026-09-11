@@ -56,23 +56,24 @@ type BrandList struct{}
 
 // CatalogBrand represents a brand from the catalog API response
 type CatalogBrand struct {
-	ID                       string                 `json:"id"`
-	Name                     string                 `json:"name"`
-	Website                  *string                `json:"website"`
-	LogoURL                  *string                `json:"logo_url"`
-	Icon                     *string                `json:"icon"`
-	BrandColor               *string                `json:"brand_color"`
-	AffiliateURL             *string                `json:"affiliate_url"`
-	AffiliateCommissionPct   *float64               `json:"affiliate_commission_percent"`
-	RequiresBrandCredentials bool                   `json:"requires_brand_credentials"`
-	RequiresToken            *bool                  `json:"requires_token"`
-	DocsURL                  *string                `json:"docs_url"`
-	DocsLabel                *string                `json:"docs_label"`
-	CredentialFields         []BrandCredentialField `json:"credential_fields"`
-	SortOrder                int                    `json:"sort_order"`
-	IsActive                 bool                   `json:"is_active"`
-	CreatedAt                *string                `json:"created_at"`
-	UpdatedAt                *string                `json:"updated_at"`
+	ID                            string                         `json:"id"`
+	Name                          string                         `json:"name"`
+	Website                       *string                        `json:"website"`
+	LogoURL                       *string                        `json:"logo_url"`
+	Icon                          *string                        `json:"icon"`
+	BrandColor                    *string                        `json:"brand_color"`
+	AffiliateURL                  *string                        `json:"affiliate_url"`
+	AffiliateCommissionPct        *float64                       `json:"affiliate_commission_percent"`
+	AuthenticationType            *string                        `json:"authentication_type"`
+	RequiresToken                 *bool                          `json:"requires_token"`
+	DocsURL                       *string                        `json:"docs_url"`
+	DocsLabel                     *string                        `json:"docs_label"`
+	CredentialFields              []BrandCredentialField         `json:"credential_fields"`
+	DeviceIdentificationRequireds []DeviceIdentificationRequired `json:"device_identification_required"`
+	SortOrder                     int                            `json:"sort_order"`
+	IsActive                      bool                           `json:"is_active"`
+	CreatedAt                     *string                        `json:"created_at"`
+	UpdatedAt                     *string                        `json:"updated_at"`
 }
 
 // CatalogBrandsResponse wraps the API response for /catalog/brands

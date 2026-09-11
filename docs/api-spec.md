@@ -131,7 +131,7 @@ This chart shows the implementation completeness of each platform's integration 
 | **Instagram** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | ✅ | 🚫 |
 | **Facebook** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | ✅ | 🚫 |
 | **TikTok** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | 🔲 | 🚫 |
-| **Kick** | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | ✅ | ✅ |
+| **Kick** | ✅ | ✅ | ✅ | ✅ | ⚠️ | 🔲 | ✅ | ✅ |
 | **X (Twitter)** | ✅ | ✅ | ✅ | 🔲 | ⚠️ | ⚠️ | 🔲 | 🚫 |
 | **Bilibili** | ✅ | ✅ | ✅ | 🔲 | 🔲 | 🔲 | 🔲 | 🔲 |
 
@@ -154,7 +154,7 @@ This chart shows the implementation completeness of each platform's integration 
 - **X** — OAuth login and user search; livestream detection and real-time comment ingestion not fully implemented (requires API v2 streaming)
 
 **Minimal/Not Implemented:**
-- **Kick** — OAuth login and channel discovery; livestream detection and real-time listener not implemented
+- **Kick** — OAuth login and channel discovery; polling-based livestream detection and real-time listener (streaming activity only, no message content)
 - **Bilibili** — OAuth login and user search; livestream detection and real-time listener not implemented
 
 ### OAuth Credentials Status
@@ -1171,8 +1171,18 @@ Response: array of user objects (same shape as above).
 
 ### Kick (`/platform/kick/...`)
 
-Kick allows anonymous WebSocket access for live chat — no user OAuth needed to receive comments.
-The public/unofficial Kick search API is **no longer available**; channel search now requires Kick OAuth.
+Kick live chat is monitored via **polling** (not real-time WebSocket). The Kick Pusher app key is disabled/rate-limited, so the listener uses REST API polling every 5 seconds to detect stream activity.
+
+#### Real-time Event Limitations
+- **Supported:** Stream going live/offline, viewer count changes
+- **Not supported:** Individual message content, message sender identification, gift type differentiation
+- **Delay:** ~5-10 second delay (not real-time)
+
+This means Kick watch conditions can trigger on:
+- `"Stream has activity"` — detects when viewer count changes significantly (±5 viewers)
+- `"Stream is live"` — detects stream start
+
+But conditions requiring message content (e.g., "Someone sent a gift", "Comment contains text") will not work on Kick.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -1185,6 +1195,14 @@ The public/unofficial Kick search API is **no longer available**; channel search
 - The unofficial Kick public search API is no longer operational.
 - Once Kick OAuth is implemented, this endpoint can be wired to the official Kick API.
 - **Portal note:** Do not show a free-text search form for Kick — searching is unavailable regardless of login state.
+
+**Listener Technical Notes:**
+- Uses REST API polling (no credentials required)
+- Polls every 5 seconds via `https://kick.com/api/v1/channels/{slug}`
+- Detects viewer count deltas (±5 viewer threshold for triggering activity)
+- Suitable for use-case: "Trigger device when stream goes live or viewer count spikes"
+- Not suitable for: Message-specific triggers, gift/subscription detection, comment filtering
+- Can be upgraded to WebSocket if/when Kick provides a working Pusher app key
 
 ---
 
@@ -1705,7 +1723,7 @@ List all brands.
     "brand_color": "#4F7EFF",
     "affiliate_url": "https://govee.mention-me.com/your-tracking-id",
     "affiliate_commission_percent": 5.50,
-    "requires_brand_credentials": true,
+    "authentication_type": "api_key",
     "docs_url": "https://developer.govee.com",
     "docs_label": "Govee Developer API",
     "credential_fields": [
@@ -1715,6 +1733,15 @@ List all brands.
         "type": "password",
         "help": "Get in Govee Home app → Profile → About Us → Request API Key",
         "placeholder": ""
+      }
+    ],
+    "device_identification_required": [
+      {
+        "type": "device_id",
+        "label": "Device ID",
+        "description": "The unique device identifier from the Govee app",
+        "placeholder": "1a2b3c4d5e6f",
+        "required": true
       }
     ],
     "sort_order": 1,
@@ -1731,10 +1758,19 @@ List all brands.
     "brand_color": "#000000",
     "affiliate_url": null,
     "affiliate_commission_percent": null,
-    "requires_brand_credentials": false,
+    "authentication_type": "none",
     "docs_url": "https://api.developer.lifx.com/",
     "docs_label": "LIFX HTTP API Documentation",
     "credential_fields": [],
+    "device_identification_required": [
+      {
+        "type": "mac_address",
+        "label": "MAC Address",
+        "description": "The MAC address of the LIFX device on your network",
+        "placeholder": "aa:bb:cc:dd:ee:ff",
+        "required": true
+      }
+    ],
     "sort_order": 2,
     "is_active": true,
     "created_at": "2026-08-04T12:44:00Z",
@@ -1749,7 +1785,7 @@ List all brands.
     "brand_color": "#FF6B6B",
     "affiliate_url": null,
     "affiliate_commission_percent": null,
-    "requires_brand_credentials": true,
+    "authentication_type": "oauth",
     "docs_url": "https://developer.tuya.com",
     "docs_label": "Tuya Developer Platform",
     "credential_fields": [
@@ -1761,7 +1797,16 @@ List all brands.
         "placeholder": ""
       }
     ],
-    "sort_order": 2,
+    "device_identification_required": [
+      {
+        "type": "device_id",
+        "label": "Device ID",
+        "description": "The unique device ID from Tuya",
+        "placeholder": "tuya_1234567890",
+        "required": true
+      }
+    ],
+    "sort_order": 3,
     "is_active": true,
     "created_at": "2024-01-15T10:30:00Z",
     "updated_at": "2024-01-15T10:30:00Z"
@@ -1787,7 +1832,7 @@ Get a brand with its product list.
     "brand_color": "#4F7EFF",
     "affiliate_url": "https://govee.mention-me.com/your-tracking-id",
     "affiliate_commission_percent": 5.50,
-    "requires_brand_credentials": true,
+    "authentication_type": "api_key",
     "docs_url": "https://developer.govee.com",
     "docs_label": "Govee Developer API",
     "credential_fields": [
@@ -1797,6 +1842,15 @@ Get a brand with its product list.
         "type": "password",
         "help": "Get in Govee Home app → Profile → About Us → Request API Key",
         "placeholder": ""
+      }
+    ],
+    "device_identification_required": [
+      {
+        "type": "device_id",
+        "label": "Device ID",
+        "description": "The unique device identifier from the Govee app",
+        "placeholder": "1a2b3c4d5e6f",
+        "required": true
       }
     ],
     "sort_order": 1,
@@ -1827,7 +1881,7 @@ Create a brand. (Admin operation — access control is portal-side for now.)
   "brand_color": "#FF5733", // optional — hex color for device card accent
   "affiliate_url": "https://acme.example.com/ref?code=TAUCHO", // optional — affiliate link for purchasing
   "affiliate_commission_percent": 5.50, // optional — commission rate (e.g., 5.50%)
-  "requires_brand_credentials": false, // optional — flag for future brand-level OAuth support
+  "authentication_type": "api_key", // required — one of: "api_key", "bearer_token", "oauth", "none"
   "docs_url": "https://developer.acme.com", // optional — documentation URL
   "docs_label": "Acme Developer Docs", // optional — documentation link label
   "credential_fields": [ // optional — array of credential field definitions for frontend form rendering
@@ -1837,6 +1891,15 @@ Create a brand. (Admin operation — access control is portal-side for now.)
       "type": "password", // "text", "password", or "info"
       "help": "Get your API key from your Acme account settings",
       "placeholder": "sk_live_..."
+    }
+  ],
+  "device_identification_required": [ // optional — array of device identifier types required for discovery
+    {
+      "type": "device_id", // identifier type: "device_id", "mac_address", "ip_address", "model_name", etc.
+      "label": "Device ID",
+      "description": "The unique device identifier from the Acme app",
+      "placeholder": "1a2b3c4d5e6f",
+      "required": true
     }
   ],
   "sort_order": 1, // optional — display order priority; null = alphabetical

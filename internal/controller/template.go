@@ -369,16 +369,17 @@ type DeviceForTemplate struct {
 
 // BrandForTemplate represents a device brand for template rendering
 type BrandForTemplate struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	LogoURL          string            `json:"logo_url"`
-	BrandColor       string            `json:"brand_color"`
-	AffiliateURL     string            `json:"affiliate_url"`
-	Icon             string            `json:"icon"`
-	CredentialFields []CredentialField `json:"credential_fields"`
-	DocsUrl          string            `json:"docs_url"`
-	DocsLabel        string            `json:"docs_label"`
-	SortOrder        int               `json:"sort_order"`
+	ID                            string                         `json:"id"`
+	Name                          string                         `json:"name"`
+	LogoURL                       string                         `json:"logo_url"`
+	BrandColor                    string                         `json:"brand_color"`
+	AffiliateURL                  string                         `json:"affiliate_url"`
+	Icon                          string                         `json:"icon"`
+	CredentialFields              []CredentialField              `json:"credential_fields"`
+	DeviceIdentificationRequireds []DeviceIdentificationRequired `json:"device_identification_required"`
+	DocsUrl                       string                         `json:"docs_url"`
+	DocsLabel                     string                         `json:"docs_label"`
+	SortOrder                     int                            `json:"sort_order"`
 }
 
 // DevicesPageData contains all data needed to render the devices page
@@ -409,58 +410,26 @@ func PrepareDevicesPageData() *DevicesPageData {
 	// Build brands map for quick lookup and sorted slice
 	for _, b := range brands {
 		brandForTemplate := &BrandForTemplate{
-			ID:               b.Id,
-			Name:             b.Name,
-			LogoURL:          b.LogoUrl,
-			BrandColor:       b.BrandColor,
-			AffiliateURL:     b.AffiliateUrl,
-			Icon:             b.Icon,
-			CredentialFields: b.CredentialFields,
-			DocsUrl:          b.DocsUrl,
-			DocsLabel:        b.DocsLabel,
-			SortOrder:        b.SortOrder,
+			ID:                            b.Id,
+			Name:                          b.Name,
+			LogoURL:                       b.LogoUrl,
+			BrandColor:                    b.BrandColor,
+			AffiliateURL:                  b.AffiliateUrl,
+			Icon:                          b.Icon,
+			CredentialFields:              b.CredentialFields,
+			DocsUrl:                       b.DocsUrl,
+			DocsLabel:                     b.DocsLabel,
+			SortOrder:                     b.SortOrder,
+			DeviceIdentificationRequireds: b.DeviceIdentificationRequireds,
 		}
 		brandsMap[b.Id] = brandForTemplate
 		brandsSorted = append(brandsSorted, brandForTemplate)
-	}
-
-	// Fetch products by brand for owned device names and supported actions
-	productsMap := make(map[string]map[string]interface{})
-	for _, brand := range brands {
-		products := catalog.ListProducts(brand.Id, true)
-		productsByID := make(map[string]interface{})
-		for _, p := range products {
-			productsByID[p.Id] = map[string]interface{}{
-				"name":    p.Name,
-				"actions": p.SupportedActions,
-			}
-		}
-		productsMap[brand.Id] = productsByID
 	}
 
 	// Convert devices to template format
 	for _, dev := range devices {
 		brand := brandsMap[dev.Brand]
 		productName := dev.ProductId
-		var actions []string
-
-		if productMap, ok := productsMap[dev.Brand]; ok {
-			if prod, ok := productMap[dev.ProductId]; ok {
-				if prodData, ok := prod.(map[string]interface{}); ok {
-					if name, ok := prodData["name"].(string); ok {
-						productName = name
-					}
-					if actionsSlice, ok := prodData["actions"].([]interface{}); ok {
-						actions = make([]string, 0)
-						for _, a := range actionsSlice {
-							if str, ok := a.(string); ok {
-								actions = append(actions, str)
-							}
-						}
-					}
-				}
-			}
-		}
 
 		brandLogo := ""
 		brandColor := "#888888"
@@ -487,7 +456,7 @@ func PrepareDevicesPageData() *DevicesPageData {
 			IsConfigured:     dev.IsConfigured,
 			BrandColor:       brandColor,
 			BrandLogo:        brandLogo,
-			SupportedActions: actions,
+			SupportedActions: dev.SupportedActions,
 			Credentials:      credentialsMap,
 		})
 	}
