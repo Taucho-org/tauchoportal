@@ -138,7 +138,7 @@ func (t *Translator) JS() template.JS {
 
 // JSByPrefix returns translations matching the given prefixes as a JSON object.
 // Useful for limiting i18n data embedded in pages (e.g., only catalog.common and catalog.govee).
-// Removes prefix from keys for easier access (e.g., "catalog.common.loading" → "loading").
+// Removes prefix from keys for easier access (e.g., "catalog.loading" → "loading").
 func (t *Translator) JSByPrefix(prefixes []string) template.JS {
 	result := make(map[string]string)
 	if t == nil || t.strings == nil {

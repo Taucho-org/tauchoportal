@@ -1,4 +1,252 @@
-{{/* Unicorn Extermination Section - Smart Devices */}}
+{{/* Unicorn Extermination Section - API-Driven Catalog */}}
 {{define "catalog-unicorn"}}
+<script>
+window._i18nCatalog = {{i18nJSON .I18n}};
+</script>
 
+<div class="catalog-unicorn brand-catalog" data-brand="unicorn">
+
+  <!-- Header with Search -->
+  <div class="catalog-header-section">
+    <h2>{{.I18n.T "catalog.unicornTitle"}}</h2>
+    <div class="search-box">
+      <input
+        type="text"
+        class="unicorn-search-input"
+        id="unicornSearch"
+        placeholder="{{.I18n.T "catalog.searchPlaceholder"}}"
+      >
+      <button type="button" class="btn-icon" onclick="clearUnicornSearch()">✕</button>
+    </div>
+  </div>
+
+  <!-- Products Grid (Scrollable) -->
+  <div class="catalog-products-wrapper">
+
+    <!-- Loading State -->
+    <div id="unicornLoading" class="loading-state" style="display: none;">
+      <div>⏳</div>
+      <div>{{.I18n.T "catalog.loading"}}</div>
+    </div>
+
+    <!-- Error State -->
+    <div id="unicornError" class="error-state" style="display: none;">
+      <div>⚠️</div>
+      <div id="errorMessage"></div>
+      <button type="button" class="retry-btn" onclick="loadUnicornProducts()">{{.I18n.T "catalog.retry"}}</button>
+    </div>
+
+    <!-- Empty State -->
+    <div id="unicornEmpty" class="empty-state" style="display: none;">
+      <div>📭</div>
+      <div>{{.I18n.T "catalog.noResults"}}</div>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="unicornProductsGrid" class="catalog-products"></div>
+  </div>
+
+  <!-- Pagination -->
+  <div id="unicornPagination" class="pagination-controls" style="display: none;">
+    <button type="button" onclick="previousUnicornPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
+    <div class="pageInfo">Page 1 of 1</div>
+    <button type="button" onclick="nextUnicornPage()" disabled>{{.I18n.T "catalog.next"}}</button>
+  </div>
+
+  <!-- Footer with links -->
+  <div class="catalog-footer">
+    <span id="resultCount">{{.I18n.T "catalog.wifiEnabled"}}</span>
+    <a href="https://unicornextermination.info" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "Unicorn Extermination Section"}}</a>
+  </div>
+</div>
+
+<script>
+function tUnicorn(key, replacements = {}) {
+  let value = window._i18nCatalog[key] || key;
+  Object.keys(replacements).forEach(k => {
+    value = value.replace(`{${k}}`, replacements[k]);
+  });
+  return value;
+}
+
+const unicornCatalogState = {
+  currentPage: 0,
+  limit: 20,
+  search: '',
+  category: '',
+  currentData: null,
+  isLoading: false
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadUnicornProducts();
+  setupUnicornSearchHandler();
+});
+
+async function loadUnicornProducts() {
+  if (unicornCatalogState.isLoading) return;
+
+  unicornCatalogState.isLoading = true;
+  showUnicornLoading(true);
+  hideUnicornError();
+
+  try {
+    const params = new URLSearchParams({
+      brand_id: 'unicorn',
+      active_only: 'true',
+      limit: unicornCatalogState.limit,
+      offset: unicornCatalogState.currentPage * unicornCatalogState.limit,
+      category: unicornCatalogState.category,
+      search: unicornCatalogState.search,
+      sort_by: 'name'
+    });
+
+    const response = await fetch(`/api/catalog/products?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    unicornCatalogState.currentData = data;
+
+    renderUnicornProducts(data.products);
+    updateUnicornPagination(data.pagination);
+    updateUnicornResultCount(data.pagination);
+    showUnicornLoading(false);
+
+  } catch (error) {
+    console.error('Error loading Unicorn products:', error);
+    showUnicornError(tUnicorn('catalog.noResults'));
+    showUnicornLoading(false);
+  } finally {
+    unicornCatalogState.isLoading = false;
+  }
+}
+
+function renderUnicornProducts(products) {
+  const grid = document.getElementById('unicornProductsGrid');
+
+  if (!products || products.length === 0) {
+    grid.innerHTML = '';
+    document.getElementById('unicornEmpty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('unicornEmpty').style.display = 'none';
+
+  grid.innerHTML = products.map(product => `
+    <div class="catalog-card-v2" data-product-id="${product.id}" data-category="${product.category}">
+      <div class="product-image">
+        <img src="${product.thumbnail_url || '/image/catalog/product-placeholder.png'}" alt="${product.name}" loading="lazy" onerror="this.src='/image/catalog/product-placeholder.png'">
+      </div>
+      <div class="product-details">
+        <div>
+          <h4>${product.name}</h4>
+          <p>${tUnicorn('catalog.productCategory', { category: product.category })}</p>
+          <div class="product-actions">
+            ${(product.supported_actions || []).map(action => `<span class="action-tag-pill">${action}</span>`).join('')}
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn-quick-add" onclick="addUnicornProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'unicorn')">${tUnicorn('catalog.addDevice')}</button>
+          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tUnicorn('catalog.buyNow')}</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateUnicornPagination(pagination) {
+  const paginationDiv = document.getElementById('unicornPagination');
+  const buttons = paginationDiv.querySelectorAll('button');
+  const pageInfo = paginationDiv.querySelector('.pageInfo');
+
+  const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
+  const totalPages = pagination.total_pages;
+
+  pageInfo.textContent = tUnicorn('catalog.pageInfo', { page: currentPage, total: totalPages });
+  buttons[0].disabled = !pagination.has_previous;
+  buttons[1].disabled = !pagination.has_next;
+
+  if (totalPages > 1) {
+    paginationDiv.style.display = 'flex';
+  } else {
+    paginationDiv.style.display = 'none';
+  }
+}
+
+function updateUnicornResultCount(pagination) {
+  const resultCount = document.getElementById('resultCount');
+  const start = pagination.offset + 1;
+  const end = Math.min(pagination.offset + pagination.limit, pagination.total);
+  resultCount.textContent = tUnicorn('catalog.showingResults', { start, end, total: pagination.total });
+}
+
+function setupUnicornSearchHandler() {
+  const searchInput = document.getElementById('unicornSearch');
+  let timeout;
+
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      unicornCatalogState.search = e.target.value;
+      unicornCatalogState.currentPage = 0;
+      loadUnicornProducts();
+    }, 300);
+  });
+}
+
+function clearUnicornSearch() {
+  document.getElementById('unicornSearch').value = '';
+  unicornCatalogState.search = '';
+  unicornCatalogState.currentPage = 0;
+  loadUnicornProducts();
+}
+
+function nextUnicornPage() {
+  if (unicornCatalogState.currentData?.pagination?.has_next) {
+    unicornCatalogState.currentPage++;
+    loadUnicornProducts();
+    scrollToTopUnicorn();
+  }
+}
+
+function previousUnicornPage() {
+  if (unicornCatalogState.currentData?.pagination?.has_previous) {
+    unicornCatalogState.currentPage--;
+    loadUnicornProducts();
+    scrollToTopUnicorn();
+  }
+}
+
+function scrollToTopUnicorn() {
+  document.querySelector('.catalog-unicorn .catalog-products-wrapper').scrollTop = 0;
+}
+
+function showUnicornLoading(show) {
+  document.getElementById('unicornLoading').style.display = show ? 'block' : 'none';
+  document.getElementById('unicornProductsGrid').style.display = show ? 'none' : 'grid';
+}
+
+function showUnicornError(message) {
+  document.getElementById('errorMessage').textContent = message;
+  document.getElementById('unicornError').style.display = 'block';
+  document.getElementById('unicornProductsGrid').style.display = 'none';
+}
+
+function hideUnicornError() {
+  document.getElementById('unicornError').style.display = 'none';
+}
+
+function addUnicornProduct(productId, productName, brand) {
+  if (window.selectProduct) {
+    window.selectProduct(brand, productId, productName);
+  } else if (window.addProductToDevices) {
+    window.addProductToDevices({ currentTarget: event.target }, brand, productId, productName);
+  } else {
+    console.warn('No device selection handler found');
+  }
+}
+</script>
 {{end}}

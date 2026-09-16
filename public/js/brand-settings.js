@@ -232,7 +232,7 @@
     document.getElementById('deviceTokenInput').value = '';
     const tokenGroup = document.getElementById('deviceTokenGroup');
     if (tokenGroup) {
-      tokenGroup.style.display = meta.requiresToken ? 'block' : 'none';
+      tokenGroup.style.display = meta.requires_token ? 'block' : 'none';
     }
     openModal('localDeviceModal');
     document.getElementById('deviceIpInput').focus();
@@ -290,6 +290,31 @@
     openModal('setupWizardModal');
   }
 
+  // Generic single-step credential modal for brands that don't have a rich
+  // multi-step setup guide yet, but do expose `credential_fields` (e.g. a
+  // brand new brand like Unicorn using email/password auth). Reuses the
+  // setup wizard modal with a synthetic single step so the form is always
+  // driven by the brand's actual credential_fields, regardless of auth_type.
+  function openGenericCredentialWizard(brandId) {
+    const meta = getBrandMeta(brandId);
+    if (!meta) return;
+
+    const guide = {
+      steps: [{
+        title: `Connect ${getBrandName(brandId)}`,
+        content: ''
+      }],
+      helpFields: {}
+    };
+    // Cache under the normalized brand id so the wizard's back/next/test/save
+    // button handlers (which look up the guide from the cache) can find it.
+    setupGuidesCache.set(normalizeBrandId(brandId), guide);
+
+    setupWizardState = { brandId, currentStep: 0, credentials: {} };
+    showSetupWizardStep(brandId, 0, guide);
+    openModal('setupWizardModal');
+  }
+
   function showSetupWizardStep(brandId, stepIndex, guide) {
     if (stepIndex < 0 || stepIndex >= guide.steps.length) return;
     setupWizardState.currentStep = stepIndex;
@@ -342,6 +367,14 @@
     }
   }
 
+  // Builds the list of credential fields to render/submit for a brand.
+  // Fully data-driven from the brand's `credential_fields` (from /catalog/brands via /auth/brands),
+  // so any auth_type (api_key, local, oauth, or new ones like Unicorn's email+password) works
+  // without brand-specific JS branches.
+  function getCredentialFieldDefs(meta) {
+    return (meta && Array.isArray(meta.credential_fields)) ? meta.credential_fields : [];
+  }
+
   function renderCredentialsForm(step, container) {
     container.innerHTML = '';
     
@@ -357,46 +390,42 @@
     legend.textContent = window._i18nMsg?.['brandSettings.modal.enterCredentials'] || 'Enter Your Credentials';
     fieldset.appendChild(legend);
 
-    // Render each credential field from the API response
-    step.credential_fields.forEach(field => {
+    const meta = getBrandMeta(setupWizardState.brandId);
+    if (!meta) return;
+
+    const fieldIds = meta.auth_type === 'api_key' 
+      ? ['api_key'] 
+      : meta.auth_type === 'local' 
+        ? ['device_ip', ...(meta.requires_token ? ['api_key'] : [])]
+        : [];
+
+    fieldIds.forEach(fieldId => {
       const group = document.createElement('div');
       group.className = 'form-group';
 
       // Label
       const label = document.createElement('label');
-      label.htmlFor = field.id;
-      label.textContent = field.label || field.id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      group.appendChild(label);
+      label.htmlFor = fieldId;
+      label.textContent = fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
       // Input
       const input = document.createElement('input');
-      input.type = field.type || 'text';
-      input.id = field.id;
-      input.name = field.id;
-      input.placeholder = field.placeholder || '';
-      input.autocomplete = (field.type === 'password') ? 'new-password' : 'off';
-      input.required = true;
-      
-      // Store input reference for credential tracking
+      const isPassword = fieldId.includes('password') || fieldId === 'api_key';
+      input.type = isPassword ? 'password' : 'text';
+      input.id = fieldId;
+      input.autocomplete = isPassword ? 'new-password' : 'new-password';
+      input.placeholder = fieldId.replace(/_/g, ' ');
       input.addEventListener('input', (e) => {
         setupWizardState.credentials[field.id] = e.target.value;
       });
 
       group.appendChild(input);
 
-      // Help text (from help_key i18n lookup or direct help text)
-      if (field.help_key || field.help) {
+      if (guide.helpFields && guide.helpFields[fieldId]) {
         const hint = document.createElement('span');
         hint.className = 'field-hint';
-        // Try to get help from i18n by help_key, fallback to direct help text
-        if (field.help_key) {
-          hint.textContent = window._i18nMsg?.[field.help_key] || field.help || '';
-        } else {
-          hint.textContent = field.help || '';
-        }
-        if (hint.textContent) {
-          group.appendChild(hint);
-        }
+        hint.textContent = guide.helpFields[fieldId];
+        group.appendChild(hint);
       }
 
       fieldset.appendChild(group);
@@ -770,6 +799,17 @@
     }
   }
 
+  // Builds the { fieldId: value } credentials payload directly from the brand's
+  // credential_fields, skipping "info" fields (which have no input).
+  function buildCredentialsPayload(meta) {
+    const payload = {};
+    getCredentialFieldDefs(meta).forEach(field => {
+      if (!field.id || field.type === 'info') return;
+      payload[field.id] = setupWizardState.credentials[field.id] || '';
+    });
+    return payload;
+  }
+
   async function testWizardCredentials(brandId) {
     const guide = setupGuidesCache.get(normalizeBrandId(brandId));
     if (!guide || !guide.steps) {
@@ -807,15 +847,13 @@
     }
 
     try {
-      // Build credentials payload from credential_fields
-      const credentialsPayload = {};
-      currentStep.credential_fields.forEach(field => {
-        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
-      });
+      const credentialsPayload = meta.auth_type === 'api_key'
+        ? { api_key: setupWizardState.credentials.api_key }
+        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
 
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
-        credentials: credentialsPayload,
-        auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
+        auth_type: meta.authType,
+        credentials: credentialsPayload
       });
 
       if (result && result.is_valid) {
@@ -866,60 +904,17 @@
     }
 
     try {
-      const saveBtn = document.querySelector('[data-wizard-action="save"]');
-      if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.saving'] || 'Saving...';
-      }
-
-      // Build credentials payload from credential_fields
-      const credentialsPayload = {};
-      currentStep.credential_fields.forEach(field => {
-        credentialsPayload[field.id] = setupWizardState.credentials[field.id];
-      });
+      const credentialsPayload = meta.auth_type === 'api_key'
+        ? { api_key: setupWizardState.credentials.api_key }
+        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
 
       await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/connect`, {
-        credentials: credentialsPayload,
-        auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
+        auth_type: meta.authType,
+        credentials: credentialsPayload
       });
 
-      // Validate credentials by testing the connection
-      try {
-        const testBtn = document.querySelector('[data-wizard-action="save"]');
-        if (testBtn) {
-          testBtn.textContent = window._i18nMsg?.['brandSettings.modal.validating'] || 'Validating...';
-        }
-
-        await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
-          credentials: credentialsPayload,
-          auth_type: getBrandMeta(brandId)?.authentication_type || 'unknown'
-        });
-        // Validation passed, continue to next step
-      } catch (testError) {
-        // Validation failed, prevent progression to next step
-        showToast(`❌ ${testError.message || (window._i18nMsg?.['brandSettings.error.credentialTest'] || 'Credential validation failed. Please check your credentials.')}`);
-        throw testError;
-      }
-
-      // Check if this is the last step
-      const isLastStep = setupWizardState.currentStep === guide.steps.length - 1;
-      
-      // Mark that credentials were saved (for modal close handler)
-      setupWizardCredentialsSaved = true;
-      
-      if (isLastStep) {
-        // Close dialog and show success message
-        closeModal('setupWizardModal');
-        showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!'));
-        // Reload page to reflect updated status
-        setTimeout(() => {
-          window.location.reload();
-        }, 800);
-      } else {
-        // Move to next step and show success message
-        showToast('✅ ' + (window._i18nMsg?.['brandSettings.stepSaved'] || 'Credentials saved. Proceeding to next step...'));
-        showSetupWizardStep(brandId, setupWizardState.currentStep + 1, guide);
-      }
+      closeModal('setupWizardModal');
+      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!') + ' Please refresh to see updated status.');
     } catch (error) {
       showToast(`❌ ${error.message}`);
     } finally {
@@ -927,6 +922,57 @@
       if (saveBtn) {
         saveBtn.disabled = false;
         saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.save'] || 'Save & Connect';
+      }
+    }
+  }
+
+  // Handle SSO (Single Sign-On) authentication
+  async function openSSOModal(brand) {
+    const meta = getBrandMeta(brand);
+    if (!meta) return;
+
+    try {
+      const emailInput = prompt(window._i18nMsg?.['brandSettings.sso.emailPrompt'] || 'Enter your email:');
+      if (!emailInput || !emailInput.trim()) {
+        return;
+      }
+
+      const button = event?.target;
+      if (button) {
+        button.disabled = true;
+        button.textContent = window._i18nMsg?.['brandSettings.modal.authenticating'] || 'Authenticating...';
+      }
+
+      const response = await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso`, {
+        email: emailInput.trim()
+      });
+
+      // Check if user exists or needs to register
+      if (response && response.user_exists === false) {
+        const registerConfirm = confirm(
+          window._i18nMsg?.['brandSettings.sso.registerConfirm'] || 
+          `User not found. Create new account for ${emailInput}?`
+        );
+        if (registerConfirm) {
+          await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso-register`, {
+            email: emailInput.trim()
+          });
+          showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.registrationSuccess'] || 'Account created successfully!'}`);
+        }
+      } else if (response && response.success) {
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.loginSuccess'] || 'Logged in successfully!'}`);
+      }
+
+      // Reload after success to reflect connection
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = window._i18nMsg?.['brandSettings.sso.authenticate'] || 'Connect with SSO';
       }
     }
   }
@@ -943,16 +989,27 @@
     }
 
     // Fall back to direct auth methods if no guide
-    if (meta.auth_type === 'oauth') {
+    if (meta.authentication_type === 'oauth') {
       openOAuthFlow(meta.id);
       return;
     }
-    if (meta.auth_type === 'api-key' || meta.auth_type === 'api_key') {
+    if (meta.authentication_type === 'api-key' || meta.authentication_type === 'api_key') {
       openApiKeyModal(meta.id);
       return;
     }
-    if (meta.auth_type === 'local') {
+    if (meta.authentication_type === 'sso') {
+      openSSOModal(meta.id);
+      return;
+    }
+    if (meta.authentication_type === 'local') {
       openLocalDeviceModal(meta.id);
+      return;
+    }
+
+    // Any other/new auth_type falls back to a generic credential form driven entirely by the brand's
+    // credential_fields, so new brands work without brand-specific JS.
+    if (getCredentialFieldDefs(meta).length > 0) {
+      openGenericCredentialWizard(meta.id);
     }
   }
 

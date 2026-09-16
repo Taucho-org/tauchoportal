@@ -1,13 +1,13 @@
-{{define "page"}}{{template "base" .}}{{end}}
+{{define "page"}}{{template "devices" .}}{{end}}
 
-{{define "head"}}
+{{define "deviceshead"}}
 <link rel="stylesheet" href="/css/modals.css">
 <link rel="stylesheet" href="/css/account-settings.css">
 <link rel="stylesheet" href="/css/brand-settings.css">
 <script src="/js/brand-settings.js" defer></script>
 {{end}}
 
-{{define "content"}}
+{{define "devicescontent"}}
 <div class="settings-container brand-settings-page">
     <div class="settings-content">
         <section class="settings-section active">
@@ -57,6 +57,7 @@
         </section>
     </div>
 </div>
+
 
 <div id="oauthModal" class="modal" style="display:none">
     <div class="modal-content modal-small" role="dialog" aria-modal="true" aria-labelledby="oauthModalTitle">
@@ -157,10 +158,12 @@
         </div>
     </div>
 </div>
+{{end}}
+
+{{define "scripts"}}
 <script>
 window._i18nMsg = {{i18nJSONByPrefix .I18n "brandSettings"}};
 window._myBrands = {{jsonMarshal .MyBrands}};
 window._allBrands = {{jsonMarshal .Brands}};
 </script>
-
 {{end}}

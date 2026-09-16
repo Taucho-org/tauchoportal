@@ -19,7 +19,7 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
         type="text" 
         class="lifx-search-input" 
         id="lifxSearch"
-        placeholder="{{.I18n.T "catalog.common.searchPlaceholder"}}"
+        placeholder="{{.I18n.T "catalog.searchPlaceholder"}}"
       >
       <button type="button" class="btn-icon" onclick="clearLifxSearch()">✕</button>
     </div>
@@ -28,16 +28,16 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
   <!-- Tab Navigation -->
   <div class="catalog-tabs">
     <button class="tab-btn active" data-tab="all" onclick="switchLifxTab(event, '')">
-      {{.I18n.T "catalog.common.allProducts"}}
+      {{.I18n.T "catalog.allProducts"}}
     </button>
     <button class="tab-btn" data-tab="bulbs" onclick="switchLifxTab(event, 'bulbs')">
-      {{.I18n.T "catalog.common.bulbs"}}
+      {{.I18n.T "catalog.bulbs"}}
     </button>
     <button class="tab-btn" data-tab="strips" onclick="switchLifxTab(event, 'strips')">
-      {{.I18n.T "catalog.common.strips"}}
+      {{.I18n.T "catalog.strips"}}
     </button>
     <button class="tab-btn" data-tab="panels" onclick="switchLifxTab(event, 'panels')">
-      {{.I18n.T "catalog.common.panels"}}
+      {{.I18n.T "catalog.panels"}}
     </button>
   </div>
 
@@ -47,20 +47,20 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
     <!-- Loading State -->
     <div id="lifxLoading" class="loading-state" style="display: none;">
       <div>⏳</div>
-      <div>{{.I18n.T "catalog.common.loading"}}</div>
+      <div>{{.I18n.T "catalog.loading"}}</div>
     </div>
 
     <!-- Error State -->
     <div id="lifxError" class="error-state" style="display: none;">
       <div>⚠️</div>
       <div id="errorMessage"></div>
-      <button type="button" class="retry-btn" onclick="loadLifxProducts()">{{.I18n.T "catalog.common.retry"}}</button>
+      <button type="button" class="retry-btn" onclick="loadLifxProducts()">{{.I18n.T "catalog.retry"}}</button>
     </div>
 
     <!-- Empty State -->
     <div id="lifxEmpty" class="empty-state" style="display: none;">
       <div>📭</div>
-      <div>{{.I18n.T "catalog.common.noResults"}}</div>
+      <div>{{.I18n.T "catalog.noResults"}}</div>
     </div>
 
     <!-- Products Grid -->
@@ -69,15 +69,15 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
 
   <!-- Pagination -->
   <div id="lifxPagination" class="pagination-controls" style="display: none;">
-    <button type="button" id="prevBtn" onclick="previousPage()" disabled>{{.I18n.T "catalog.common.previous"}}</button>
+    <button type="button" id="prevBtn" onclick="previousPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
     <div id="pageInfo">Page 1 of 1</div>
-    <button type="button" id="nextBtn" onclick="nextPage()" disabled>{{.I18n.T "catalog.common.next"}}</button>
+    <button type="button" id="nextBtn" onclick="nextPage()" disabled>{{.I18n.T "catalog.next"}}</button>
   </div>
 
   <!-- Footer with links -->
   <div class="catalog-footer">
-    <span id="resultCount">{{.I18n.T "catalog.common.wifiEnabled"}}</span>
-    <a href="https://www.lifx.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.common.visitBrand") "{brand}" "LIFX"}}</a>
+    <span id="resultCount">{{.I18n.T "catalog.wifiEnabled"}}</span>
+    <a href="https://www.lifx.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "LIFX"}}</a>
   </div>
 </div>
 
@@ -142,7 +142,7 @@ async function loadLifxProducts() {
     
   } catch (error) {
     console.error('Error loading LIFX products:', error);
-    showError(t('catalog.common.noResults'));
+    showError(t('catalog.noResults'));
     showLoading(false);
   } finally {
     lifxCatalogState.isLoading = false;
@@ -169,7 +169,7 @@ function renderProducts(products) {
       <div class="product-details">
         <div>
           <h4>${product.name}</h4>
-          <p>${t('catalog.common.productCategory', { category: product.category })}</p>
+          <p>${t('catalog.productCategory', { category: product.category })}</p>
           <div class="product-actions">
             ${(product.supported_actions || []).map(action => {
               const actionLabel = {
@@ -183,8 +183,8 @@ function renderProducts(products) {
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button type="button" class="btn-quick-add" onclick="addLifxProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'lifx')">${t('catalog.common.addDevice')}</button>
-          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${t('catalog.common.buyNow')}</a>` : ''}
+          <button type="button" class="btn-quick-add" onclick="addLifxProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'lifx')">${t('catalog.addDevice')}</button>
+          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${t('catalog.buyNow')}</a>` : ''}
         </div>
       </div>
     </div>
@@ -201,7 +201,7 @@ function updatePagination(pagination) {
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = pagination.total_pages;
   
-  pageInfo.textContent = t('catalog.common.pageInfo', { page: currentPage, total: totalPages });
+  pageInfo.textContent = t('catalog.pageInfo', { page: currentPage, total: totalPages });
   prevBtn.disabled = !pagination.has_previous;
   nextBtn.disabled = !pagination.has_next;
   
@@ -217,7 +217,7 @@ function updateResultCount(pagination) {
   const resultCount = document.getElementById('resultCount');
   const start = pagination.offset + 1;
   const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-  resultCount.textContent = t('catalog.common.showingResults', { start, end, total: pagination.total });
+  resultCount.textContent = t('catalog.showingResults', { start, end, total: pagination.total });
 }
 
 // Search with debounce

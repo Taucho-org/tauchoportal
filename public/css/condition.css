@@ -712,6 +712,10 @@ div#logictotaldescription span.or .or .and:hover::after {
   border-color: rgb(80, 45, 177);
   background-color:rgba(112, 125, 199, 0.226);
 }
+.rangeconnection {
+    line-height: 3em;
+    vertical-align: middle;
+}
 .modal.lower{
   z-index: 997;
 }

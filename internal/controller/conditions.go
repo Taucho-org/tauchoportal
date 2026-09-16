@@ -15,9 +15,22 @@ type EventSchemaField struct {
 }
 
 type EventMetadataResponse struct {
-	Platform  string                      `json:"platform"`
-	EventType string                      `json:"event_type"`
-	Fields    map[string]EventSchemaField `json:"fields"`
+	Platform  string             `json:"platform"`
+	EventType string             `json:"event_type"`
+	Fields    []EventSchemaField `json:"fields"`
+}
+
+type EventMetadataProvider struct {
+	Events []string `json:"events"`
+}
+
+type AllEventMetadataResponse struct {
+	Providers map[string]EventMetadataProvider `json:"providers"`
+}
+
+type PlatformEventMetadataResponse struct {
+	Platform string   `json:"platform"`
+	Events   []string `json:"events"`
 }
 
 type ConditionLogic struct {
@@ -224,6 +237,20 @@ func (Conditions) TestSavedCondition(id string, request TestSavedConditionReques
 func (Conditions) TestAllConditions(request TestAllConditionsRequest) TestAllConditionsResponse {
 	var result TestAllConditionsResponse
 	apiRequest(&result, http.MethodPost, "/conditions/test-all", request)
+	return result
+}
+
+// ListEventMetadata fetches all providers and supported event types from the API
+func (Conditions) ListEventMetadata() AllEventMetadataResponse {
+	var result AllEventMetadataResponse
+	apiRequest(&result, http.MethodGet, "/event-metadata")
+	return result
+}
+
+// ListEventTypes fetches supported event types for a platform from the API
+func (Conditions) ListEventTypes(platform string) PlatformEventMetadataResponse {
+	var result PlatformEventMetadataResponse
+	apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform))
 	return result
 }
 
