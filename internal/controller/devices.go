@@ -8,20 +8,21 @@ import (
 type Devices struct{}
 
 type Device struct {
-	Id            string            `json:"id"`
-	UserId        int               `json:"user_id"`
-	Name          string            `json:"name"`
-	Brand         string            `json:"brand"`
-	ProductId     string            `json:"product_id"`
-	ProductName   string            `json:"product_name"`
-	Room          string            `json:"room"`
-	IsConfigured  bool              `json:"is_configured"`
-	Status        string            `json:"status"`
-	Credentials   map[string]string `json:"credentials"`
-	DeviceGroupId string            `json:"device_group_id"`
-	SupportedActions []string       `json:"supported_actions"`
-	CreatedAt     string            `json:"created_at"`
-	UpdatedAt     string            `json:"updated_at"`
+	Id               string            `json:"id"`
+	UserId           int               `json:"user_id"`
+	Name             string            `json:"name"`
+	Brand            string            `json:"brand"`
+	ProductId        string            `json:"product_id"`
+	ProductName      string            `json:"product_name"`
+	Room             string            `json:"room"`
+	IsConfigured     bool              `json:"is_configured"`
+	Status           string            `json:"status"`
+	Credentials      map[string]string `json:"credentials"`
+	DeviceIdentifier map[string]string `json:"device_identifier"`
+	DeviceGroupId    string            `json:"device_group_id"`
+	SupportedActions []string          `json:"supported_actions"`
+	CreatedAt        string            `json:"created_at"`
+	UpdatedAt        string            `json:"updated_at"`
 }
 
 type ListDevicesResponse []Device
@@ -30,18 +31,20 @@ type CreateDeviceResponse = Device
 type UpdateDeviceResponse = Device
 
 type CreateDeviceRequest struct {
-	Name        string            `json:"name"`
-	Brand       string            `json:"brand"`
-	ProductId   string            `json:"product_id"`
-	Room        string            `json:"room"`
-	Credentials map[string]string `json:"credentials"`
+	Name             string            `json:"name"`
+	Brand            string            `json:"brand"`
+	ProductId        string            `json:"product_id"`
+	Room             string            `json:"room"`
+	Credentials      map[string]string `json:"credentials"`
+	DeviceIdentifier map[string]string `json:"device_identifier"`
 }
 
 type UpdateDeviceRequest struct {
-	Name        string            `json:"name"`
-	ProductId   string            `json:"product_id"`
-	Room        string            `json:"room"`
-	Credentials map[string]string `json:"credentials"`
+	Name             string            `json:"name"`
+	ProductId        string            `json:"product_id"`
+	Room             string            `json:"room"`
+	Credentials      map[string]string `json:"credentials"`
+	DeviceIdentifier map[string]string `json:"device_identifier"`
 }
 
 type DeleteDeviceResponse struct {

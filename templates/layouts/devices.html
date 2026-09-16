@@ -1,0 +1,16 @@
+{{define "devices"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/devices.css">
+{{block "deviceshead" .}}{{end}}
+{{end}}
+
+
+{{define "content"}}
+
+{{block "devicescontent" .}}{{end}}
+
+{{block "dialogs" .}}{{end}}
+{{block "scripts" .}}{{end}}
+
+{{end}}

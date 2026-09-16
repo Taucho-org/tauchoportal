@@ -303,6 +303,16 @@
 .device-test-error p:last-child {
     margin-bottom: 0;
 }
+    color: #7f1d1d;
+}
+
+.device-test-error p {
+    margin: 0 0 0.5rem;
+}
+
+.device-test-error p:last-child {
+    margin-bottom: 0;
+}
 
 .test-suggestion {
     font-size: 0.85rem;

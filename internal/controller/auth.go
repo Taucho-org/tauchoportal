@@ -32,6 +32,10 @@ type UserConnection_NicoNico struct {
 	Connected_at  string `json:"connected_at"`
 }
 
+type UnicornSSOAssertionResponse struct {
+	Assertion string `json:"assertion"`
+}
+
 func (Auth) GetCurrentUser() GetCurrentUserResponse {
 	var result GetCurrentUserResponse
 	apiRequest(&result, http.MethodGet, "/auth/user")

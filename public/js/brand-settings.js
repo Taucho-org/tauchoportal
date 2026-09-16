@@ -926,6 +926,57 @@
     }
   }
 
+  // Handle SSO (Single Sign-On) authentication
+  async function openSSOModal(brand) {
+    const meta = getBrandMeta(brand);
+    if (!meta) return;
+
+    try {
+      const emailInput = prompt(window._i18nMsg?.['brandSettings.sso.emailPrompt'] || 'Enter your email:');
+      if (!emailInput || !emailInput.trim()) {
+        return;
+      }
+
+      const button = event?.target;
+      if (button) {
+        button.disabled = true;
+        button.textContent = window._i18nMsg?.['brandSettings.modal.authenticating'] || 'Authenticating...';
+      }
+
+      const response = await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso`, {
+        email: emailInput.trim()
+      });
+
+      // Check if user exists or needs to register
+      if (response && response.user_exists === false) {
+        const registerConfirm = confirm(
+          window._i18nMsg?.['brandSettings.sso.registerConfirm'] || 
+          `User not found. Create new account for ${emailInput}?`
+        );
+        if (registerConfirm) {
+          await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso-register`, {
+            email: emailInput.trim()
+          });
+          showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.registrationSuccess'] || 'Account created successfully!'}`);
+        }
+      } else if (response && response.success) {
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.loginSuccess'] || 'Logged in successfully!'}`);
+      }
+
+      // Reload after success to reflect connection
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = window._i18nMsg?.['brandSettings.sso.authenticate'] || 'Connect with SSO';
+      }
+    }
+  }
+
   async function handleBrandAction(brandId) {
     const meta = getBrandMeta(brandId);
     if (!meta) return;
@@ -946,13 +997,16 @@
       openApiKeyModal(meta.id);
       return;
     }
+    if (meta.authentication_type === 'sso') {
+      openSSOModal(meta.id);
+      return;
+    }
     if (meta.authentication_type === 'local') {
       openLocalDeviceModal(meta.id);
       return;
     }
 
-    // Any other/new auth_type (e.g. a brand using email+password like Unicorn)
-    // falls back to a generic credential form driven entirely by the brand's
+    // Any other/new auth_type falls back to a generic credential form driven entirely by the brand's
     // credential_fields, so new brands work without brand-specific JS.
     if (getCredentialFieldDefs(meta).length > 0) {
       openGenericCredentialWizard(meta.id);

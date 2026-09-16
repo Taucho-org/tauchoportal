@@ -40,7 +40,7 @@ type PageData struct {
 	EventTypes              []string
 	ChannelDetail           *controller.ChannelDetailForTemplate
 	ChannelDetailConditions []controller.ConditionDetailForTemplate
-	Devices                 *controller.DevicesPageData
+	Devices                 []controller.DeviceForTemplate
 	Channels                *controller.ChannelsPageData
 	Dashboard               *controller.DashboardPageData
 	MyBrands                []controller.MyConnectedBrand
@@ -340,6 +340,7 @@ func loadTemplates() map[string]*template.Template {
 
 	baseLayoutPath := filepath.Join("templates", "layouts", "base.html")
 	channelLayoutPath := filepath.Join("templates", "layouts", "channels.html")
+	deviceLayoutPath := filepath.Join("templates", "layouts", "devices.html")
 	headerPath := filepath.Join("templates", "partials", "header.html")
 	nologinheaderPath := filepath.Join("templates", "partials", "nologinheader.html")
 	loginPath := filepath.Join("templates", "partials", "login.html")
@@ -431,7 +432,17 @@ func loadTemplates() map[string]*template.Template {
 	for _, pagePath := range pages {
 		name := strings.TrimSuffix(filepath.Base(pagePath), filepath.Ext(pagePath))
 		// Combine all file paths for parsing
-		filePaths := []string{baseLayoutPath, channelLayoutPath, headerPath, nologinheaderPath, loginPath, pagePath}
+		// Only include the appropriate layout based on the page type to avoid template conflicts
+		filePaths := []string{baseLayoutPath, headerPath, nologinheaderPath, loginPath, pagePath}
+
+		// Add the appropriate layout file based on page name
+		switch name {
+		case "channel", "channels", "conditions", "condition":
+			filePaths = append([]string{channelLayoutPath}, filePaths...)
+		case "devices", "brand-settings":
+			filePaths = append([]string{deviceLayoutPath}, filePaths...)
+		}
+
 		filePaths = append(filePaths, catalogFiles...)
 
 		tmpl, err := template.New(name).Funcs(funcMap).ParseFiles(filePaths...)
@@ -576,12 +587,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Dashboard = pageData
 	}
 
-	// Fetch devices page data if on /devices page
-	if cfg.Name == "devices" {
-		pageData := controller.PrepareDevicesPageData()
-		data.Devices = pageData
-	}
-
 	// Fetch channels page data if on /channels page
 	if cfg.Name == "channels" {
 		pageData := controller.PrepareChannelsPageData()
@@ -589,12 +594,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch brand-settings page data if on /brand-settings page
-	if cfg.Name == "brand-settings" {
+	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
 		myBrandSettings := controller.MyBrandSettings{}
 		data.MyBrands = myBrandSettings.ListMyBrands()
 
 		brandList := controller.BrandList{}
 		data.Brands = brandList.ListAll()
+
+		data.Devices = controller.PrepareDevicesPageData(data.Brands)
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "page", data); err != nil {

@@ -359,9 +359,20 @@ class ConditionEditor {
             inputnumbutton.setAttribute("operator", operator);
             const currentObj = this;
             inputnumbutton.onclick = function() {
-                this.open(currentObj);
-            }.bind(this.numericDialog);
-            area.append(inputnumbutton);
+                this.open(currentObj, function(disp,val,type,exttype,extval){
+                    const parentjson = this.getJSON();
+                    const currentnode = this._getSubCondition(parentjson, path);
+                    if (type === "env") {
+                        currentnode.SubConditions = [];
+                        currentnode.SubConditions.push({"Operator": this.operatormap[exttype], "Variables": [extval],"SubConditions": [{"Operator": "PARAM", "Variables": [val],"SubConditions": null}]});
+                    } else if (type == "variable") {
+                        currentnode.Variables = [];
+                        currentnode.Variables.push(val);
+                    }
+                    this.setJSON(parentjson);
+                }.bind(this)).bind(this);
+                area.append(inputnumbutton);
+            }
         } else if (this.textextractors.includes(operator)) {
             if ((!jsonnode.SubConditions || jsonnode.SubConditions.length < 1) && (!jsonnode.Variables || jsonnode.Variables.length < 1)) {
                 const inputtextbutton = document.createElement("div");
@@ -1494,6 +1505,7 @@ class TextDialogHandler {
             callback(dispval, val, type, exttype, extval);
             document.getElementById("textModal").style["display"] = "none";
         }.bind(this);
+        return this;
     }
 
     validate() {
@@ -1694,15 +1706,14 @@ class NumericDialogHandler {
             const calcvalinputbutton = document.createElement("div");
             calcvalinputbutton.classList.add("calcvalinputbutton");
             calcvalinputbutton.innerText = translations["calcvalinput"];
-            calcvalinputbutton.onclick = this.appendValue.bind(this);
+            calcvalinputbutton.onclick = this.openTextInput.bind(this);
             document.getElementById("calctoolarea").appendChild(calcvalinputbutton);
         }
-        const self = this;
         window.onkeyup = function(e) {
-            if (self.keyupEvent) {
-                self.keyupEvent(e);
+            if (window.keyupEvent) {
+                window.keyupEvent.call(this, e);
             }
-        }
+        }.bind(this);
     }
 
     /**
@@ -1723,7 +1734,7 @@ class NumericDialogHandler {
             callback(document.getElementById("calcformula").value, document.getElementById("calcdisplay").innerText);
             document.getElementById("numModal").style["display"] = "none";
         }
-        this.keyupEvent = function(e) {
+        window.keyupEvent = function(e) {
             if (e.key === "Escape") {
                 document.getElementById("numModal").style["display"] = "none";
             } else if (e.key === "Enter") {
@@ -1733,8 +1744,19 @@ class NumericDialogHandler {
                 }
             } else if (!isNaN(e.key)) {
                 this.typeNumericValue(parseInt(e.key));
+            } else if (e.key === "+") {
+                this.appendOperator("ADD");
+            } else if (e.key === "-") {
+                this.appendOperator("SUBTRACT");
+            } else if (e.key === "*") {
+                this.appendOperator("MULTIPLY");
+            } else if (e.key === "/") {
+                this.appendOperator("DIVIDE");
+            } else if (e.key === "%") {
+                this.appendOperator("MODULO");
             }
         }
+        return this;
     }
 
     /**
@@ -1761,6 +1783,7 @@ class NumericDialogHandler {
     typeNumericValue(value) {
         const current = document.getElementById("calcformula").value;
         let formula;
+        let placeHolderReplaced = false;
         try {
             formula = JSON.parse(current);
         } catch {
@@ -1771,24 +1794,34 @@ class NumericDialogHandler {
         let targetNode = formula;
         for (const part of pathParts) {
             const [type, index] = part.split(":");
-            if (type === "sub" && targetNode.SubConditions && targetNode.SubConditions[index]) {
-                targetNode = targetNode.SubConditions[index];
+            if (type === "sub" && targetNode.SubConditions) {
+                if (targetNode.SubConditions[index]) {
+                    targetNode = targetNode.SubConditions[index];
+                } else {
+                    targetNode.SubConditions[index] = {"Operator": "PARSEINT", "SubConditions": null, "Variables": []};
+                    targetNode = targetNode.SubConditions[index];
+                }
+            } else if (type === "placeholder" && targetNode.SubConditions && targetNode.SubConditions[index]) {
+                targetNode.SubConditions[targetNode.SubConditions.length] = {"Operator": "PARSEINT", "SubConditions": null, "Variables": [value]};
+                placeHolderReplaced = true;
             } else {
                 console.error(`Invalid path: ${cursorpath}`);
                 return;
             }
         }
-        if (targetNode.Operator === "PARSEINT" && !targetNode.SubConditions) {
-            if (targetNode.Variables && targetNode.Variables.length > 0 && !isNaN(targetNode.Variables[0])) {
-                targetNode.Variables[0] = targetNode.Variables[0] + value.toString();
+        if (!placeHolderReplaced) {
+            if (targetNode.Operator === "PARSEINT" && !targetNode.SubConditions) {
+                if (targetNode.Variables && targetNode.Variables.length > 0 && !isNaN(targetNode.Variables[0])) {
+                    targetNode.Variables[0] = targetNode.Variables[0] + value.toString();
+                } else {
+                    targetNode.Variables = [value];
+                }
+            } else if (targetNode.SubConditions && targetNode.SubConditions.length === 1 && targetNode.SubConditions[0].Operator === "PARSEINT") {
+                targetNode.SubConditions[0].Variables = [value];
             } else {
+                targetNode.Operator = "PARSEINT";
                 targetNode.Variables = [value];
             }
-        } else if (targetNode.SubConditions && targetNode.SubConditions.length === 1 && targetNode.SubConditions[0].Operator === "PARSEINT") {
-            targetNode.SubConditions[0].Variables = [value];
-        } else {
-            targetNode.Operator = "PARSEINT";
-            targetNode.Variables = [value];
         }
         document.getElementById("calcformula").value = JSON.stringify(formula);
         this.visualizeFormula(formula); 
@@ -1797,9 +1830,9 @@ class NumericDialogHandler {
     /**
      * Appends a value to the calculation formula
      */
-    appendValue() {
-        const keyEventEvac = this.keyupEvent;
-        this.keyupEvent = null;
+    openTextInput() {
+        const keyEventEvac = window.keyupEvent;
+        window.keyupEvent = null;
         this.editor.textDialog.open(null, null, null, null, true, true, function(dispval, val, type, exttype, extval){
             let appendnode;
             if (type == "env") {
@@ -1814,8 +1847,9 @@ class NumericDialogHandler {
             if (appendnode) {
                 this.appendItemToFormula(appendnode);
             }
-            this.keyupEvent = keyEventEvac;
+            window.keyupEvent = keyEventEvac;
         }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
+        document.getElementById("textModal").ondialogclose = function(){ window.keyupEvent = keyEventEvac; };
     }
 
     /**
@@ -2335,6 +2369,7 @@ class NumericDialogHandler {
 
     appendWrappedOperatorToFormula(operator) {
         const cursorpath = document.getElementById("calccursorpos").value;
+        let cursor = "";
         let formula;
         if (document.getElementById("calcformula").value) {
             formula = JSON.parse(document.getElementById("calcformula").value);
@@ -2352,23 +2387,27 @@ class NumericDialogHandler {
                     } else if (type == "const") {
                         targetcontainer = targetcontainer.Variables[index];
                     }
+                    cursor += type + ":" + index + "/";
                 }
             }
             let elem = {"Operator": operator, SubConditions: [], Variables: []};
             if (parseInt(targetcontainer) || typeof targetcontainer == "string") {
                 elem.Variables = [targetcontainer];
+                cursor += "/const:1";
             } else {
                 elem.SubConditions = [structuredClone(targetcontainer)];
+                cursor += "/sub:1";
             }
             targetcontainer.Operator = operator;
             targetcontainer.SubConditions = elem.SubConditions;
             targetcontainer.Variables = elem.Variables;
         } else {
             formula = {"Operator": operator, SubConditions: [], Variables: []};
+            cursor = "/sub:0";
         }
         document.getElementById("calcformula").value = JSON.stringify(formula);
         this.visualizeFormula();
-        document.getElementById("calccursorpos").value = document.getElementById("calccursorpos").value.replace("placeholder", "sub");
+        document.getElementById("calccursorpos").value = cursor.replace("placeholder", "sub");
         this.validate();
     }
 
@@ -2395,7 +2434,7 @@ class NumericDialogHandler {
      */
     fillPlaceHolder(e) {
         document.getElementById("calccursorpos").value = e.target.getAttribute("path");
-        this.appendValue();
+        this.openTextInput();
         event.stopPropagation();
     }
 }
@@ -2407,6 +2446,9 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = "none";
+        if (modal.ondialogclose) {
+            modal.ondialogclose();
+        }
     }
 }
 
