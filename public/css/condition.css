@@ -21,6 +21,7 @@
     width: 42%;
     height: 100%;
     border-right: 1px solid #e0e7ff;
+    min-width: 200px;
 }
 
 .toolbox h3 {
@@ -45,7 +46,7 @@
 
 /* Template Cards */
 #templateCards {
-    display: flex !important;
+    display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
@@ -75,14 +76,6 @@
 .template-card-desc {
     font-size: 0.75rem;
     color: #6b7280;
-}
-
-
-#templateLibraryHint {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-    padding: 0 0.75rem;
 }
 
 /* Empty State */
@@ -212,7 +205,6 @@ display:none;
 	overflow: hidden;
     color: lightgrey;
     border-top: 1px dotted lightgray;
-    padding-top: 0.7em;
 }
 #drawingArea>div.detailarea>.subcondition>.item:hover>.detailarea {
 	max-height: 20em;
@@ -312,6 +304,7 @@ legend{
 }
 fieldset{
     border: none;
+    margin-right: 0.5em;
 }
 .item.equals,
 .item.includes,
@@ -409,6 +402,12 @@ fieldset{
     padding: 1rem;
     display: inline-block;
     border-radius: 4px;
+}
+
+.item .variable.range{
+    background-color: rgb(200 79 8 / 12%);
+    border: 1px solid rgb(200 35 8 / 52%);
+    color: #c83608;
 }
 
 .item.focus{
@@ -713,6 +712,10 @@ div#logictotaldescription span.or .or .and:hover::after {
   border-color: rgb(80, 45, 177);
   background-color:rgba(112, 125, 199, 0.226);
 }
+.rangeconnection {
+    line-height: 3em;
+    vertical-align: middle;
+}
 .modal.lower{
   z-index: 997;
 }
@@ -905,8 +908,21 @@ fieldset.item.last .param .variable {
 fieldset.item.regex_extract > .icons,
 fieldset.item.substring > .icons,
 fieldset.item.first > .icons,
-fieldset.item.last > .icons {
+fieldset.item.last > .icons,
+fieldset.item.parseint > .icons {
     display:none;
+}
+fieldset.item.and > .icons > .edit,
+fieldset.item.or > .icons > .edit,
+fieldset.item.not > .icons > .edit,
+fieldset.item.some > .icons > .edit {
+    display:none;
+}
+#sendingParameterArea fieldset.item.regex_extract > .icons,
+#sendingParameterArea fieldset.item.substring > .icons,
+#sendingParameterArea fieldset.item.first > .icons,
+#sendingParameterArea fieldset.item.last > .icons {
+    display:block;
 }
 fieldset.item.regex_extract>.detailarea>div,
 fieldset.item.substring>.detailarea>div,

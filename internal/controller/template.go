@@ -96,21 +96,9 @@ func EscapeHTML(s string) string {
 // GetPlatformMetadata returns metadata for all supported platforms
 // Icon data is fetched from the SVG files via icons.Get() in templates
 func GetPlatformMetadata(cond Conditions) map[string]map[string]interface{} {
-	platforms := []string{
-		"youtube",
-		"twitch",
-		"niconico",
-		"bilibili",
-		"tiktok",
-		"instagram",
-		"facebook",
-		"kick",
-		"twitcasting",
-		"x",
-	}
-
+	metadata := cond.ListEventMetadata()
 	platformMeta := make(map[string]map[string]interface{})
-	for _, platform := range platforms {
+	for platform := range metadata.Providers {
 		platformMeta[platform] = map[string]interface{}{
 			"label": capitalize(platform),
 		}
@@ -144,26 +132,37 @@ func GetEventBadgeClasses(cond Conditions) map[string]string {
 
 // GetEventFieldOptions returns available fields from the event schema with translated labels
 func GetEventFieldOptions(cond Conditions, platform, eventType string, translator *i18n.Translator) []EventFieldOption {
-	// Fetch available parameters from platform config API
-	platformConfig := PlatformConfig{}
-	parameters := platformConfig.GetAvailableParameters(platform, eventType)
+	metadata := cond.GetEventMetadata(platform, eventType)
 
 	var options []EventFieldOption
+	fields := append([]EventSchemaField(nil), metadata.Fields...)
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Name < fields[j].Name
+	})
 
-	// Convert parameters to field options with translations
-	for _, param := range parameters {
-		label := param.Name
+	// Convert event metadata fields to options with platform-specific translations.
+	for _, field := range fields {
+		fieldName := field.Name
+		if fieldName == "" {
+			continue
+		}
+		label := field.Name
 		if translator != nil {
-			// Look up translation key: condition.eventProp.{fieldname}.label
-			translationKey := "condition.eventProp." + param.Name + ".label"
+			// A field can have different meanings on different platforms, so keep the
+			// platform in the key: condition.schema.{platform}.{field}.label.
+			translationKey := "condition.schema." + platform + "." + fieldName + ".label"
 			translatedLabel := translator.T(translationKey)
 			// If translation found (not the key itself), use it
 			if translatedLabel != "" && translatedLabel != translationKey {
 				label = translatedLabel
+			} else if field.Description != "" {
+				// The API description is the best fallback for newly added fields that
+				// have not yet received a locale entry.
+				label = field.Description
 			}
 		}
 		options = append(options, EventFieldOption{
-			Name:  param.Name,
+			Name:  fieldName,
 			Label: label,
 		})
 	}
@@ -377,6 +376,27 @@ type BrandForTemplate struct {
 	SortOrder                     int                            `json:"sort_order"`
 }
 
+func credentialFieldsForTemplate(fields []BrandCredentialField) []CredentialField {
+	result := make([]CredentialField, 0, len(fields))
+	for _, field := range fields {
+		result = append(result, CredentialField{
+			Id:          field.Id,
+			Label:       field.Label,
+			Type:        field.Type,
+			Help:        field.Help,
+			Placeholder: field.Placeholder,
+		})
+	}
+	return result
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
 // DevicesPageData contains all data needed to render the devices page
 type DevicesPageData struct {
 	Devices                []DeviceForTemplate
@@ -387,41 +407,36 @@ type DevicesPageData struct {
 }
 
 // PrepareDevicesPageData prepares all data needed to render the devices page
-func PrepareDevicesPageData() *DevicesPageData {
-	// Fetch all devices
+func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 	devices := Devices{}.ListDevices()
 	devicesForTemplate := make([]DeviceForTemplate, 0)
 
 	// Fetch all active brands from catalog
-	catalog := Catalog{}
-	brands := catalog.ListBrands(true)
 	brandsMap := make(map[string]*BrandForTemplate)
 	brandsSorted := make([]*BrandForTemplate, 0)
 	deviceTemplatesByBrand := make(map[string][]DeviceTemplate)
 
-	// Sort brands by sort_order
-	sort.Slice(brands, func(i, j int) bool {
-		return brands[i].SortOrder < brands[j].SortOrder
-	})
-
 	// Build brands map for quick lookup and sorted slice
-	for _, b := range brands {
+	sort.Slice(brandList, func(i, j int) bool {
+		return brandList[i].SortOrder < brandList[j].SortOrder
+	})
+	for _, b := range brandList {
 		brandForTemplate := &BrandForTemplate{
-			ID:                            b.Id,
+			ID:                            b.ID,
 			Name:                          b.Name,
-			LogoURL:                       b.LogoUrl,
-			BrandColor:                    b.BrandColor,
-			AffiliateURL:                  b.AffiliateUrl,
-			Icon:                          b.Icon,
-			CredentialFields:              b.CredentialFields,
-			DocsUrl:                       b.DocsUrl,
-			DocsLabel:                     b.DocsLabel,
+			LogoURL:                       stringValue(b.LogoURL),
+			BrandColor:                    stringValue(b.BrandColor),
+			AffiliateURL:                  stringValue(b.AffiliateURL),
+			Icon:                          stringValue(b.Icon),
+			CredentialFields:              credentialFieldsForTemplate(b.CredentialFields),
+			DocsUrl:                       stringValue(b.DocsURL),
+			DocsLabel:                     stringValue(b.DocsLabel),
 			SortOrder:                     b.SortOrder,
 			DeviceIdentificationRequireds: b.DeviceIdentificationRequireds,
 		}
-		brandsMap[b.Id] = brandForTemplate
+		brandsMap[b.ID] = brandForTemplate
 		brandsSorted = append(brandsSorted, brandForTemplate)
-		deviceTemplatesByBrand[b.Id] = DeviceTemplates{}.ListTemplatesByBrand(b.Id)
+		deviceTemplatesByBrand[b.ID] = DeviceTemplates{}.ListTemplatesByBrand(b.ID)
 	}
 
 	// Convert devices to template format
@@ -432,12 +447,13 @@ func PrepareDevicesPageData() *DevicesPageData {
 			productName = dev.ProductId
 		}
 
-		brandLogo := ""
 		brandColor := "#888888"
-
+		brandLogo := ""
 		if brand != nil {
 			brandLogo = brand.LogoURL
-			brandColor = brand.BrandColor
+			if brand.BrandColor != "" {
+				brandColor = brand.BrandColor
+			}
 		}
 
 		// Use device identifiers directly as a map.
@@ -445,7 +461,6 @@ func PrepareDevicesPageData() *DevicesPageData {
 		if deviceIdentifier == nil {
 			deviceIdentifier = make(map[string]string)
 		}
-
 		devicesForTemplate = append(devicesForTemplate, DeviceForTemplate{
 			ID:               dev.Id,
 			Name:             dev.Name,
@@ -521,10 +536,12 @@ func PrepareChannelsPageData() *ChannelsPageData {
 
 // ConditionPageData contains all data needed to render the condition logic page
 type ConditionPageData struct {
-	CurrentChannel    *ChannelForTemplate
-	Condition         *ConditionForTemplate
-	PlatformMeta      map[string]map[string]interface{}
-	EventFieldOptions []EventFieldOption
+	CurrentChannel      *ChannelForTemplate
+	Condition           *ConditionForTemplate
+	PlatformMeta        map[string]map[string]interface{}
+	EventFieldOptions   []EventFieldOption
+	ConditionTemplates  []ConditionTemplate
+	ConditionProperties []EventSchemaField
 }
 
 // PrepareConditionPageData prepares all data needed to render a single condition logic page
@@ -562,10 +579,16 @@ func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Tr
 		DeviceActionParams: string(deviceActionParamsJSON),
 	}
 
+	// Fetch condition templates for this event type
+	eventMeta := EventMetadata{}
+	templatesResponse := eventMeta.GetTemplatesForEvent(currentChannel.Platform, condition.EventType)
+
 	return &ConditionPageData{
-		CurrentChannel:    currentChannel,
-		Condition:         condForTemplate,
-		PlatformMeta:      GetPlatformMetadata(cond),
-		EventFieldOptions: GetEventFieldOptions(cond, currentChannel.Platform, condition.EventType, translator),
+		CurrentChannel:     currentChannel,
+		Condition:          condForTemplate,
+		PlatformMeta:       GetPlatformMetadata(cond),
+		EventFieldOptions:  GetEventFieldOptions(cond, currentChannel.Platform, condition.EventType, translator),
+		ConditionTemplates: templatesResponse.Templates,
+		//		ConditionProperties:     templatesResponse.Properties,
 	}
 }

@@ -35,10 +35,18 @@
       
       <h4>{{.I18n.T "condition.templates.heading"}}</h4>
       <div id="currentEventType" style="display:none;">{{.Condition.EventType}}</div>
-      <div id="templateLibraryHint">{{.I18n.T "condition.templates.hint"}}</div>
-      <div id="templateCards"></div>
-      <div id="templateEmptyState">{{.I18n.T "condition.templates.empty"}}</div>
-      
+      {{if eq .ConditionTemplates nil}}
+        <div id="templateEmptyState">{{.I18n.T "condition.templates.empty" ($.I18n.T (print "channels." .CurrentChannel.Platform)) ($.I18n.T (print "event.type." .Condition.EventType))}}</div>
+      {{else}}
+        <div id="templateCards">
+        {{range .ConditionTemplates}}
+        <div class="template-card" onclick="conditionEditor.addTemplate('{{toJSON .JSON}}')" title="Click to add: {{($.I18n.T .NameKey .Name)}}">
+          <h5 class="template-card-name">{{$.I18n.T .NameKey .Name}}</h5>
+          <p class="template-card-desc">{{$.I18n.T .DescriptionKey .Description}}</p>
+        </div>
+        {{end}}
+        </div>
+      {{end}}
       <h4 style="margin-top:1rem;">{{.I18n.T "condition.tools.heading"}}</h4>
       <div class="toolutils">
         <!-- Regex Tester Tool -->
@@ -159,7 +167,7 @@
                 <h4><input id="textenvradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.selectInput"}}</h4>
                 <select id="textEnvSelect">
                     {{range .EventFieldOptions}}
-                    <option value="{{.Name}}" data-translation-key="condition.eventProp.{{.Name}}.label">{{.Label}}</option>
+                    <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
                     {{end}}
                 </select>
                 </div>
@@ -216,6 +224,24 @@
         </div>
     </div>
 
+    <div id="textRangeModal" class="modal">
+        <div class="modal-content modal-middle">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('textRangeModal')">×</span>
+                <p>{{.I18n.T "condition.modal.range.description"}}</p>
+            </div>
+            <div id="textRangeBody" class="modal-body textselection">
+                <input id="textRangeFrom" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
+                <span class="rangeconnection">{{.I18n.T "condition.modal.range.connection"}}</span>
+                <input id="textRangeTo"   type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('textRangeModal')">{{.I18n.T "condition.button.cancel"}}</button>
+                <button id="textRangeSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
+            </div>
+        </div>
+    </div>
+
     <div id="textConditionModal" class="modal">
         <div class="modal-content modal-small">
             <div class="modal-header">
@@ -250,45 +276,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('textConditionModal')">{{.I18n.T "condition.button.cancel"}}</button>
                 <button id="textConditionModalButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="eventInspectorModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <span class="close" onclick="closeModal('eventInspectorModal')">×</span>
-                <h2>{{.I18n.T "condition.modal.eventInspector.title"}}</h2>
-                <p>{{.I18n.T "condition.modal.eventInspector.description"}}</p>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom:1rem;">
-                    <div><strong>{{.I18n.T "condition.modal.eventInspector.platform"}}:</strong> <span id="eventInspectorPlatform">-</span></div>
-                    <div><strong>{{.I18n.T "condition.modal.eventInspector.eventType"}}:</strong> <span id="eventInspectorEventType">-</span></div>
-                </div>
-                <div id="eventInspectorProperties" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('eventInspectorModal')">{{.I18n.T "condition.button.close"}}</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="conditionTemplateInputModal" class="modal">
-        <div class="modal-content modal-small">
-            <div class="modal-header">
-                <span class="close" onclick="closeConditionTemplateInput()">×</span>
-                <h2 id="conditionTemplateInputTitle">{{.I18n.T "condition.modal.templateInput.title"}}</h2>
-                <p id="conditionTemplateInputDescription">{{.I18n.T "condition.modal.templateInput.description"}}</p>
-            </div>
-            <div class="modal-body">
-                <label id="conditionTemplateInputLabel" for="conditionTemplateInputField" style="display:block; margin-bottom:0.5rem; font-weight:600;">{{.I18n.T "condition.modal.templateInput.value"}}</label>
-                <input id="conditionTemplateInputField" type="text" style="width:100%; padding:0.5rem;">
-                <select id="conditionTemplateSelectField" style="display:none; width:100%; padding:0.5rem;"></select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeConditionTemplateInput()">{{.I18n.T "condition.button.cancel"}}</button>
-                <button id="conditionTemplateInputSubmit" type="button" class="btn btn-primary">{{.I18n.T "condition.modal.templateInput.submit"}}</button>
             </div>
         </div>
     </div>
@@ -426,6 +413,12 @@
 <script id="conditionEventFieldOptionsData" type="application/json">
 {{.EventFieldOptions | jsonMarshal}}
 </script>
+<script id="conditionTemplatesData" type="application/json">
+{{.ConditionTemplates | jsonMarshal}}
+</script>
+<script id="conditionPropertiesData" type="application/json">
+{{.ConditionProperties | jsonMarshal}}
+</script>
 <script>
 var translations = JSON.parse(document.getElementById('conditionTranslationsData').textContent);
 </script>
@@ -440,7 +433,9 @@ const conditionToolboxContext = {
     platform: conditionView?.dataset?.platform || '',
     eventType: (document.getElementById('currentEventType')?.innerText || conditionView?.dataset?.eventType || '').trim(),
     channelName: conditionView?.dataset?.channelName || '',
-    eventFieldOptions: JSON.parse(document.getElementById('conditionEventFieldOptionsData').textContent || '[]')
+    eventFieldOptions: JSON.parse(document.getElementById('conditionEventFieldOptionsData').textContent || '[]'),
+    conditionTemplates: JSON.parse(document.getElementById('conditionTemplatesData').textContent || '[]'),
+    conditionProperties: JSON.parse(document.getElementById('conditionPropertiesData').textContent || '[]')
 };
 
 // Get condition data from page
@@ -486,7 +481,7 @@ async function openTestModal() {
         events.forEach(event => {
             const option = document.createElement('option');
             option.value = event.value;
-            option.textContent = event.value;
+            option.textContent = window.getEventLabel ? window.getEventLabel(event.value, platform) : event.value;
             eventTypeSelect.appendChild(option);
         });
     } catch (e) {
@@ -583,7 +578,7 @@ function getTestEventParams() {
 }
 
 // Run the condition test
-function runConditionTest() {
+async function runConditionTest() {
     const eventType = document.getElementById('testEventType').value;
     const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
     
@@ -601,13 +596,22 @@ function runConditionTest() {
         return;
     }
     
-    // Use the shared buildTestEvent function if available
+    if (!window.createTestEventFromMetadata) {
+        alert('Test event metadata builder not available');
+        return;
+    }
     let sampleEvent;
-    if (window.buildTestEvent) {
+    try {
         const customParams = getTestEventParams();
-        sampleEvent = window.buildTestEvent(eventType, '{{.CurrentChannel.Platform}}', customParams);
-    } else {
-        alert('Test event builder not available');
+        const platform = conditionToolboxContext.platform || '{{.CurrentChannel.Platform}}';
+        sampleEvent = await window.createTestEventFromMetadata(
+            platform,
+            eventType,
+            customParams,
+            { watchTargetId: '{{.CurrentChannel.ID}}' }
+        );
+    } catch (error) {
+        alert('Failed to load event metadata: ' + error.message);
         return;
     }
     
@@ -718,6 +722,7 @@ function submitCondition() {
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(conditionData)
     })
     .then(response => {
@@ -753,8 +758,7 @@ document.addEventListener('DOMContentLoaded', function() {
         logicDescriptionArea: document.getElementById('logictotaldescription'),
         platform: conditionToolboxContext.platform,
         eventType: conditionToolboxContext.eventType,
-        eventFieldOptions: conditionToolboxContext.eventFieldOptions,
-        onRefresh: updateTemplatePreview
+        eventFieldOptions: conditionToolboxContext.eventFieldOptions
     });
     
     // Pretty-print conditionLogicInput if it has content
@@ -787,7 +791,10 @@ document.addEventListener('DOMContentLoaded', function() {
     deviceParamsEditor = new ConditionEditor('sendingparamjson', {
         baseType: 'WHOLESENTENCE',
         drawingArea: document.getElementById('sendingParameterArea'),
-        logicDescriptionArea: null
+        logicDescriptionArea: null,
+        platform: conditionToolboxContext.platform,
+        eventType: conditionToolboxContext.eventType,
+        eventFieldOptions: conditionToolboxContext.eventFieldOptions
     });
     deviceParamsEditor.refresh();
     
@@ -801,9 +808,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    updateTemplatePreview();
-    initializeTemplates();
 });
 
 // Global refreshSummary for any external code that still calls it
@@ -819,90 +823,11 @@ function refreshRequest() {
     }
 }
 
-function stripSummaryToText(summaryHtml) {
-    const temp = document.createElement('div');
-    temp.innerHTML = summaryHtml || '';
-    return (temp.textContent || temp.innerText || '').trim();
-}
-
-function updateTemplatePreview(detail) {
-    const preview = document.getElementById('templatePreviewContent');
-    if (!preview) return;
-    const summaryText = detail?.summaryText || stripSummaryToText(detail?.summaryHtml || document.getElementById('logictotaldescription')?.innerHTML || '');
-    preview.textContent = summaryText || 'No sub-conditions have been added yet.';
-}
-
-
-
 function openQuickOperator(operatorType) {
     if (conditionEditor) {
         conditionEditor.openQuickOperatorDialog(operatorType);
     }
 }
-
-function getTemplateInputValue(templateDef) {
-    const input = document.getElementById('conditionTemplateInputField');
-    const select = document.getElementById('conditionTemplateSelectField');
-    if (templateDef?.input?.type === 'select') {
-        return select.value;
-    }
-    return input.value;
-}
-
-function closeConditionTemplateInput(value = null) {
-    closeModal('conditionTemplateInputModal');
-    if (conditionTemplateInputResolver) {
-        const resolver = conditionTemplateInputResolver;
-        conditionTemplateInputResolver = null;
-        resolver(value);
-    }
-}
-
-function openConditionTemplateInput(templateDef) {
-    const title = document.getElementById('conditionTemplateInputTitle');
-    const description = document.getElementById('conditionTemplateInputDescription');
-    const label = document.getElementById('conditionTemplateInputLabel');
-    const input = document.getElementById('conditionTemplateInputField');
-    const select = document.getElementById('conditionTemplateSelectField');
-    const submit = document.getElementById('conditionTemplateInputSubmit');
-    const config = templateDef?.input || {};
-
-    title.textContent = templateDef?.name || 'Customize Template';
-    description.textContent = templateDef?.description || 'Adjust the template value before adding it.';
-    label.textContent = config.label || 'Value';
-
-    input.style.display = config.type === 'select' ? 'none' : 'block';
-    select.style.display = config.type === 'select' ? 'block' : 'none';
-
-    if (config.type === 'select') {
-        select.innerHTML = '';
-        (config.options || []).forEach(optionDef => {
-            const option = document.createElement('option');
-            option.value = optionDef.value;
-            option.textContent = optionDef.label;
-            if (optionDef.value === config.defaultValue) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
-    } else {
-        input.type = config.type || 'text';
-        input.value = config.defaultValue || '';
-        input.placeholder = config.placeholder || '';
-        input.min = config.min || '';
-    }
-
-    submit.onclick = function() {
-        closeConditionTemplateInput(getTemplateInputValue(templateDef));
-    };
-
-    openModal('conditionTemplateInputModal');
-    return new Promise(resolve => {
-        conditionTemplateInputResolver = resolve;
-    });
-}
-
-window.openConditionTemplateInput = openConditionTemplateInput;
 
 window.addEventListener('click', function(event) {
     ['eventInspectorModal', 'conditionTemplateInputModal'].forEach(function(modalId) {

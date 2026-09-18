@@ -8,16 +8,29 @@ import (
 type Conditions struct{}
 
 type EventSchemaField struct {
-	Name        string      `json:"name"`
-	Type        string      `json:"type"`
-	Description string      `json:"description"`
-	Optional    bool        `json:"optional"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Optional    bool   `json:"optional"`
 }
 
 type EventMetadataResponse struct {
-	Platform  string                       `json:"platform"`
-	EventType string                       `json:"event_type"`
-	Fields    map[string]EventSchemaField  `json:"fields"`
+	Platform  string             `json:"platform"`
+	EventType string             `json:"event_type"`
+	Fields    []EventSchemaField `json:"fields"`
+}
+
+type EventMetadataProvider struct {
+	Events []string `json:"events"`
+}
+
+type AllEventMetadataResponse struct {
+	Providers map[string]EventMetadataProvider `json:"providers"`
+}
+
+type PlatformEventMetadataResponse struct {
+	Platform string   `json:"platform"`
+	Events   []string `json:"events"`
 }
 
 type ConditionLogic struct {
@@ -35,22 +48,22 @@ type ConditionTestDeviceActionParams struct {
 }
 
 type Condition struct {
-	Id                           string                      `json:"id"`
-	WatchId                      string                      `json:"watch_id"`
-	Name                         string                      `json:"name"`
-	EventType                    string                      `json:"event_type"`
-	Filter                       string                      `json:"filter"`
-	ConditionLogic               ConditionLogic              `json:"condition_logic"`
-	IsEnabled                    bool                        `json:"is_enabled"`
-	DeviceId                     string                      `json:"device_id"`
-	DeviceAction                 string                      `json:"device_action"`
-	DeviceActionParams           ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody             map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName        string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator   ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
-	LastTriggeredAt              string                      `json:"last_triggered_at"`
-	CreatedAt                    string                      `json:"created_at"`
-	UpdatedAt                    string                      `json:"updated_at"`
+	Id                         string                      `json:"id"`
+	WatchId                    string                      `json:"watch_id"`
+	Name                       string                      `json:"name"`
+	EventType                  string                      `json:"event_type"`
+	Filter                     string                      `json:"filter"`
+	ConditionLogic             ConditionLogic              `json:"condition_logic"`
+	IsEnabled                  bool                        `json:"is_enabled"`
+	DeviceId                   string                      `json:"device_id"`
+	DeviceAction               string                      `json:"device_action"`
+	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
+	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	LastTriggeredAt            string                      `json:"last_triggered_at"`
+	CreatedAt                  string                      `json:"created_at"`
+	UpdatedAt                  string                      `json:"updated_at"`
 }
 
 type ListConditionsResponse []Condition
@@ -59,32 +72,32 @@ type CreateConditionResponse = Condition
 type UpdateConditionResponse = Condition
 
 type CreateConditionRequest struct {
-	WatchId                      string                      `json:"watch_id"`
-	Name                         string                      `json:"name"`
-	EventType                    string                      `json:"event_type"`
-	Filter                       string                      `json:"filter"`
-	ConditionLogic               ConditionLogic              `json:"condition_logic"`
-	IsEnabled                    bool                        `json:"is_enabled"`
-	DeviceId                     string                      `json:"device_id"`
-	DeviceAction                 string                      `json:"device_action"`
-	DeviceActionParams           ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody             map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName        string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator   ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	WatchId                    string                      `json:"watch_id"`
+	Name                       string                      `json:"name"`
+	EventType                  string                      `json:"event_type"`
+	Filter                     string                      `json:"filter"`
+	ConditionLogic             ConditionLogic              `json:"condition_logic"`
+	IsEnabled                  bool                        `json:"is_enabled"`
+	DeviceId                   string                      `json:"device_id"`
+	DeviceAction               string                      `json:"device_action"`
+	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
+	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
 }
 
 type UpdateConditionRequest struct {
-	Name                         string                      `json:"name"`
-	EventType                    string                      `json:"event_type"`
-	Filter                       string                      `json:"filter"`
-	ConditionLogic               ConditionLogic              `json:"condition_logic"`
-	IsEnabled                    bool                        `json:"is_enabled"`
-	DeviceId                     string                      `json:"device_id"`
-	DeviceAction                 string                      `json:"device_action"`
-	DeviceActionParams           ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody             map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName        string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator   ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	Name                       string                      `json:"name"`
+	EventType                  string                      `json:"event_type"`
+	Filter                     string                      `json:"filter"`
+	ConditionLogic             ConditionLogic              `json:"condition_logic"`
+	IsEnabled                  bool                        `json:"is_enabled"`
+	DeviceId                   string                      `json:"device_id"`
+	DeviceAction               string                      `json:"device_action"`
+	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
+	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
 }
 
 type DeleteConditionResponse struct {
@@ -118,27 +131,27 @@ type ConditionTestEvent struct {
 }
 
 type TestDraftConditionLogicRequest struct {
-	ConditionLogic               ConditionLogic              `json:"condition_logic"`
-	TestEvent                    ConditionTestEvent          `json:"test_event"`
-	DeviceId                     string                      `json:"device_id"`
-	DeviceAction                 string                      `json:"device_action"`
-	DeviceActionParams           ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody             map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName        string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator   ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
-	TriggerRealDevice            bool                        `json:"trigger_real_device"`
+	ConditionLogic             ConditionLogic              `json:"condition_logic"`
+	TestEvent                  ConditionTestEvent          `json:"test_event"`
+	DeviceId                   string                      `json:"device_id"`
+	DeviceAction               string                      `json:"device_action"`
+	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
+	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	TriggerRealDevice          bool                        `json:"trigger_real_device"`
 }
 
 type TestDraftConditionLogicResponse struct {
-	Matched                     bool                            `json:"matched"`
-	ComputedValues              []string                        `json:"computed_values"`
-	DeviceId                    string                          `json:"device_id"`
-	DeviceAction                string                          `json:"device_action"`
-	DeviceActionParams          ConditionTestDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody            map[string]interface{}          `json:"device_action_body,omitempty"`
-	DeviceActionParamName       string                          `json:"device_action_param_name,omitempty"`
-	ComputedDeviceActionBody    map[string]interface{}          `json:"computed_device_action_body,omitempty"`
-	WouldTrigger                bool                            `json:"would_trigger"`
+	Matched                  bool                            `json:"matched"`
+	ComputedValues           []string                        `json:"computed_values"`
+	DeviceId                 string                          `json:"device_id"`
+	DeviceAction             string                          `json:"device_action"`
+	DeviceActionParams       ConditionTestDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody         map[string]interface{}          `json:"device_action_body,omitempty"`
+	DeviceActionParamName    string                          `json:"device_action_param_name,omitempty"`
+	ComputedDeviceActionBody map[string]interface{}          `json:"computed_device_action_body,omitempty"`
+	WouldTrigger             bool                            `json:"would_trigger"`
 }
 
 type TestSavedConditionRequest struct {
@@ -227,11 +240,23 @@ func (Conditions) TestAllConditions(request TestAllConditionsRequest) TestAllCon
 	return result
 }
 
+// ListEventMetadata fetches all providers and supported event types from the API
+func (Conditions) ListEventMetadata() AllEventMetadataResponse {
+	var result AllEventMetadataResponse
+	apiRequest(&result, http.MethodGet, "/event-metadata")
+	return result
+}
+
+// ListEventTypes fetches supported event types for a platform from the API
+func (Conditions) ListEventTypes(platform string) PlatformEventMetadataResponse {
+	var result PlatformEventMetadataResponse
+	apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform))
+	return result
+}
+
 // GetEventMetadata fetches event schema for a specific platform and event type
 func (Conditions) GetEventMetadata(platform, eventType string) EventMetadataResponse {
 	var result EventMetadataResponse
 	apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform)+"/"+url.PathEscape(eventType))
 	return result
 }
-
-

@@ -25,11 +25,12 @@ type MyConnectedBrand struct {
 
 // BrandCredentialField represents a single credential input field for brand connection
 type BrandCredentialField struct {
-	Name     string `json:"name"`
-	Label    string `json:"label"`
-	Type     string `json:"type"`
-	Required bool   `json:"required"`
-	Help     string `json:"help"`
+	Id          string `json:"id"`
+	Label       string `json:"label"`
+	Type        string `json:"type"` // "text", "password", or "info"
+	Required    bool   `json:"required"`
+	Help        string `json:"help"`
+	Placeholder string `json:"placeholder"`
 }
 
 // MyBrandsListResponse wraps the API response for /auth/brands

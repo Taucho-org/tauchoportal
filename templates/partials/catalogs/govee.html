@@ -19,7 +19,7 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
         type="text" 
         class="govee-search-input" 
         id="goveeSearch"
-        placeholder="{{.I18n.T "catalog.common.searchPlaceholder"}}"
+        placeholder="{{.I18n.T "catalog.searchPlaceholder"}}"
       >
       <button type="button" class="btn-icon" onclick="clearGoveeSearch()">✕</button>
     </div>
@@ -28,16 +28,16 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
   <!-- Tab Navigation -->
   <div class="catalog-tabs">
     <button class="tab-btn active" data-tab="all" onclick="switchGoveeTab(event, '')">
-      {{.I18n.T "catalog.common.allProducts"}}
+      {{.I18n.T "catalog.allProducts"}}
     </button>
     <button class="tab-btn" data-tab="lights" onclick="switchGoveeTab(event, 'lights')">
-      {{.I18n.T "catalog.common.lights"}}
+      {{.I18n.T "catalog.lights"}}
     </button>
     <button class="tab-btn" data-tab="cameras" onclick="switchGoveeTab(event, 'cameras')">
-      {{.I18n.T "catalog.common.cameras"}}
+      {{.I18n.T "catalog.cameras"}}
     </button>
     <button class="tab-btn" data-tab="appliances" onclick="switchGoveeTab(event, 'appliances')">
-      {{.I18n.T "catalog.common.appliances"}}
+      {{.I18n.T "catalog.appliances"}}
     </button>
   </div>
 
@@ -47,20 +47,20 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
     <!-- Loading State -->
     <div id="goveeLoading" class="loading-state" style="display: none;">
       <div>⏳</div>
-      <div>{{.I18n.T "catalog.common.loading"}}</div>
+      <div>{{.I18n.T "catalog.loading"}}</div>
     </div>
 
     <!-- Error State -->
     <div id="goveeError" class="error-state" style="display: none;">
       <div>⚠️</div>
       <div id="errorMessage"></div>
-      <button type="button" class="retry-btn" onclick="loadGoveeProducts()">{{.I18n.T "catalog.common.retry"}}</button>
+      <button type="button" class="retry-btn" onclick="loadGoveeProducts()">{{.I18n.T "catalog.retry"}}</button>
     </div>
 
     <!-- Empty State -->
     <div id="goveeEmpty" class="empty-state" style="display: none;">
       <div>📭</div>
-      <div>{{.I18n.T "catalog.common.noResults"}}</div>
+      <div>{{.I18n.T "catalog.noResults"}}</div>
     </div>
 
     <!-- Products Grid -->
@@ -69,15 +69,15 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
 
   <!-- Pagination -->
   <div id="goveePagination" class="pagination-controls" style="display: none;">
-    <button type="button" onclick="previousGoveePage()" disabled>{{.I18n.T "catalog.common.previous"}}</button>
+    <button type="button" onclick="previousGoveePage()" disabled>{{.I18n.T "catalog.previous"}}</button>
     <div class="pageInfo">Page 1 of 1</div>
-    <button type="button" onclick="nextGoveePage()" disabled>{{.I18n.T "catalog.common.next"}}</button>
+    <button type="button" onclick="nextGoveePage()" disabled>{{.I18n.T "catalog.next"}}</button>
   </div>
 
   <!-- Footer with links -->
   <div class="catalog-footer">
-    <span id="resultCount">{{.I18n.T "catalog.common.wifiEnabled"}}</span>
-    <a href="https://www.govee.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.common.visitBrand") "{brand}" "Govee"}}</a>
+    <span id="resultCount">{{.I18n.T "catalog.wifiEnabled"}}</span>
+    <a href="https://www.govee.com/" target="_blank" rel="noopener noreferrer">{{ replace (.I18n.T "catalog.visitBrand") "{brand}" "Govee"}}</a>
   </div>
 </div>
 
@@ -138,7 +138,7 @@ async function loadGoveeProducts() {
     
   } catch (error) {
     console.error('Error loading Govee products:', error);
-    showGoveeError(tGovee('catalog.common.noResults'));
+    showGoveeError(tGovee('catalog.noResults'));
     showGoveeLoading(false);
   } finally {
     goveeCatalogState.isLoading = false;
@@ -164,7 +164,7 @@ function renderGoveeProducts(products) {
       <div class="product-details">
         <div>
           <h4>${product.name}</h4>
-          <p>${tGovee('catalog.common.productCategory', { category: product.category })}</p>
+          <p>${tGovee('catalog.productCategory', { category: product.category })}</p>
           <div class="product-actions">
             ${(product.supported_actions || []).map(action => {
               const actionLabel = {
@@ -178,8 +178,8 @@ function renderGoveeProducts(products) {
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button type="button" class="btn-quick-add" onclick="addGoveeProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'govee')">${tGovee('catalog.common.addDevice')}</button>
-          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tGovee('catalog.common.buyNow')}</a>` : ''}
+          <button type="button" class="btn-quick-add" onclick="addGoveeProduct('${product.id}', '${product.name.replace(/'/g, "\\'")}', 'govee')">${tGovee('catalog.addDevice')}</button>
+          ${product.purchase_url ? `<a href="${product.purchase_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none;">${tGovee('catalog.buyNow')}</a>` : ''}
         </div>
       </div>
     </div>
@@ -194,7 +194,7 @@ function updateGoveePagination(pagination) {
   const currentPage = Math.floor(pagination.offset / pagination.limit) + 1;
   const totalPages = pagination.total_pages;
   
-  pageInfo.textContent = tGovee('catalog.common.pageInfo', { page: currentPage, total: totalPages });
+  pageInfo.textContent = tGovee('catalog.pageInfo', { page: currentPage, total: totalPages });
   buttons[0].disabled = !pagination.has_previous;
   buttons[1].disabled = !pagination.has_next;
   
@@ -209,7 +209,7 @@ function updateGoveeResultCount(pagination) {
   const resultCount = document.getElementById('resultCount');
   const start = pagination.offset + 1;
   const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-  resultCount.textContent = tGovee('catalog.common.showingResults', { start, end, total: pagination.total });
+  resultCount.textContent = tGovee('catalog.showingResults', { start, end, total: pagination.total });
 }
 
 function setupGoveeSearchHandler() {

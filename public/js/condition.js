@@ -1,491 +1,3 @@
-const conditionTemplateHelpers = {
-    clone(value) {
-        return JSON.parse(JSON.stringify(value));
-    },
-
-    buildParam(name) {
-        return { "Operator": "PARAM", "SubConditions": null, "Variables": [name] };
-    },
-
-    buildTextCompare(operator, property, value, range = "") {
-        const variables = [String(value)];
-        if (range) {
-            variables.push(range);
-        }
-        return {
-            "Operator": operator,
-            "SubConditions": [this.buildParam(property)],
-            "Variables": variables
-        };
-    },
-
-    buildRegexMatch(property, pattern) {
-        return {
-            "Operator": "REGEX_MATCH",
-            "SubConditions": [this.buildParam(property)],
-            "Variables": [pattern]
-        };
-    },
-
-    buildNumericCompare(operator, property, value) {
-        return {
-            "Operator": operator,
-            "SubConditions": [
-                { "Operator": "PARSEINT", "SubConditions": [this.buildParam(property)], "Variables": null },
-                { "Operator": "PARSEINT", "SubConditions": null, "Variables": [String(value)] }
-            ],
-            "Variables": []
-        };
-    },
-
-    buildWordCountPattern(minWords) {
-        const threshold = Math.max(1, parseInt(minWords, 10) || 1);
-        if (threshold === 1) {
-            return "^\\s*\\S+(?:\\s+\\S+)*\\s*$";
-        }
-        return `^\\s*(?:\\S+\\s+){${threshold - 1},}\\S+(?:\\s+\\S+)*\\s*$`;
-    },
-
-    replacePlaceholders(value, replacements) {
-        if (Array.isArray(value)) {
-            return value.map((item) => this.replacePlaceholders(item, replacements));
-        }
-        if (value && typeof value === "object") {
-            return Object.fromEntries(
-                Object.entries(value).map(([key, item]) => [key, this.replacePlaceholders(item, replacements)])
-            );
-        }
-        if (typeof value === "string" && replacements[value] !== undefined) {
-            return replacements[value];
-        }
-        return value;
-    }
-};
-
-const conditionTemplateLibrary = {
-    comment: [
-        {
-            nameKey: "condition.templates.comment.has_keyword",
-            name: "Has keyword",
-            descriptionKey: "condition.templates.comment.has_keyword.description",
-            description: "Match when the message includes a keyword or phrase.",
-            json: conditionTemplateHelpers.buildTextCompare("INCLUDES", "message", "hello")
-        },
-        {
-            nameKey: "condition.templates.comment.from_moderator",
-            name: "From moderator",
-            descriptionKey: "condition.templates.comment.from_moderator.description",
-            description: "Match when the sender has the moderator flag.",
-            json: conditionTemplateHelpers.buildTextCompare("EQUALS", "is_mod", "true")
-        },
-        {
-            nameKey: "condition.templates.comment.from_member",
-            name: "From member",
-            descriptionKey: "condition.templates.comment.from_member.description",
-            description: "Match when the sender has the member flag.",
-            json: conditionTemplateHelpers.buildTextCompare("EQUALS", "is_member", "true")
-        }
-    ],
-    superchat: [
-        {
-            nameKey: "condition.templates.superchat.amount_exceeds_10",
-            name: "Amount exceeds $10",
-            descriptionKey: "condition.templates.superchat.amount_exceeds_10.description",
-            description: "Match when the monetary amount is greater than 10.",
-            json: conditionTemplateHelpers.buildNumericCompare("GREATER_THAN", "amount_value", 10)
-        },
-        {
-            nameKey: "condition.templates.superchat.has_message",
-            name: "Has message",
-            descriptionKey: "condition.templates.superchat.has_message.description",
-            description: "Match when the event includes a non-empty message.",
-            json: conditionTemplateHelpers.buildRegexMatch("message", "\\S")
-        },
-        {
-            nameKey: "condition.templates.superchat.usd_currency",
-            name: "USD currency",
-            descriptionKey: "condition.templates.superchat.usd_currency.description",
-            description: "Match when the monetary currency code is USD.",
-            json: conditionTemplateHelpers.buildTextCompare("EQUALS", "amount_currency", "USD")
-        }
-    ],
-    sticker: [
-        {
-            nameKey: "condition.templates.sticker.amount_exceeds_10",
-            name: "Amount exceeds $10",
-            descriptionKey: "condition.templates.sticker.amount_exceeds_10.description",
-            description: "Match when the monetary amount is greater than 10.",
-            json: conditionTemplateHelpers.buildNumericCompare("GREATER_THAN", "amount_value", 10)
-        },
-        {
-            nameKey: "condition.templates.sticker.has_message",
-            name: "Has message",
-            descriptionKey: "condition.templates.sticker.has_message.description",
-            description: "Match when the event includes a non-empty message.",
-            json: conditionTemplateHelpers.buildRegexMatch("message", "\\S")
-        },
-        {
-            nameKey: "condition.templates.sticker.usd_currency",
-            name: "USD currency",
-            descriptionKey: "condition.templates.sticker.usd_currency.description",
-            description: "Match when the monetary currency code is USD.",
-            json: conditionTemplateHelpers.buildTextCompare("EQUALS", "amount_currency", "USD")
-        }
-    ],
-    gift: [
-        {
-            nameKey: "condition.templates.gift.amount_exceeds_10",
-            name: "Amount exceeds 10",
-            descriptionKey: "condition.templates.gift.amount_exceeds_10.description",
-            description: "Match when the monetary amount is greater than 10.",
-            json: conditionTemplateHelpers.buildNumericCompare("GREATER_THAN", "amount_value", 10)
-        },
-        {
-            nameKey: "condition.templates.gift.has_message",
-            name: "Has message",
-            descriptionKey: "condition.templates.gift.has_message.description",
-            description: "Match when the event includes a non-empty message.",
-            json: conditionTemplateHelpers.buildRegexMatch("message", "\\S")
-        },
-        {
-            nameKey: "condition.templates.gift.usd_currency",
-            name: "USD currency",
-            descriptionKey: "condition.templates.gift.usd_currency.description",
-            description: "Match when the monetary currency code is USD.",
-            json: conditionTemplateHelpers.buildTextCompare("EQUALS", "amount_currency", "USD")
-        },
-        {
-            nameKey: "condition.templates.gift.usd_10byUSD",
-            name: "10$ by USD ",
-            descriptionKey: "condition.templates.gift.usd_10byUSD.description",
-            description: "Match when the monetary currency code is USD and the amount is greater than 10.",
-            json: conditionTemplateHelpers.clone({"Operator": "AND", "SubConditions": [
-                { "Operator": "GREATER_THAN", "SubConditions": [{ "Operator": "PARAM", "SubConditions": null, "Variables": ["amount_value"] }], "Variables": ["10"] },
-                { "Operator": "EQUALS", "SubConditions": [{ "Operator": "PARAM", "SubConditions": null, "Variables": ["amount_currency"] }], "Variables": ["USD"] }
-            ]})
-        }
-    ],
-    cheer: [
-        {
-            nameKey: "condition.templates.cheer.bits_exceed_100",
-            name: "Bits exceed 100",
-            descriptionKey: "condition.templates.cheer.bits_exceed_100.description",
-            description: "Match when the bits amount is greater than 100.",
-            json: conditionTemplateHelpers.buildNumericCompare("GREATER_THAN", "amount_value", 100)
-        }
-    ],
-    member: [
-        {
-            nameKey: "condition.templates.member.just_occurred",
-            name: "Just occurred",
-            descriptionKey: "condition.templates.member.just_occurred.description",
-            description: "Match whenever a member event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    follow: [
-        {
-            nameKey: "condition.templates.follow.just_occurred",
-            name: "Just occurred",
-            descriptionKey: "condition.templates.follow.just_occurred.description",
-            description: "Match whenever a follow event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    sub: [
-        {
-            nameKey: "condition.templates.sub.just_occurred",
-            name: "Just occurred",
-            descriptionKey: "condition.templates.sub.just_occurred.description",
-            description: "Match whenever a sub event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    raid: [
-        {
-            nameKey: "condition.templates.raid.50_plus_viewers",
-            name: "50+ viewers",
-            descriptionKey: "condition.templates.raid.50_plus_viewers.description",
-            description: "Match when the raid amount is greater than 50 viewers.",
-            json: conditionTemplateHelpers.buildNumericCompare("GREATER_THAN", "amount_value", 50)
-        }
-    ],
-    nicoru: [
-        {
-            nameKey: "condition.templates.nicoru.any_reaction",
-            name: "Any reaction",
-            descriptionKey: "condition.templates.nicoru.any_reaction.description",
-            description: "Match whenever a nicoru reaction is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    like: [
-        {
-            nameKey: "condition.templates.like.any_reaction",
-            name: "Any reaction",
-            descriptionKey: "condition.templates.like.any_reaction.description",
-            description: "Match whenever a like event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    hype_train: [
-        {
-            nameKey: "condition.templates.hype_train.just_occurred",
-            name: "Just occurred",
-            descriptionKey: "condition.templates.hype_train.just_occurred.description",
-            description: "Match whenever a hype train event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    reaction: [
-        {
-            nameKey: "condition.templates.reaction.any_reaction",
-            name: "Any reaction",
-            descriptionKey: "condition.templates.reaction.any_reaction.description",
-            description: "Match whenever a reaction event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ],
-    viewer_join: [
-        {
-            nameKey: "condition.templates.viewer_join.new_viewer",
-            name: "New viewer",
-            descriptionKey: "condition.templates.viewer_join.new_viewer.description",
-            description: "Match whenever a viewer join event is received.",
-            json: { "Operator": "OR", "SubConditions": [], "Variables": [] }
-        }
-    ]
-};
-
-const templateEventTypeGroups = {
-    comment: "comment",
-    gift: "gift",
-    superchat: "gift",
-    sticker: "gift",
-    member: "member",
-    follow: "member",
-    sub: "member",
-    cheer: "cheer",
-    bits: "cheer",
-    like: "reaction",
-    reaction: "reaction",
-    nicoru: "reaction",
-    raid: "raid",
-    hype_train: "reaction",
-    viewer_join: "viewer_join"
-};
-
-const eventPropertyDefinitions = {
-    common: [
-        { name: "event_type", descriptionKey: "condition.eventProp.event_type.description", example: "comment" },
-        { name: "sender_id", descriptionKey: "condition.eventProp.sender_id.description", example: "user_12345" },
-        { name: "sender_name", descriptionKey: "condition.eventProp.sender_name.description", example: "StreamFan42" },
-        { name: "message", descriptionKey: "condition.eventProp.message.description", example: "Great stream!" },
-        { name: "badges", descriptionKey: "condition.eventProp.senderbadges.description", example: "moderator, member" },
-        { name: "is_member", descriptionKey: "condition.eventProp.is_member.description", example: "true / false" },
-        { name: "is_mod", descriptionKey: "condition.eventProp.is_mod.description", example: "true / false" },
-        { name: "received_at", descriptionKey: "condition.eventProp.received_at.description", example: "2026-07-23T11:21:59Z" }
-    ],
-    gift: [
-        { name: "amount_value", descriptionKey: "condition.eventProp.amount_value.description", example: "10" },
-        { name: "amount_currency", descriptionKey: "condition.eventProp.amount_currency.description", example: "USD" },
-        { name: "amount_display", descriptionKey: "condition.eventProp.amount_display.description", example: "$10.00" }
-    ],
-    cheer: [
-        { name: "amount_value", descriptionKey: "condition.eventProp.amount_value.description", example: "500" }
-    ],
-    raid: [
-        { name: "amount_value", descriptionKey: "condition.eventProp.amount_value.description", example: "50" }
-    ]
-};
-
-const commonEventPropertySchema = [
-    { name: 'id', type: 'string', description: 'Unique event ID (UUID)', optional: false },
-    { name: 'user_id', type: 'number', description: 'Taucho user ID who owns the watch target', optional: false },
-    { name: 'watch_target_id', type: 'string', description: 'Watch target ID this event is from', optional: false },
-    { name: 'platform', type: 'string', description: 'Platform (youtube, twitch, niconico, etc.)', optional: false },
-    { name: 'event_type', type: 'string', description: 'Event type (comment, superchat, gift, etc.)', optional: false },
-    { name: 'received_at', type: 'timestamp', description: 'When event was received from platform', optional: false },
-    { name: 'created_at', type: 'timestamp', description: 'When event was stored in database', optional: false },
-    { name: 'raw', type: 'object', description: 'Full original platform JSON for additional fields', optional: true }
-];
-
-const eventPropertySchemas = {
-    'youtube:comment': [
-        { name: 'message', type: 'string', description: 'Chat message content', optional: false },
-        { name: 'sender_id', type: 'string', description: 'YouTube channel ID (authorDetails.channelId)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (authorDetails.displayName)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture URL', optional: true },
-        { name: 'is_member', type: 'boolean', description: 'Is channel member?', optional: true },
-        { name: 'badges', type: 'array', description: 'Member/moderator badges', optional: true }
-    ],
-    'youtube:superchat': [
-        { name: 'message', type: 'string', description: 'Super Chat message', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Amount in USD', optional: false },
-        { name: 'amount_currency', type: 'string', description: 'Currency (USD)', optional: false },
-        { name: 'amount_display', type: 'string', description: 'Formatted amount (e.g. $5.00)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'YouTube channel ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture URL', optional: true }
-    ],
-    'youtube:sticker': [
-        { name: 'amount_value', type: 'number', description: 'Sticker price in USD', optional: false },
-        { name: 'amount_currency', type: 'string', description: 'Currency (USD)', optional: false },
-        { name: 'amount_display', type: 'string', description: 'Formatted price', optional: false },
-        { name: 'sender_id', type: 'string', description: 'YouTube channel ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture URL', optional: true }
-    ],
-    'niconico:comment': [
-        { name: 'sender_id', type: 'string', description: 'User ID', optional: true },
-        { name: 'sender_name', type: 'string', description: 'User name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'User avatar URL', optional: true },
-        { name: 'message', type: 'string', description: 'Chat message content', optional: false },
-        { name: 'color', type: 'string', description: 'Hex color code (e.g. "#547698")', optional: true },
-        { name: 'position', type: 'string', description: 'Danmaku position (ue/top, naka/middle, shita/bottom)', optional: true },
-        { name: 'size', type: 'string', description: 'Text size (small, medium, big)', optional: true },
-        { name: 'font', type: 'string', description: 'Font type (defont, mincho, gothic)', optional: true },
-        { name: 'opacity', type: 'string', description: 'Opacity (Normal, Translucent)', optional: true }
-    ],
-    'niconico:nicoru': [
-        { name: 'sender_id', type: 'string', description: 'User ID', optional: true },
-        { name: 'sender_name', type: 'string', description: 'User name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'User avatar URL', optional: true },
-        { name: 'message', type: 'string', description: 'Reaction message (usually empty)', optional: true },
-        { name: 'color', type: 'string', description: 'Hex color code', optional: true },
-        { name: 'position', type: 'string', description: 'Reaction position (ue/top, naka/middle, shita/bottom)', optional: true },
-        { name: 'size', type: 'string', description: 'Reaction size (small, medium, big)', optional: true },
-        { name: 'opacity', type: 'string', description: 'Opacity (Normal, Translucent)', optional: true }
-    ],
-    'niconico:gift': [
-        { name: 'sender_id', type: 'string', description: 'User ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'User name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'User avatar URL', optional: false },
-        { name: 'message', type: 'string', description: 'Optional gift message', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Gift amount', optional: false },
-        { name: 'amount_currency', type: 'string', description: 'Currency code (JPY)', optional: false },
-        { name: 'amount_display', type: 'string', description: 'Formatted amount (e.g. "50pt")', optional: false },
-        { name: 'is_member', type: 'boolean', description: 'Is member?', optional: true },
-        { name: 'badges', type: 'array', description: 'User badges', optional: true }
-    ],
-    'niconico:follow': [
-        { name: 'sender_id', type: 'string', description: 'User ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'User name', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'User avatar URL', optional: false }
-    ],
-    'niconico:stream_start': [
-        { name: 'event_type', type: 'string', description: 'Event type (stream_start)', optional: false }
-    ],
-    'niconico:stream_end': [
-        { name: 'event_type', type: 'string', description: 'Event type (stream_end)', optional: false }
-    ],
-    'twitch:comment': [
-        { name: 'message', type: 'string', description: 'Chat message', optional: false },
-        { name: 'sender_id', type: 'string', description: 'Twitch user ID (user_id field)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Twitch username (user_login field) or display name (user_name)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture URL', optional: true },
-        { name: 'is_mod', type: 'boolean', description: 'Is moderator?', optional: true },
-        { name: 'is_member', type: 'boolean', description: 'Is subscriber?', optional: true },
-        { name: 'badges', type: 'array', description: 'Mod, subscriber, bits badges', optional: true }
-    ],
-    'twitch:cheer': [
-        { name: 'message', type: 'string', description: 'Cheer message', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Number of bits', optional: false },
-        { name: 'amount_currency', type: 'string', description: 'Currency code (BITS)', optional: false },
-        { name: 'amount_display', type: 'string', description: 'Formatted (e.g. 100 Bits)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'Twitch user ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Twitch username', optional: false },
-        { name: 'is_anonymous', type: 'boolean', description: 'Anonymous cheer?', optional: true }
-    ],
-    'twitch:sub': [
-        { name: 'message', type: 'string', description: 'Sub message', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Sub tier (1, 2, 3)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'Twitch user ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Twitch username', optional: false },
-        { name: 'is_gift', type: 'boolean', description: 'Is gifted sub?', optional: true }
-    ],
-    'bilibili:comment': [
-        { name: 'message', type: 'string', description: 'Danmaku message (msg field)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'UID (uid field from p attribute)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (uname - requires additional API call, may be empty)', optional: true },
-        { name: 'color', type: 'string', description: 'Danmaku color from p attribute (e.g. \'white\', \'#FF0000\')', optional: true },
-        { name: 'size', type: 'string', description: 'Font size from p attribute', optional: true },
-        { name: 'position', type: 'string', description: 'Screen position from p attribute', optional: true },
-        { name: 'badges', type: 'array', description: 'User level, membership badges', optional: true }
-    ],
-    'bilibili:superchat': [
-        { name: 'message', type: 'string', description: 'Message', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Amount in yuan', optional: false },
-        { name: 'amount_currency', type: 'string', description: 'Currency (CNY)', optional: false },
-        { name: 'amount_display', type: 'string', description: 'Formatted amount', optional: false },
-        { name: 'sender_id', type: 'string', description: 'UID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name', optional: false }
-    ],
-    'tiktok:comment': [
-        { name: 'message', type: 'string', description: 'Comment text (comment field)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'TikTok user ID (user.user_id)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (user.nickname)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture (user.profile_picture_url)', optional: true }
-    ],
-    'tiktok:gift': [
-        { name: 'sender_id', type: 'string', description: 'TikTok user ID (user.user_id)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (user.nickname)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture (user.profile_picture_url)', optional: true },
-        { name: 'gift_id', type: 'string', description: 'Gift ID', optional: false },
-        { name: 'gift_name', type: 'string', description: 'Gift name', optional: true },
-        { name: 'count', type: 'number', description: 'Number of gifts sent', optional: false },
-        { name: 'diamond_count', type: 'number', description: 'Diamond cost (TikTok currency)', optional: true }
-    ],
-    'facebook:comment': [
-        { name: 'message', type: 'string', description: 'Comment text (message field)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'Facebook user ID (from.id)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'User name (from.name)', optional: false },
-        { name: 'comment_id', type: 'string', description: 'Comment ID', optional: false }
-    ],
-    'facebook:reaction': [
-        { name: 'reaction_type', type: 'string', description: 'Reaction type (LIKE, LOVE, WOW, HAHA, SAD, ANGRY)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'User ID who reacted', optional: false },
-        { name: 'sender_name', type: 'string', description: 'User name who reacted', optional: true },
-        { name: 'comment_id', type: 'string', description: 'ID of the comment being reacted to', optional: false }
-    ],
-    'kick:comment': [
-        { name: 'message', type: 'string', description: 'Chat message (content field)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'User ID from sender object', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Username or display name', optional: false },
-        { name: 'badges', type: 'array', description: 'User badges', optional: true }
-    ],
-    'kick:gift': [
-        { name: 'sender_id', type: 'string', description: 'User ID from sender object', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Username or display name', optional: false },
-        { name: 'gift_type', type: 'string', description: 'Type of gift', optional: true },
-        { name: 'amount_value', type: 'number', description: 'Gift amount or count', optional: true },
-        { name: 'gift_message', type: 'string', description: 'Optional message with gift', optional: true }
-    ],
-    'twitcasting:comment': [
-        { name: 'message', type: 'string', description: 'Comment text (comment field)', optional: false },
-        { name: 'sender_id', type: 'string', description: 'User ID (user.id)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (user.name)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture (user.image)', optional: true },
-        { name: 'is_broadcaster', type: 'boolean', description: 'Is message from broadcaster?', optional: true }
-    ],
-    'twitcasting:gift': [
-        { name: 'sender_id', type: 'string', description: 'User ID (user.id)', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Display name (user.name)', optional: false },
-        { name: 'sender_avatar', type: 'string', description: 'Profile picture (user.image)', optional: true },
-        { name: 'gift_id', type: 'string', description: 'Gift ID', optional: false },
-        { name: 'gift_name', type: 'string', description: 'Gift name', optional: false },
-        { name: 'gift_image_url', type: 'string', description: 'Gift image URL', optional: true },
-        { name: 'count', type: 'number', description: 'Number of gifts', optional: false },
-        { name: 'gift_message', type: 'string', description: 'Optional message with gift', optional: true }
-    ],
-    'x:comment': [
-        { name: 'message', type: 'string', description: 'Tweet text', optional: false },
-        { name: 'sender_id', type: 'string', description: 'Author ID', optional: false },
-        { name: 'sender_name', type: 'string', description: 'Author username or display name', optional: false },
-        { name: 'created_at', type: 'timestamp', description: 'Tweet creation timestamp', optional: false }
-    ]
-};
-
 /**
  * ConditionEditor - Reusable condition logic editor class
  * Handles JSON editing, rendering, and synchronization across multiple textarea/form elements
@@ -532,6 +44,8 @@ class ConditionEditor {
         this.groupoperators = ["COUNT", "SUM"];
         this.calcoperators = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MODULO"];
         this.convoperators = ["PARSEINT", "EXCHANGE", "COLOR_PICKUP"];
+        this.operatorswithrange = ["INCLUDES", "SUBSTRING"];
+        this.rangeparamindex = {"INCLUDES": 1, "SUBSTRING": 0};
 
         this.namingmap = {"AND": "and", "OR": "or", "NOT": "not", "SOME": "some", "EQUIVALENT": "equivalent", "GREATER_THAN": "greater_than", "GREATER_OR_EQUAL": "greater_or_equal", "LESS_THAN": "less_than", "LESS_OR_EQUAL": "less_or_equal", "EQUALS": "equals", "INCLUDES": "includes", "REGEX_MATCH": "regex_match", "COUNT": "count", "SUM": "sum", "WHOLESENTENCE": "wholesentence", "REGEX_EXTRACT": "regex_extract", "SUBSTRING": "substring", "FIRST": "first", "LAST": "last", "ADD": "add", "SUBTRACT": "subtract", "MULTIPLY": "multiply", "DIVIDE": "divide", "MODULO": "modulo", "PARSEINT": "parseint", "COLOR_PICKUP": "color_pickup", "PARAM": "param" };
         this.operatormap = { "and": "AND", "or": "OR", "not": "NOT", "some": "SOME", "equivalent": "EQUIVALENT", "greater_than": "GREATER_THAN", "greater_or_equal": "GREATER_OR_EQUAL", "less_than": "LESS_THAN", "less_or_equal": "LESS_OR_EQUAL", "equals": "EQUALS", "includes": "INCLUDES", "regex_match": "REGEX_MATCH", "count": "COUNT", "sum": "SUM", "wholesentence": "WHOLESENTENCE", "regex_extract": "REGEX_EXTRACT", "substring": "SUBSTRING", "first": "FIRST", "last": "LAST", "add": "ADD", "subtract": "SUBTRACT", "multiply": "MULTIPLY", "divide": "DIVIDE", "modulo": "MODULO", "parseint": "PARSEINT", "exchange": "EXCHANGE", "color_pickup": "COLOR_PICKUP", "param": "PARAM" };
@@ -543,6 +57,9 @@ class ConditionEditor {
         
         // Initialize text condition dialog handler
         this.textDialog = new TextDialogHandler(this);
+        
+        // Initialize range dialog handler
+        this.rangeDialog = new RangeDialogHandler(this);
         
         // Initialize text condition dialog handler
         this.textConditionDialog = new TextConditionDialogHandler(this);
@@ -600,16 +117,6 @@ class ConditionEditor {
             if (this.logicDescriptionArea) {
                 this.logicDescriptionArea.innerHTML = summaryHtml;
             }
-
-            const refreshDetail = {
-                json,
-                summaryHtml,
-                summaryText: this._htmlToText(summaryHtml)
-            };
-            this.conditionInput.dispatchEvent(new CustomEvent('conditioneditor:refresh', { detail: refreshDetail }));
-            if (this.onRefresh) {
-                this.onRefresh(refreshDetail);
-            }
         } catch (e) {
             console.error('Error refreshing condition editor:', e);
             if (this.logicDescriptionArea) {
@@ -625,32 +132,12 @@ class ConditionEditor {
         }
     }
 
-    _htmlToText(html) {
-        const temp = document.createElement('div');
-        temp.innerHTML = html || '';
-        return (temp.textContent || temp.innerText || '').trim();
-    }
-
-    _getTemplateEventGroup(eventType = this.eventType) {
-        return templateEventTypeGroups[String(eventType || '').toLowerCase()] || null;
-    }
-
-    _resolveTemplateDefinition(templateDef) {
-        return {
-            ...templateDef,
-            json: conditionTemplateHelpers.clone(templateDef.json)
-        };
-    }
-
-    getTemplatesForEventType(eventType = this.eventType) {
-        const normalizedEventType = String(eventType || '').trim().toLowerCase();
-        const templateKey = conditionTemplateLibrary[normalizedEventType] ? normalizedEventType : this._getTemplateEventGroup(normalizedEventType);
-        const templates = conditionTemplateLibrary[templateKey] || [];
-        return templates.map((templateDef) => this._resolveTemplateDefinition(templateDef));
-    }
-
-    addTemplate(templateJSON) {
-        if (!templateJSON) {
+    addTemplate(templateJSONString) {
+        let templateJSON;
+        try {
+            templateJSON = JSON.parse(templateJSONString);
+        } catch (e) {
+            console.error('Error parsing template JSON:', e);
             return false;
         }
 
@@ -658,28 +145,9 @@ class ConditionEditor {
         if (!Array.isArray(json.SubConditions)) {
             json.SubConditions = [];
         }
-        json.SubConditions.push(conditionTemplateHelpers.clone(templateJSON));
+        json.SubConditions.push(JSON.parse(JSON.stringify(templateJSON)));
         this.setJSON(json);
         return true;
-    }
-
-    async addTemplateFromLibrary(templateDef) {
-        if (!templateDef) {
-            return false;
-        }
-
-        const resolvedTemplate = this._resolveTemplateDefinition(templateDef);
-        return this.addTemplate(resolvedTemplate.json);
-    }
-
-    _requestTemplateInput(templateDef) {
-        if (typeof window.openConditionTemplateInput === 'function') {
-            return window.openConditionTemplateInput(templateDef);
-        }
-        const promptLabel = templateDef?.input?.label || templateDef?.name || 'Template value';
-        const defaultValue = templateDef?.input?.defaultValue || '';
-        const response = window.prompt(promptLabel, defaultValue);
-        return Promise.resolve(response);
     }
 
     openQuickOperatorDialog(operatorType) {
@@ -705,10 +173,6 @@ class ConditionEditor {
         document.getElementById("boolmodal_numeric").classList.remove("available");
         document.getElementById("boolcondition").value = operatorType;
         this.boolDialog.validate();
-    }
-
-    getEventPropertyList(eventType = this.eventType) {
-        return getFallbackEventInspectorProperties(this.platform, eventType, this.eventFieldOptions);
     }
 
     /**
@@ -749,7 +213,7 @@ class ConditionEditor {
         if (operator == "SOME") {
             const somefield = document.createElement("div");
             const prefix = document.createElement("span");
-            prefix.innerText = translations["some-sentense_prefix"] || "Some";
+            prefix.innerText = translations["some-sentense_prefix"] == undefined ? "Some" : translations["some-sentense_prefix"];
             somefield.append(prefix);
             const frombutton = document.createElement("input");
             frombutton.type = "number";
@@ -763,7 +227,7 @@ class ConditionEditor {
             frombutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 ? jsonnode.Variables[0].split("-")[0] : "";
             somefield.append(frombutton);
             const joint = document.createElement("span");
-            joint.innerText = translations["some-sentense_joint"] || "to";
+            joint.innerText = translations["some-sentense_joint"] == undefined ? "to" : translations["some-sentense_joint"];
             somefield.append(joint);
             const tobutton = document.createElement("input");
             tobutton.type = "number";
@@ -776,7 +240,7 @@ class ConditionEditor {
             tobutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 && jsonnode.Variables[0].indexOf("-") ? jsonnode.Variables[0].split("-")[1] : "";
             somefield.append(tobutton);
             const suffix = document.createElement("span");
-            suffix.innerText = translations["some-sentense_suffix"] || "conditions";
+            suffix.innerText = translations["some-sentense_suffix"] == undefined ? "conditions" : translations["some-sentense_suffix"];
             somefield.append(suffix);
             area.append(somefield);
         }
@@ -799,7 +263,9 @@ class ConditionEditor {
             for (const is in jsonnode.SubConditions) {
                 const childarea = document.createElement("fieldset");
                 childarea.classList.add("item");
-                childarea.onclick = function () { this.classList.toggle("focus") }
+                if (path.indexOf("/") < 1) {
+                    childarea.onclick = function () { this.classList.toggle("focus") }
+                }
                 this._jsonLoader(jsonnode.SubConditions[is], childarea, path + "/" + is);
                 subconarea.append(childarea);
             }
@@ -809,6 +275,9 @@ class ConditionEditor {
             for (const iv in jsonnode.Variables) {
                 const variableitem = document.createElement("div");
                 variableitem.classList.add("variable");
+                if (this.operatorswithrange.includes(operator) && iv > 0) {
+                    variableitem.classList.add("range");
+                }
                 variableitem.innerText = jsonnode.Variables[iv];
                 if (jsonnode.Operator != "PARAM") {
                     variableitem.setAttribute("operator", "_variable");
@@ -832,15 +301,14 @@ class ConditionEditor {
                 area.append(addbutton);
             }
         } else if (this.compoperators.includes(operator) && (
-            (!jsonnode.Variables || jsonnode.Variables.length < 1)||
-            (!jsonnode.SubConditions || jsonnode.SubConditions.length < 1)
+            ((jsonnode.Variables?.length || 0) + (jsonnode.SubConditions?.length || 0)) < 2
         )) {
             const addcompbutton = document.createElement("div");
             addcompbutton.classList.add("addcompbutton");
             addcompbutton.innerText = "+";
             addcompbutton.setAttribute("path", path);
             addcompbutton.setAttribute("operator", operator);
-            addcompbutton.onclick = numModal;
+            addcompbutton.onclick = this.numericDialog.open.bind(this.numericDialog);
             area.append(addcompbutton);
         } else if (this.textoperators.includes(operator)) {
             if (!jsonnode.SubConditions || jsonnode.SubConditions.length < 1) {
@@ -880,7 +348,7 @@ class ConditionEditor {
                         currentnode.Variables.push(val);
                     }
                     this.setJSON(parentjson);
-                }.bind(this))}.bind(this);
+                }.bind(this), "^[0-9]+(\\.[0-9]+)?$")}.bind(this);
                 area.append(inputtextbutton);
             }
         } else if (this.calcoperators.includes(operator)) {
@@ -891,9 +359,20 @@ class ConditionEditor {
             inputnumbutton.setAttribute("operator", operator);
             const currentObj = this;
             inputnumbutton.onclick = function() {
-                this.open(currentObj);
-            }.bind(this.numericDialog);
-            area.append(inputnumbutton);
+                this.open(currentObj, function(disp,val,type,exttype,extval){
+                    const parentjson = this.getJSON();
+                    const currentnode = this._getSubCondition(parentjson, path);
+                    if (type === "env") {
+                        currentnode.SubConditions = [];
+                        currentnode.SubConditions.push({"Operator": this.operatormap[exttype], "Variables": [extval],"SubConditions": [{"Operator": "PARAM", "Variables": [val],"SubConditions": null}]});
+                    } else if (type == "variable") {
+                        currentnode.Variables = [];
+                        currentnode.Variables.push(val);
+                    }
+                    this.setJSON(parentjson);
+                }.bind(this)).bind(this);
+                area.append(inputnumbutton);
+            }
         } else if (this.textextractors.includes(operator)) {
             if ((!jsonnode.SubConditions || jsonnode.SubConditions.length < 1) && (!jsonnode.Variables || jsonnode.Variables.length < 1)) {
                 const inputtextbutton = document.createElement("div");
@@ -1076,7 +555,7 @@ class ConditionEditor {
                 let range_includes_from = "";
                 let range_includes_to = "";
                 const items_includes = [];
-                if (node.SubConditions.length>0) {
+                if (node.SubConditions && node.SubConditions.length > 0) {
                     target_includes = this._summarize(node.SubConditions[0]);
                     for (const i in node.SubConditions.slice(1)) {
                         items_includes.push(translations["staticvalue"].replace("{0}", this._summarize(node.SubConditions[i])));
@@ -1372,7 +851,7 @@ class ConditionEditor {
                     items_param.push(this._summarize(node.SubConditions[i]));
                 }
                 for (const i in node.Variables) {
-                    items_param.push("<span class='param'>" + translations[node.Variables[i]] + "</span>");
+                    items_param.push("<span class='param'>" + this._getEventName(node.Variables[i]) + "</span>");
                 }
                 return translations["valueof-sentense"].replace("{0}", items_param.join(translations["valueof-joint"]));
                 break;
@@ -1426,10 +905,17 @@ class ConditionEditor {
                 // Variable editing
                 const ind = e.target.getAttribute("index");
                 const current = e.target.innerText;
-                this.textDialog.open(current, "variable", null, null, false, true, function(dispval, val) {
-                    currentnode.Variables[ind] = val;
-                    finishupdating();
-                }.bind(this));
+                if (this.operatorswithrange.includes(currentnode.Operator) && ind == this.rangeparamindex[currentnode.Operator]) {
+                    this.rangeDialog.open(current, function(dispval, val) {
+                        currentnode.Variables[ind] = val;
+                        finishupdating();
+                    }.bind(this));
+                } else {
+                    this.textDialog.open(current, "variable", null, null, false, true, function(dispval, val) {
+                        currentnode.Variables[ind] = val;
+                        finishupdating();
+                    }.bind(this), currentnode.Operator == "PARSEINT" ? "^[0-9]+(\\.[0-9]+)?$" : null);
+                }
             }
         } catch (err) {
             console.error('Error in editItem:', err);
@@ -1458,8 +944,6 @@ class ConditionEditor {
             console.error('Error in deleteItem:', err);
         }
     }
-
-
 
     _editBoolItem(path) {
         try {
@@ -1550,7 +1034,6 @@ class ConditionEditor {
         }
         return currentnode;
     }
-
     
     /**
      * Generates human-readable display text for text extraction/condition operations
@@ -1611,6 +1094,14 @@ class ConditionEditor {
                 break;
         }
         return dispval
+    }
+
+    _getEventName(eventname) {
+        return translations[this._generateLocalizedKey(eventname)];
+    }
+
+    _generateLocalizedKey(eventname) {
+        return "schema." + conditionEditor.platform + "." + eventname + ".label";
     }
  }
 
@@ -1758,7 +1249,7 @@ class BoolDialogHandler {
                     extvar2 = currentnode.Variables&&currentnode.Variables.length&&currentnode.Variables[1]?currentnode.Variables[1].split("-")[0]:currentnode.Variables[1];
                     extvar3 = currentnode.Variables&&currentnode.Variables.length>1&&currentnode.Variables[1].split("-").length>1?currentnode.Variables[1].split("-")[1]:currentnode.Variables[2];
                     operator = currentnode.Operator;
-                    document.getElementById("textcomparebasedisplay").innerText = this.editor._generateDisplayText("extract", taropr, targetbase, targetvar1, targetvar2);
+                    document.getElementById("textcomparebasedisplay").innerText = this.editor._generateDisplayText("extract", taropr, this.editor._generateLocalizedKey(targetbase), targetvar1, targetvar2);
                     document.getElementById("textcomparebaseexttype").value = taropr=="param"?"wholesentence":taropr;
                     document.getElementById("textcomparebasevalue").value = targetbase;
                     document.getElementById("textcomparebasetype").value = "env";
@@ -1781,7 +1272,7 @@ class BoolDialogHandler {
                     extvar2 = currentnode.Variables&&currentnode.Variables.length&&currentnode.Variables[1]?currentnode.Variables[1].split("-")[0]:currentnode.Variables[1];
                     extvar3 = currentnode.Variables&&currentnode.Variables.length>1&&currentnode.Variables[1].split("-").length>1?currentnode.Variables[1].split("-")[1]:currentnode.Variables[2];
                     operator = currentnode.Operator;
-                    document.getElementById("textcomparebasedisplay").innerText = this.editor._generateDisplayText("extract", taropr, targetbase, targetvar1, targetvar2);
+                    document.getElementById("textcomparebasedisplay").innerText = this.editor._generateDisplayText("extract", taropr, this.editor._generateLocalizedKey(targetbase), targetvar1, targetvar2);
                     document.getElementById("textcomparebaseexttype").value = taropr=="param"?"wholesentence":taropr;
                     document.getElementById("textcomparebasevalue").value = targetbase;
                     document.getElementById("textcomparebasetype").value = "env";
@@ -1931,7 +1422,8 @@ class TextDialogHandler {
         document.getElementById("textBody").classList.add("modal-body");
         document.getElementById("textBody").classList.add("textselection");
         document.getElementById("textenvradio").checked = currenttype == "env";
-        document.getElementById("textEnvSelect").value = currenttype == "env" ? currentvalue : "event_message";
+        const defaultEventField = (this.editor.eventFieldOptions.find((field) => field.Name === "message") || this.editor.eventFieldOptions[0])?.Name || "";
+        document.getElementById("textEnvSelect").value = currenttype == "env" ? currentvalue : defaultEventField;
         document.getElementById("textenterradio").checked = currenttype == "variable";
         document.getElementById("textEnter").value = currenttype == "variable" ? currentvalue : "";
         document.getElementById("textValidator").value = validator ?? "";
@@ -1976,42 +1468,44 @@ class TextDialogHandler {
         this.validate();
         document.getElementById("textModal").style["display"] = "block";
         document.getElementById("textSubmitButton").onclick = function() {
-            let dispval,val,type,exttype,extval;
+            let dispval,val,type,exttype,extval,env;
             if (document.getElementById("textenterradio").checked) {
                 dispval = document.getElementById("textEnter").value;
                 val = document.getElementById("textEnter").value;
                 type = "variable";
             } else if (document.getElementById("textenvradio").checked) {
                 val = document.getElementById("textEnvSelect").value;
+                env = this.editor._generateLocalizedKey(val);
                 type = "env";
                 exttype = document.getElementById("textExtSelect").value;
                 switch (exttype) {
                     case "regex_extract":
                         extval = document.getElementById("textExtRegex").value;
-                        dispval = this.editor._generateDisplayText("extract", "regex_extract", val, extval);
+                        dispval = this.editor._generateDisplayText("extract", "regex_extract", env, extval);
                         break;
                     case "substring":
                         extval = `${document.getElementById('textExtSubFrom').value}-${document.getElementById('textExtSubTo').value}`;
-                        dispval = this.editor._generateDisplayText("extract", "substring", val, document.getElementById('textExtSubFrom').value, document.getElementById('textExtSubTo').value);
+                        dispval = this.editor._generateDisplayText("extract", "substring", env, extval);
                         break;
                     case "first":
                         extval = document.getElementById("textExtFirst").value;
-                        dispval = this.editor._generateDisplayText("extract", "first", val, extval);
+                        dispval = this.editor._generateDisplayText("extract", "first", env, extval);
                         break;
                     case "last":
                         extval = document.getElementById("textExtLast").value;
-                        dispval = this.editor._generateDisplayText("extract", "last", val, extval);
+                        dispval = this.editor._generateDisplayText("extract", "last", env, extval);
                         break;
                     default:
                         extval = "";
                         exttype = "wholesentence";
-                        dispval = this.editor._generateDisplayText("extract", "wholesentence", val);
+                        dispval = this.editor._generateDisplayText("extract", "wholesentence", env);
                         break;
                 }
             }
             callback(dispval, val, type, exttype, extval);
             document.getElementById("textModal").style["display"] = "none";
         }.bind(this);
+        return this;
     }
 
     validate() {
@@ -2044,7 +1538,47 @@ class TextDialogHandler {
         
         document.getElementById("textSubmitButton").disabled = valid ? "" : "disabled";
     }
-}    
+}
+
+class RangeDialogHandler {
+    constructor(editor) {
+        this.editor = editor;
+        document.getElementById("textRangeFrom").onchange = this.validate;
+        document.getElementById("textRangeFrom").value = "";
+        document.getElementById("textRangeTo").onchange = this.validate;
+        document.getElementById("textRangeTo").value = "";
+    }
+
+    open(current, callback) {
+        if (!current||current.indexOf("-")<0) {
+            document.getElementById("textRangeFrom").value = current;
+            document.getElementById("textRangeTo").value = "";
+        } else {
+            document.getElementById("textRangeFrom").value = current.split("-")[0];
+            document.getElementById("textRangeTo").value = current.split("-")[1];
+        }
+        document.getElementById("textRangeSubmitButton").onclick = function() {
+            let from = document.getElementById("textRangeFrom").value;
+            let to = document.getElementById("textRangeTo").value;
+            let range = from;
+            if (to) {
+                range += "-" + to;
+            }
+            callback(range, range);
+            document.getElementById("textRangeModal").style["display"] = "none";
+        }.bind(this);
+        document.getElementById("textRangeModal").style["display"] = "block";
+    }
+
+    validate() {
+        if (!document.getElementById("textRangeFrom").value || !document.getElementById("textRangeTo").value ||
+            parseInt(document.getElementById("textRangeFrom").value) <= parseInt(document.getElementById("textRangeTo").value)) {
+            document.getElementById("textRangeSubmitButton").disabled = "";
+        } else {
+            document.getElementById("textRangeSubmitButton").disabled = "disabled";
+        }
+    }
+}
 
 /**
  * TextConditionDialogHandler - Manages the text condition dialog for the ConditionEditor
@@ -2172,9 +1706,14 @@ class NumericDialogHandler {
             const calcvalinputbutton = document.createElement("div");
             calcvalinputbutton.classList.add("calcvalinputbutton");
             calcvalinputbutton.innerText = translations["calcvalinput"];
-            calcvalinputbutton.onclick = this.appendValue.bind(this);
+            calcvalinputbutton.onclick = this.openTextInput.bind(this);
             document.getElementById("calctoolarea").appendChild(calcvalinputbutton);
         }
+        window.onkeyup = function(e) {
+            if (window.keyupEvent) {
+                window.keyupEvent.call(this, e);
+            }
+        }.bind(this);
     }
 
     /**
@@ -2195,6 +1734,29 @@ class NumericDialogHandler {
             callback(document.getElementById("calcformula").value, document.getElementById("calcdisplay").innerText);
             document.getElementById("numModal").style["display"] = "none";
         }
+        window.keyupEvent = function(e) {
+            if (e.key === "Escape") {
+                document.getElementById("numModal").style["display"] = "none";
+            } else if (e.key === "Enter") {
+                if (!document.getElementById("numModalButton").disabled) {
+                    callback(document.getElementById("calcformula").value, document.getElementById("calcdisplay").innerText);
+                    document.getElementById("numModal").style["display"] = "none";
+                }
+            } else if (!isNaN(e.key)) {
+                this.typeNumericValue(parseInt(e.key));
+            } else if (e.key === "+") {
+                this.appendOperator("ADD");
+            } else if (e.key === "-") {
+                this.appendOperator("SUBTRACT");
+            } else if (e.key === "*") {
+                this.appendOperator("MULTIPLY");
+            } else if (e.key === "/") {
+                this.appendOperator("DIVIDE");
+            } else if (e.key === "%") {
+                this.appendOperator("MODULO");
+            }
+        }
+        return this;
     }
 
     /**
@@ -2215,13 +1777,62 @@ class NumericDialogHandler {
      * Appends a calculation operator to the formula
      */
     appendOperator(operatortype) {
-        this.appendItemToFormula({"Operator": operatortype, SubConditions: null, Variables: null});
+        this.appendWrappedOperatorToFormula(operatortype);
+    }
+
+    typeNumericValue(value) {
+        const current = document.getElementById("calcformula").value;
+        let formula;
+        let placeHolderReplaced = false;
+        try {
+            formula = JSON.parse(current);
+        } catch {
+            formula = {};
+        }
+        const cursorpath = document.getElementById("calccursorpos").value;
+        const pathParts = cursorpath.split("/").filter(part => part);
+        let targetNode = formula;
+        for (const part of pathParts) {
+            const [type, index] = part.split(":");
+            if (type === "sub" && targetNode.SubConditions) {
+                if (targetNode.SubConditions[index]) {
+                    targetNode = targetNode.SubConditions[index];
+                } else {
+                    targetNode.SubConditions[index] = {"Operator": "PARSEINT", "SubConditions": null, "Variables": []};
+                    targetNode = targetNode.SubConditions[index];
+                }
+            } else if (type === "placeholder" && targetNode.SubConditions && targetNode.SubConditions[index]) {
+                targetNode.SubConditions[targetNode.SubConditions.length] = {"Operator": "PARSEINT", "SubConditions": null, "Variables": [value]};
+                placeHolderReplaced = true;
+            } else {
+                console.error(`Invalid path: ${cursorpath}`);
+                return;
+            }
+        }
+        if (!placeHolderReplaced) {
+            if (targetNode.Operator === "PARSEINT" && !targetNode.SubConditions) {
+                if (targetNode.Variables && targetNode.Variables.length > 0 && !isNaN(targetNode.Variables[0])) {
+                    targetNode.Variables[0] = targetNode.Variables[0] + value.toString();
+                } else {
+                    targetNode.Variables = [value];
+                }
+            } else if (targetNode.SubConditions && targetNode.SubConditions.length === 1 && targetNode.SubConditions[0].Operator === "PARSEINT") {
+                targetNode.SubConditions[0].Variables = [value];
+            } else {
+                targetNode.Operator = "PARSEINT";
+                targetNode.Variables = [value];
+            }
+        }
+        document.getElementById("calcformula").value = JSON.stringify(formula);
+        this.visualizeFormula(formula); 
     }
 
     /**
      * Appends a value to the calculation formula
      */
-    appendValue() {
+    openTextInput() {
+        const keyEventEvac = window.keyupEvent;
+        window.keyupEvent = null;
         this.editor.textDialog.open(null, null, null, null, true, true, function(dispval, val, type, exttype, extval){
             let appendnode;
             if (type == "env") {
@@ -2236,7 +1847,9 @@ class NumericDialogHandler {
             if (appendnode) {
                 this.appendItemToFormula(appendnode);
             }
+            window.keyupEvent = keyEventEvac;
         }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
+        document.getElementById("textModal").ondialogclose = function(){ window.keyupEvent = keyEventEvac; };
     }
 
     /**
@@ -2273,7 +1886,7 @@ class NumericDialogHandler {
     updateCursor(e){
         document.getElementById("calccursorpos").value = e.target.getAttribute("path");
         this.setCursor(JSON.parse(document.getElementById("calcformula").value));
-        event.stopPropagation();
+        e.stopPropagation();
     }
 
     /**
@@ -2367,17 +1980,15 @@ class NumericDialogHandler {
                             placeholder.onclick = this.fillPlaceHolder.bind(this);
                             base.append(placeholder);
                         }
-                        if (path != "") {
-                            const plussign = document.createElement("span");
-                            plussign.innerText = "＋";
-                            base.append(plussign);
-                            const placeholder = document.createElement("span");
-                            placeholder.classList.add("placeholder");
-                            placeholder.innerText = translations["calc-missingvalue"];
-                            placeholder.setAttribute("path",  path + "/placeholder:0");
-                            placeholder.onclick = this.fillPlaceHolder.bind(this);
-                            base.append(placeholder);
-                        }
+                        const plussign = document.createElement("span");
+                        plussign.innerText = "＋";
+                        base.append(plussign);
+                        const placeholder = document.createElement("span");
+                        placeholder.classList.add("placeholder");
+                        placeholder.innerText = translations["calc-missingvalue"];
+                        placeholder.setAttribute("path",  path + "/placeholder:0");
+                        placeholder.onclick = this.fillPlaceHolder.bind(this);
+                        base.append(placeholder);
                     }
                     break;
                 case "MULTIPLY":
@@ -2673,7 +2284,7 @@ class NumericDialogHandler {
                         const param = document.createElement("span");
                         param.classList.add("param");
                         param.classList.add("const");
-                        param.innerText = translations[node.Variables[i]];
+                        param.innerText = this._getEventName(node.Variables[i]);
                         param.setAttribute("path",  path + "/param:" + i);
                         param.onclick = this.updateCursor.bind(this);
                         base.append(param);
@@ -2703,50 +2314,100 @@ class NumericDialogHandler {
      */
     appendItemToFormula(elem) {
         const cursorpath = document.getElementById("calccursorpos").value;
-        const formula = JSON.parse(document.getElementById("calcformula").value?document.getElementById("calcformula").value:'{"Operator": "ADD", "SubConditions":null, "Variables": null}');
-        let targetcontainer = formula;
-        if (cursorpath.split("/").length>2) {
-            for (const i in cursorpath.split("/").slice(0, cursorpath.split("/").length-1)) {
-                const address = cursorpath.split("/")[i];
-                if (!address) {
-                    continue;
+        let formula;
+        if (document.getElementById("calcformula").value)
+        {
+            formula = JSON.parse(document.getElementById("calcformula").value);
+            let targetcontainer = formula;
+            if (cursorpath.split("/").length>2) {
+                for (const i in cursorpath.split("/").slice(0, cursorpath.split("/").length-1)) {
+                    const address = cursorpath.split("/")[i];
+                    if (!address) {
+                        continue;
+                    }
+                    const type = address.split(":")[0];
+                    const index = address.split(":")[1];
+                    if (type=="sub" || type == "placeholder") {
+                        targetcontainer = targetcontainer.SubConditions[index];
+                    } else if (type == "const") {
+                        targetcontainer = targetcontainer.Variables[index];
+                    }
                 }
-                const type = address.split(":")[0];
-                const index = address.split(":")[1];
-                if (type=="sub" || type == "placeholder") {
-                    targetcontainer = targetcontainer.SubConditions[index];
-                } else if (type == "const") {
-                    targetcontainer = targetcontainer.Variables[index];
+            }
+            const address = cursorpath.split("/")[cursorpath.split("/").length-1];
+            const type = address.split(":")[0];
+            const index = address.split(":")[1];
+            const prepending = address.split(":").length > 2 && address.split(":")[2] == "pre";
+            if (cursorpath.length < 2 || type == "placeholder" || !address) {
+                if (targetcontainer.SubConditions) {
+                    targetcontainer.SubConditions.push(elem);
+                } else {
+                    targetcontainer.SubConditions = [elem];
+                }
+                document.getElementById("calccursorpos").value = document.getElementById("calccursorpos").value.replace("placeholder", "sub");
+            } else if (type == "sub") {
+                if (targetcontainer.SubConditions) {
+                    targetcontainer.SubConditions.splice(index + (prepending?0:1), 0, elem);
+                } else {
+                    targetcontainer.SubConditions = [elem];
+                }
+            } else if (type == "const" || type == "param") { // even if the cursor is on "variable", cannot splice between variables since the appendance is SubCondition anyway. Append to the last of SubConditions
+                if (targetcontainer.SubConditions) {
+                    targetcontainer.SubConditions.push(elem);
+                } else {
+                    targetcontainer.SubConditions = [elem];
                 }
             }
-        }
-        const address = cursorpath.split("/")[cursorpath.split("/").length-1];
-        const type = address.split(":")[0];
-        const index = address.split(":")[1];
-        const prepending = address.split(":").length > 2 && address.split(":")[2] == "pre";
-        if (cursorpath.length < 2 || type == "placeholder" || !address) {
-            if (targetcontainer.SubConditions) {
-                targetcontainer.SubConditions.push(elem);
-            } else {
-                targetcontainer.SubConditions = [elem];
-            }
-            document.getElementById("calccursorpos").value = document.getElementById("calccursorpos").value.replace("placeholder", "sub");
-        } else if (type == "sub") {
-            if (targetcontainer.SubConditions) {
-                targetcontainer.SubConditions.splice(index + (prepending?0:1), 0, elem);
-            } else {
-                targetcontainer.SubConditions = [elem];
-            }
-        } else if (type == "const" || type == "param") { // even if the cursor is on "variable", cannot splice between variables since the appendance is SubCondition anyway. Append to the last of SubConditions
-            if (targetcontainer.SubConditions) {
-                targetcontainer.SubConditions.push(elem);
-            } else {
-                targetcontainer.SubConditions = [elem];
-            }
+        } else {
+            formula = elem;
         }
         document.getElementById("calcformula").value = JSON.stringify(formula);
         this.visualizeFormula();
         document.getElementById("calccursorpos").value = document.getElementById("calccursorpos").value.replace("placeholder", "sub");
+        this.validate();
+    }
+
+    appendWrappedOperatorToFormula(operator) {
+        const cursorpath = document.getElementById("calccursorpos").value;
+        let cursor = "";
+        let formula;
+        if (document.getElementById("calcformula").value) {
+            formula = JSON.parse(document.getElementById("calcformula").value);
+            let targetcontainer = formula;
+            if (cursorpath.split("/").length>2) {
+                for (const i in cursorpath.split("/").slice(0, cursorpath.split("/").length-1)) {
+                    const address = cursorpath.split("/")[i];
+                    if (!address) {
+                        continue;
+                    }
+                    const type = address.split(":")[0];
+                    const index = address.split(":")[1];
+                    if (type=="sub" || type == "placeholder") {
+                        targetcontainer = targetcontainer.SubConditions[index];
+                    } else if (type == "const") {
+                        targetcontainer = targetcontainer.Variables[index];
+                    }
+                    cursor += type + ":" + index + "/";
+                }
+            }
+            let elem = {"Operator": operator, SubConditions: [], Variables: []};
+            if (parseInt(targetcontainer) || typeof targetcontainer == "string") {
+                elem.Variables = [targetcontainer];
+                cursor += "/const:1";
+            } else {
+                elem.SubConditions = [structuredClone(targetcontainer)];
+                cursor += "/sub:1";
+            }
+            targetcontainer.Operator = operator;
+            targetcontainer.SubConditions = elem.SubConditions;
+            targetcontainer.Variables = elem.Variables;
+        } else {
+            formula = {"Operator": operator, SubConditions: [], Variables: []};
+            cursor = "/sub:0";
+        }
+        document.getElementById("calcformula").value = JSON.stringify(formula);
+        this.visualizeFormula();
+        document.getElementById("calccursorpos").value = cursor.replace("placeholder", "sub");
         this.validate();
     }
 
@@ -2773,374 +2434,9 @@ class NumericDialogHandler {
      */
     fillPlaceHolder(e) {
         document.getElementById("calccursorpos").value = e.target.getAttribute("path");
-        this.appendValue();
+        this.openTextInput();
         event.stopPropagation();
     }
-}
-
-function getEventInspectorContext() {
-    const eventTypeElement = document.querySelector('[data-event-type]');
-    const platformElement = document.querySelector('[data-platform]');
-    return {
-        eventType: String(eventTypeElement?.dataset?.eventType || '').trim(),
-        platform: String(platformElement?.dataset?.platform || '').trim().toLowerCase()
-    };
-}
-
-function humanizeEventPropertyName(propertyName = '') {
-    return String(propertyName || '')
-        .split('.')
-        .pop()
-        .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ') || propertyName;
-}
-
-function getEventPropertyTranslation(propertyName, platform = '') {
-    // Look for translations with flattened condition.* keys
-    const prefixedGenericKey = `condition.${propertyName}`;
-    const prefixedPlatformKey = platform ? `condition.${platform}.${propertyName}` : '';
-    
-    // TByPrefix removes the "condition." prefix from keys, so also try without prefix
-    const shortGenericKey = propertyName;
-    const shortPlatformKey = platform ? `${platform}.${propertyName}` : '';
-    
-    // Fallback to old keys for backward compatibility (though they're all updated now)
-    const oldGenericKey = `eventProp.${propertyName}`;
-    const oldPrefixedGenericKey = `condition.eventProp.${propertyName}`;
-    const oldPrefixedPlatformKey = platform ? `condition.eventProp.${platform}.${propertyName}` : '';
-    
-    return translations?.[prefixedGenericKey]
-        || translations?.[shortGenericKey]
-        || translations?.[prefixedPlatformKey]
-        || translations?.[shortPlatformKey]
-        || translations?.[oldPrefixedGenericKey]
-        || translations?.[oldGenericKey]
-        || translations?.[oldPrefixedPlatformKey]
-        || humanizeEventPropertyName(propertyName);
-}
-
-function getTemplateTranslation(translationKey, fallback = '') {
-    if (!translationKey) return fallback;
-    // Try the key as-is first, then try without the "condition." prefix
-    // (TByPrefix removes the prefix from keys)
-    let key = translationKey;
-    if (translations?.[key] !== undefined) {
-        return translations[key];
-    }
-    // Try without "condition." prefix
-    const shortKey = key.startsWith('condition.') ? key.substring('condition.'.length) : key;
-    if (translations?.[shortKey] !== undefined) {
-        return translations[shortKey];
-    }
-    return fallback;
-}
-
-function getPropertyDescriptionTranslation(fieldName, fallback = '') {
-    // Try the property-specific description key first
-    const propDescKey = `condition.eventProp.${fieldName}.description`;
-    const schemaDescKey = `condition.schema.${fieldName}.description`;
-    // TByPrefix removes the "condition." prefix, so also try without it
-    const shortPropDescKey = `eventProp.${fieldName}.description`;
-    const shortSchemaDescKey = `schema.${fieldName}.description`;
-    return translations?.[propDescKey] 
-        || translations?.[shortPropDescKey]
-        || translations?.[schemaDescKey] 
-        || translations?.[shortSchemaDescKey]
-        || fallback || '—';
-}
-
-function normalizeEventInspectorField(field, fallback = {}) {
-    const name = field?.name || field?.Name || fallback.name || '';
-    return {
-        name,
-        type: field?.type || field?.Type || fallback.type || 'string',
-        description: field?.description || field?.Description || fallback.description || '',
-        optional: field?.optional ?? field?.Optional ?? fallback.optional ?? false
-    };
-}
-
-function mergeEventInspectorProperties(...groups) {
-    const propertyMap = new Map();
-    groups.flat().forEach((field) => {
-        const normalized = normalizeEventInspectorField(field);
-        if (!normalized.name) {
-            return;
-        }
-        if (propertyMap.has(normalized.name)) {
-            propertyMap.set(normalized.name, { ...propertyMap.get(normalized.name), ...normalized });
-            return;
-        }
-        propertyMap.set(normalized.name, normalized);
-    });
-    return Array.from(propertyMap.values());
-}
-
-function getFallbackEventInspectorProperties(platform = '', eventType = '', eventFieldOptions = []) {
-    const normalizedPlatform = String(platform || '').trim().toLowerCase();
-    const normalizedEventType = String(eventType || '').trim().toLowerCase();
-    const eventGroup = templateEventTypeGroups[normalizedEventType];
-    const schemaKey = normalizedPlatform && normalizedEventType ? `${normalizedPlatform}:${normalizedEventType}` : '';
-    const fallbackFields = (Array.isArray(eventFieldOptions) ? eventFieldOptions : []).map((fieldOption) => {
-        const [labelName, description] = String(fieldOption?.Label || fieldOption?.label || fieldOption?.Name || fieldOption?.name || '')
-            .split(' — ');
-        return {
-            name: fieldOption?.Name || fieldOption?.name || labelName,
-            description: description || `Available on ${normalizedPlatform || 'this'} events`,
-            type: 'string',
-            optional: false
-        };
-    });
-    const genericFields = eventGroup && eventPropertyDefinitions[eventGroup]
-        ? eventPropertyDefinitions[eventGroup].map((entry) => ({ ...entry, type: entry.type || 'string', optional: false }))
-        : [];
-
-    return mergeEventInspectorProperties(
-        commonEventPropertySchema,
-        genericFields,
-        fallbackFields,
-        schemaKey ? eventPropertySchemas[schemaKey] || [] : []
-    );
-}
-
-function normalizeApiMetadataFields(metadata) {
-    if (!metadata?.fields || typeof metadata.fields !== 'object') {
-        return [];
-    }
-    return Object.entries(metadata.fields).map(([name, field]) => normalizeEventInspectorField({ ...field, name }));
-}
-
-async function loadEventInspectorProperties(platform, eventType) {
-    const fallbackFields = getFallbackEventInspectorProperties(
-        platform,
-        eventType,
-        conditionEditor?.eventFieldOptions || conditionToolboxContext?.eventFieldOptions || []
-    );
-    if (!platform || !eventType) {
-        return fallbackFields;
-    }
-
-    try {
-        const metadata = typeof window.getEventMetadata === 'function'
-            ? await window.getEventMetadata(platform, eventType)
-            : (typeof window.apiGet === 'function'
-                ? await window.apiGet(`/event-metadata/${encodeURIComponent(platform)}/${encodeURIComponent(eventType)}`)
-                : null);
-        const metadataFields = normalizeApiMetadataFields(metadata);
-        return metadataFields.length
-            ? mergeEventInspectorProperties(commonEventPropertySchema, fallbackFields, metadataFields)
-            : fallbackFields;
-    } catch (error) {
-        console.error('Failed to load event inspector metadata:', error);
-        return fallbackFields;
-    }
-}
-
-async function copyEventPropertyName(propertyName) {
-    const text = String(propertyName || '');
-    if (!text) {
-        return false;
-    }
-
-    try {
-        if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text);
-        } else {
-            const tempInput = document.createElement('textarea');
-            tempInput.value = text;
-            tempInput.setAttribute('readonly', '');
-            tempInput.style.position = 'fixed';
-            tempInput.style.opacity = '0';
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            tempInput.remove();
-        }
-        if (typeof window.showMonToast === 'function') {
-            window.showMonToast(`Copied ${text}`);
-        }
-        return true;
-    } catch (error) {
-        console.error('Copy failed:', error);
-        return false;
-    }
-}
-
-function renderEventInspectorRows(container, fields, platform) {
-    container.replaceChildren();
-
-    if (!fields.length) {
-        const emptyState = document.createElement('div');
-        emptyState.style.padding = '1rem';
-        emptyState.style.border = '1px solid #d6d6d6';
-        emptyState.style.borderRadius = '8px';
-        emptyState.style.background = '#fff';
-        emptyState.textContent = 'No event properties are available for this event type yet.';
-        container.appendChild(emptyState);
-        return;
-    }
-
-    const tableWrapper = document.createElement('div');
-    tableWrapper.style.border = '1px solid #d6d6d6';
-    tableWrapper.style.borderRadius = '10px';
-    tableWrapper.style.overflow = 'hidden';
-    tableWrapper.style.background = '#fff';
-
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    ['Property', 'Label', 'Description', 'Type', 'Copy'].forEach((label) => {
-        const th = document.createElement('th');
-        th.textContent = label;
-        th.style.textAlign = 'left';
-        th.style.padding = '0.75rem';
-        th.style.background = '#f1f3f5';
-        th.style.fontSize = '0.85rem';
-        headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    fields.forEach((field, index) => {
-        const row = document.createElement('tr');
-        row.style.background = index % 2 === 0 ? '#ffffff' : '#f8f9fb';
-        row.style.cursor = 'pointer';
-        row.title = `Click to copy ${field.name}`;
-        row.addEventListener('click', () => copyEventPropertyName(field.name));
-
-        const propertyCell = document.createElement('td');
-        propertyCell.style.padding = '0.75rem';
-        propertyCell.style.verticalAlign = 'top';
-        const code = document.createElement('code');
-        code.textContent = field.name;
-        propertyCell.appendChild(code);
-        if (field.optional) {
-            const badge = document.createElement('span');
-            badge.textContent = 'Optional';
-            badge.style.marginLeft = '0.5rem';
-            badge.style.padding = '0.15rem 0.5rem';
-            badge.style.borderRadius = '999px';
-            badge.style.background = '#fff3cd';
-            badge.style.color = '#8a6d3b';
-            badge.style.fontSize = '0.75rem';
-            propertyCell.appendChild(badge);
-        }
-
-        const labelCell = document.createElement('td');
-        labelCell.style.padding = '0.75rem';
-        labelCell.style.verticalAlign = 'top';
-        labelCell.textContent = getEventPropertyTranslation(field.name, platform);
-
-        const descriptionCell = document.createElement('td');
-        descriptionCell.style.padding = '0.75rem';
-        descriptionCell.style.verticalAlign = 'top';
-        descriptionCell.textContent = getPropertyDescriptionTranslation(field.name, field.description || field.descriptionKey || '');
-
-        const typeCell = document.createElement('td');
-        typeCell.style.padding = '0.75rem';
-        typeCell.style.verticalAlign = 'top';
-        typeCell.textContent = field.type || 'string';
-
-        const actionCell = document.createElement('td');
-        actionCell.style.padding = '0.75rem';
-        actionCell.style.verticalAlign = 'top';
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-secondary';
-        button.textContent = 'Copy';
-        button.addEventListener('click', (event) => {
-            event.stopPropagation();
-            copyEventPropertyName(field.name);
-        });
-        actionCell.appendChild(button);
-
-        row.append(propertyCell, labelCell, descriptionCell, typeCell, actionCell);
-        tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-    tableWrapper.appendChild(table);
-    container.appendChild(tableWrapper);
-}
-
-async function openEventInspector() {
-    const modal = document.getElementById('eventInspectorModal');
-    const modalTitle = modal?.querySelector('.modal-header h2');
-    const modalDescription = modal?.querySelector('.modal-header p');
-    const platformLabel = document.getElementById('eventInspectorPlatform');
-    const eventTypeLabel = document.getElementById('eventInspectorEventType');
-    const propertiesContainer = document.getElementById('eventInspectorProperties');
-    if (!modal || !propertiesContainer) {
-        return;
-    }
-
-    const context = getEventInspectorContext();
-    const platform = context.platform || String(conditionToolboxContext?.platform || '').trim().toLowerCase();
-    const eventType = context.eventType || currentTemplateEventType || String(conditionToolboxContext?.eventType || '').trim();
-    const displayEventType = (typeof window.getEventLabel === 'function' && platform)
-        ? window.getEventLabel(eventType, platform)
-        : eventType;
-
-    if (modalTitle) {
-        modalTitle.textContent = `Available Event Properties — ${displayEventType || 'Unknown Event'}`;
-    }
-    if (modalDescription) {
-        modalDescription.textContent = 'Review available fields, filter the list, or click any row to copy the property name.';
-    }
-    if (platformLabel) {
-        platformLabel.textContent = platform || '-';
-    }
-    if (eventTypeLabel) {
-        eventTypeLabel.textContent = eventType || '-';
-    }
-
-    propertiesContainer.replaceChildren();
-    const searchInput = document.createElement('input');
-    searchInput.type = 'search';
-    searchInput.placeholder = 'Search properties';
-    searchInput.setAttribute('aria-label', 'Search event properties');
-    searchInput.style.width = '100%';
-    searchInput.style.padding = '0.75rem';
-    searchInput.style.marginBottom = '1rem';
-    searchInput.style.border = '1px solid #ced4da';
-    searchInput.style.borderRadius = '8px';
-
-    const listContainer = document.createElement('div');
-    const loadingState = document.createElement('div');
-    loadingState.style.padding = '1rem';
-    loadingState.style.color = '#666';
-    loadingState.textContent = 'Loading event properties...';
-    listContainer.appendChild(loadingState);
-
-    propertiesContainer.append(searchInput, listContainer);
-
-    if (typeof window.openModal === 'function') {
-        window.openModal('eventInspectorModal');
-    } else {
-        modal.style.display = 'block';
-    }
-
-    const allFields = await loadEventInspectorProperties(platform, eventType);
-    const applyFilter = () => {
-        const query = searchInput.value.trim().toLowerCase();
-        const filteredFields = !query
-            ? allFields
-            : allFields.filter((field) => {
-                const translatedName = getEventPropertyTranslation(field.name, platform);
-                return [field.name, translatedName, field.description, field.type]
-                    .filter(Boolean)
-                    .some((value) => String(value).toLowerCase().includes(query));
-            });
-        renderEventInspectorRows(listContainer, filteredFields, platform);
-    };
-
-    searchInput.addEventListener('input', applyFilter);
-    applyFilter();
-    searchInput.focus();
 }
 
 /**
@@ -3150,104 +2446,11 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = "none";
-    }
-}
-
-function addTemplateToCondition(templateDef) {
-    if (!conditionEditor || !templateDef) {
-        return false;
-    }
-
-    const normalizedTemplate = templateDef.json
-        ? templateDef
-        : { ...templateDef, json: templateDef };
-    return conditionEditor.addTemplate(conditionTemplateHelpers.clone(normalizedTemplate.json));
-}
-
-function renderTemplateCards(templates) {
-    const cardContainer = document.getElementById('templateCards');
-    const emptyState = document.getElementById('templateEmptyState');
-    const templateList = Array.isArray(templates) ? templates : [];
-
-    if (!cardContainer || !emptyState) {
-        return;
-    }
-
-    cardContainer.replaceChildren();
-
-    if (!templateList.length) {
-        cardContainer.style.display = 'none';
-        emptyState.style.display = 'block';
-        emptyState.textContent = getTemplateTranslation('condition.ui.noTemplates', 'No built-in templates are available for this event type yet.');
-        return;
-    }
-
-    templateList.forEach((templateDef) => {
-        const card = document.createElement('div');
-        card.className = 'template-card';
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'template-card-name';
-        nameDiv.textContent = getTemplateTranslation(templateDef.nameKey, templateDef.name || templateDef.nameKey);
-        
-        const descDiv = document.createElement('div');
-        descDiv.className = 'template-card-desc';
-        descDiv.textContent = getTemplateTranslation(templateDef.descriptionKey, templateDef.description || templateDef.descriptionKey);
-        
-        card.appendChild(nameDiv);
-        card.appendChild(descDiv);
-        
-        card.style.cursor = 'pointer';
-        card.title = `Click to add: ${nameDiv.textContent}`;
-        
-        card.onclick = function() {
-            addTemplateToCondition(templateDef);
-        };
-        
-        cardContainer.appendChild(card);
-    });
-
-    emptyState.style.display = 'none';
-    cardContainer.style.display = 'flex';
-}
-
-function initializeTemplates() {
-    const currentEventTypeElement = document.getElementById('currentEventType');
-    const eventType = (currentEventTypeElement?.innerText || currentEventTypeElement?.textContent || '').trim();
-    const templates = conditionEditor?.getTemplatesForEventType(eventType) || [];
-    const hint = document.getElementById('templateLibraryHint');
-
-    if (typeof currentTemplateEventType !== 'undefined') {
-        currentTemplateEventType = eventType;
-    }
-    if (hint) {
-        if (eventType) {
-            const hintKey = `condition.ui.templateLibraryHintWithEventType`;
-            const hintFallback = `Templates for "${eventType}" load automatically.`;
-            const translatedHint = getTemplateTranslation(hintKey, hintFallback);
-            hint.textContent = translatedHint.includes('{eventType}') 
-                ? translatedHint.replace('{eventType}', eventType)
-                : translatedHint;
-        } else {
-            hint.textContent = getTemplateTranslation('condition.ui.templateLibraryHint', 'Templates for this event type load automatically.');
+        if (modal.ondialogclose) {
+            modal.ondialogclose();
         }
     }
-
-    renderTemplateCards(templates);
 }
-
-window.conditionTemplateLibrary = conditionTemplateLibrary;
-window.initializeTemplates = initializeTemplates;
-window.renderTemplateCards = renderTemplateCards;
-window.addTemplateToCondition = addTemplateToCondition;
-window.openEventInspector = openEventInspector;
-window.copyEventPropertyName = copyEventPropertyName;
-
-window.conditionTemplateDefinitions = conditionTemplateLibrary;
-
-// ============================================
-// Condition Testing UI Functions
-// ============================================
 
 /**
  * Updates test event parameter fields
@@ -3258,82 +2461,12 @@ function updateTestEventParams() {
 }
 
 /**
- * Updates condition event type fields
- */
-function updateCondEventFields() {
-    console.log('updateCondEventFields called');
-    // TODO: Implement dynamic fields for condition event type
-}
-
-/**
- * Toggles device action section visibility
- */
-function toggleDeviceAction(checkbox) {
-    console.log('toggleDeviceAction:', checkbox.checked);
-    // TODO: Implement device action toggle
-}
-
-/**
- * Updates the action select options based on device
- */
-function updateCondActionSelect() {
-    console.log('updateCondActionSelect called');
-    // TODO: Implement action selection for device
-}
-
-/**
- * Updates the action parameters based on selected action
- */
-function updateCondActionParams() {
-    console.log('updateCondActionParams called');
-    // TODO: Implement parameter fields for action
-}
-
-/**
- * Selects a color preset
- */
-function selectCondColor(btn) {
-    console.log('selectCondColor:', btn.getAttribute('data-color'));
-    // TODO: Implement color selection
-}
-
-/**
  * Runs a condition test
  */
 function runConditionTest() {
     console.log('runConditionTest called');
     // TODO: Implement condition testing with API call
 }
-
-/**
- * Saves a filter
- */
-function saveFilter() {
-    console.log('saveFilter called');
-    // TODO: Implement filter saving with API call
-}
-
-/**
- * Cancels confirmation dialog
- */
-function cancelConfirm() {
-    const overlay = document.getElementById('confirmOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-}
-
-/**
- * Confirms add operation
- */
-function confirmAdd() {
-    console.log('confirmAdd called');
-    // TODO: Implement add confirmation
-}
-
-// ============================================
-// New Tool Functions: Regex Tester, Snippets, Operators
-// ============================================
 
 /**
  * Opens the Regex Tester modal

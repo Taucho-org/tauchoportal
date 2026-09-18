@@ -1,0 +1,45 @@
+{{define "devices"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/devices.css">
+{{block "deviceshead" .}}{{end}}
+{{end}}
+
+
+{{define "content"}}
+
+{{block "devicescontent" .}}{{end}}
+
+{{block "dialogs" .}}{{end}}
+
+
+<script id="devicesTranslations" type="application/json">
+{{.I18n.TByPrefix "devices" | jsonMarshal}}
+</script>
+<script>
+// Load i18n translations
+const devicesI18n = JSON.parse(document.getElementById('devicesTranslations').textContent);
+</script>
+<script id="allbrands" type="application/json">
+{{toJSON .Brands}}
+</script>
+<script id="mydevices" type="application/json">
+{{toJSON .Devices.Devices}}
+</script>
+<script id="mybrands" type="application/json">
+{{toJSON .MyBrands}}
+</script>
+<script>
+const allBrands = JSON.parse(document.getElementById('allbrands').textContent);
+const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
+const myBrands = JSON.parse(document.getElementById('mybrands').textContent);
+window.BRANDS = allBrands || [];
+window.MY_DEVICES = myDevices || [];
+window.MY_BRANDS = [];
+for (const mybrandindex in myBrands) {
+    window.MY_BRANDS[myBrands[mybrandindex].id] = myBrands[mybrandindex];
+}
+</script>
+{{block "scripts" .}}{{end}}
+
+{{end}}

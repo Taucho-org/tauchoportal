@@ -71,7 +71,7 @@ window.sidebarChannelsTranslations = JSON.parse(document.getElementById('sidebar
                                 <div class="channel-meta">
                                     <span class="platform-tag {{.Platform}}">
                                         {{ platformIcon .Platform }}
-                                        {{if $platform}}{{index $platform "label"}}{{else}}{{.Platform}}{{end}}
+                                        {{$.I18n.T (print "channels." .Platform)}}
                                     </span>
                                     <span class="channel-id">{{.ChannelID}}</span>
                                     <div class="meta-item">

@@ -1,12 +1,11 @@
-{{define "page"}}{{template "base" .}}{{end}}
+{{define "page"}}{{template "devices" .}}{{end}}
 
-{{define "head"}}
+{{define "deviceshead"}}
 <link rel="stylesheet" href="/css/modals.css">
-<link rel="stylesheet" href="/css/devices.css">
 <link rel="stylesheet" href="/css/catalog.css">
 {{end}}
 
-{{define "content"}}
+{{define "devicescontent"}}
 <div class="devices-container">
         <div class="page-header">
             <div class="page-header-top">
@@ -24,7 +23,7 @@
             {{$hasConnected := false}}
                     <!-- Brand Status Pills -->
                     <div class="brand-status-pills" id="brandStatusPills">
-                        {{range .Devices.BrandsSorted}}
+                        {{range .Brands}}
                             {{$brandId := .ID}}
                             {{$deviceCount := 0}}
                             {{range $.Devices.Devices}}
@@ -85,7 +84,7 @@
         <div style="background: #eaf4f8; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
             <h3 style="color: #0969da; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">🚀 {{.I18n.T "devices.quickConnect" }}</h3>
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                {{range .Devices.BrandsSorted }}
+                {{range .Brands }}
                 {{$brandId := .ID}}
                 {{$deviceCount := 0}}
                 {{range $.Devices.Devices}}
@@ -105,16 +104,10 @@
             <p class="no-devices-msg">No devices yet. Click "+ Add Device" above to get started.</p>
             {{else}}
             {{range $idx, $device := .Devices.Devices}}
-                {{$brand := index $.Devices.Brands $device.Brand}}
-                {{$brandColor := "#888888"}}
-                {{$brandLogo := ""}}
-                {{if $brand}}
-                    {{$brandColor = $brand.BrandColor}}
-                    {{$brandLogo = $brand.LogoURL}}
-                {{end}}
+                {{$brandLogo := $device.BrandLogo}}
                 
                 <div class="device-card" data-id="{{$device.ID}}" data-brand="{{$device.Brand}}">
-                    <div class="device-header-section" data-brand="{{$device.Brand}}" style="background:linear-gradient(135deg, {{$brandColor}} 0%, {{$brandColor}} 100%);">
+                    <div class="device-header-section" data-brand="{{$device.Brand}}">
                         <h4 class="device-header-name">{{$device.Name}}</h4>
                         <p class="device-header-brand">{{$device.ProductName}}</p>
                     </div>
@@ -151,51 +144,48 @@
 
                 <!-- Inject Catalog/Advertisement every 3 items -->
                 {{if eq $idx 2}}
-                    {{$brandIds := $.Devices.BrandIDs}}
-                    {{if gt (len $brandIds) 0}}
-                        {{$catalogBrandId := index $brandIds 0}}
-                        {{$catalogBrand := index $.Devices.Brands $catalogBrandId}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 0}}
+                        {{$catalogBrand := index $brands 0}}
                         <div class="catalog-injection-row">
                             <div class="catalog-injection-header">
                                 <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrandId}}', document.querySelector('[data-filter=\'{{$catalogBrandId}}\']')); return false;">View All</a>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
                             </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrandId}}">
-                                {{renderCatalog $catalogBrandId $.I18n .}}
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
                             </div>
                         </div>
                     {{end}}
                 {{end}}
 
                 {{if eq $idx 5}}
-                    {{$brandIds := $.Devices.BrandIDs}}
-                    {{if gt (len $brandIds) 1}}
-                        {{$catalogBrandId := index $brandIds 1}}
-                        {{$catalogBrand := index $.Devices.Brands $catalogBrandId}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 1}}
+                        {{$catalogBrand := index $brands 1}}
                         <div class="catalog-injection-row">
                             <div class="catalog-injection-header">
                                 <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrandId}}', document.querySelector('[data-filter=\'{{$catalogBrandId}}\']')); return false;">View All</a>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
                             </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrandId}}">
-                                {{renderCatalog $catalogBrandId $.I18n .}}
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
                             </div>
                         </div>
                     {{end}}
                 {{end}}
 
                 {{if eq $idx 8}}
-                    {{$brandIds := $.Devices.BrandIDs}}
-                    {{if gt (len $brandIds) 2}}
-                        {{$catalogBrandId := index $brandIds 2}}
-                        {{$catalogBrand := index $.Devices.Brands $catalogBrandId}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 2}}
+                        {{$catalogBrand := index $brands 2}}
                         <div class="catalog-injection-row">
                             <div class="catalog-injection-header">
                                 <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrandId}}', document.querySelector('[data-filter=\'{{$catalogBrandId}}\']')); return false;">View All</a>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
                             </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrandId}}">
-                                {{renderCatalog $catalogBrandId $.I18n .}}
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
                             </div>
                         </div>
                     {{end}}
@@ -225,1103 +215,258 @@
         <!-- How to Use Legend Section -->
         <div class="howtouse">{{.I18n.TH "devices.howToUse" }}</div>
     </div>
+{{end}}
 
-    <!-- Add / Edit Device Modal (Accordion Style) -->
-    <div id="deviceModal" class="modal">
-        <div class="modal-content modal-wide">
-            <div class="modal-header">
-                <span class="close" onclick="closeModal()">&times;</span>
-                <!-- Step 1 Header -->
-                <div id="step1-header">
-                    <h2>{{.I18n.T "devices.addDeviceModal"}}</h2>
-                    <p>{{.I18n.T "devices.selectBrand"}}</p>
-                </div>
-                <!-- Step 2 Header -->
-                <div id="step2-header" style="display:none">
-                    <div id="step2BrandBadge" style="margin-bottom: 0.5rem;"></div>
-                    <h2 id="step2Title">{{.I18n.T "devices.configDevice"}}</h2>
-                    <p id="step2Desc">{{.I18n.T "devices.fillDetails"}}</p>
-                </div>
+{{define "dialogs"}}
+<div id="deviceModal" class="modal">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <!-- Step 1 Header -->
+            <div id="step1-header">
+                <h2>{{.I18n.T "devices.addDeviceModal"}}</h2>
+                <p>{{.I18n.T "devices.selectBrand"}}</p>
             </div>
-            
-            <div class="modal-body">
-                <!-- Step 1: Brand Accordion -->
-                <div id="step1-body">
-                    <!-- Brand Accordion Container -->
-                    <div class="brand-accordion" id="brandAccordion">
-                        <!-- Brand Accordion Items (Generated from Go template) -->
-                        {{range .Devices.BrandsSorted}}
-                            {{$brandId := .ID}}
-                            {{$brandName := .Name}}
-                            {{$brandColor := .BrandColor}}
-                            {{$brandLogo := .LogoURL}}
-                            {{$ownedDevices := 0}}
-                            {{range $.Devices.Devices}}
-                                {{if eq .Brand $brandId}}{{$ownedDevices = add $ownedDevices 1}}{{end}}
-                            {{end}}
-                            
-                            <div class="accordion-item" data-brand-id="{{$brandId}}">
-                                <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
-                                    <span class="accordion-toggle-icon">▶</span>
-                                    {{if $brandLogo}}
-                                        <img src="{{$brandLogo}}" alt="{{$brandName}}" class="accordion-brand-logo">
-                                    {{else}}
-                                        <div class="accordion-brand-icon">📱</div>
-                                    {{end}}
-                                    <span class="accordion-brand-name">{{$brandName}}</span>
-                                    <span class="accordion-count">
-                                        {{if $ownedDevices}}
-                                            {{if eq $ownedDevices 1}}
-                                                {{ replace ($.I18n.T "devices.ownedDevice") "{0}" (tostring $ownedDevices)}}
-                                            {{else}}
-                                                {{ replace ($.I18n.T "devices.ownedDevices") "{0}" (tostring $ownedDevices)}}
-                                            {{end}}
-                                        {{else}}
-                                            {{$.I18n.T "devices.browseCatalog"}}
-                                        {{end}}
-                                    </span>
-                                </button>
-                                
-                                <div class="accordion-products">
-                                    <!-- Owned Devices Section -->
-                                    {{$hasOwned := false}}
-                                    {{range $.Devices.Devices}}
-                                        {{if eq .Brand $brandId}}
-                                            {{$hasOwned = true}}
-                                        {{end}}
-                                    {{end}}
-                                    
-                                    {{if $hasOwned}}
-                                    <div class="owned-devices-section">
-                                        {{range $.Devices.Devices}}
-                                            {{if eq .Brand $brandId}}
-                                            <div class="product-item" onclick="selectProduct('{{.Brand}}', '{{.ProductID}}', '{{.ProductName}}', '{{.Name}}', {{toJSON .DeviceIdentifier}})">
-                                                <div class="product-info">
-                                                    <h5 class="product-name">{{.Name}}</h5>
-                                                    <span class="product-actions">{{.ProductName}}</span>
-                                                </div>
-                                                <span class="product-owned-badge">{{$.I18n.T "devices.ownedBadge"}}</span>
-                                            </div>
-                                            {{end}}
-                                        {{end}}
-                                    </div>
-                                    {{end}}
-                                    
-                                    <!-- Separator -->
-                                    {{$hasOwned := false}}
-                                    {{range $.Devices.Devices}}
-                                        {{if eq .Brand $brandId}}
-                                            {{$hasOwned = true}}
-                                        {{end}}
-                                    {{end}}
-                                    
-                                    <!-- Catalog Section (from partials) -->
-                                    {{if $hasOwned}}
-                                    <div class="section-divider">{{$.I18n.T "devices.availableToAdd"}}</div>
-                                    {{end}}
-                                    
-                                    <!-- Include brand-specific catalog partial using dynamic rendering -->
-                                    {{renderCatalog $brandId $.I18n .}}
-                                </div>
-                            </div>
+            <!-- Step 2 Header -->
+            <div id="step2-header" style="display:none">
+                <div id="step2BrandBadge" style="margin-bottom: 0.5rem;"></div>
+                <h2 id="step2Title">{{.I18n.T "devices.configDevice"}}</h2>
+                <p id="step2Desc">{{.I18n.T "devices.fillDetails"}}</p>
+            </div>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Step 1: Brand Accordion -->
+            <div id="step1-body">
+                <!-- Brand Accordion Container -->
+                <div class="brand-accordion" id="brandAccordion">
+                    <!-- Brand Accordion Items (Generated from Go template) -->
+                    {{range .Brands}}
+                        {{$brandId := .ID}}
+                        {{$brandName := .Name}}
+                        {{$brandColor := .BrandColor}}
+                        {{$brandLogo := .LogoURL}}
+                        {{$ownedDevices := 0}}
+                        {{range $.Devices.Devices}}
+                            {{if eq .Brand $brandId}}{{$ownedDevices = add $ownedDevices 1}}{{end}}
                         {{end}}
                         
-                        <!-- Custom Device -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-brand-id="{{$brandId}}">
                             <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
                                 <span class="accordion-toggle-icon">▶</span>
-                                <div class="accordion-brand-icon">✏️</div>
-                                <span class="accordion-brand-name">{{$.I18n.T "devices.customDeviceTitle"}}</span>
-                                <span class="accordion-count">{{$.I18n.T "devices.customDeviceSubtitle"}}</span>
+                                {{if $brandLogo}}
+                                    <img src="{{$brandLogo}}" alt="{{$brandName}}" class="accordion-brand-logo">
+                                {{else}}
+                                    <div class="accordion-brand-icon">📱</div>
+                                {{end}}
+                                <span class="accordion-brand-name">{{$brandName}}</span>
+                                <span class="accordion-count">
+                                    {{if $ownedDevices}}
+                                        {{if eq $ownedDevices 1}}
+                                            {{ replace ($.I18n.T "devices.ownedDevice") "{0}" (tostring $ownedDevices)}}
+                                        {{else}}
+                                            {{ replace ($.I18n.T "devices.ownedDevices") "{0}" (tostring $ownedDevices)}}
+                                        {{end}}
+                                    {{else}}
+                                        {{$.I18n.T "devices.browseCatalog"}}
+                                    {{end}}
+                                </span>
                             </button>
+                            
                             <div class="accordion-products">
-                                <div class="product-item" onclick="selectProduct('custom', 'custom', '{{.I18n.T "devices.customDeviceTitle"}}')">
-                                    <div class="product-info">
-                                        <h5 class="product-name">{{.I18n.T "devices.createCustom"}}</h5>
-                                        <span class="product-actions">{{.I18n.T "devices.httpBasedActions"}}</span>
-                                    </div>
+                                <!-- Owned Devices Section -->
+                                {{$hasOwned := false}}
+                                {{range $.Devices.Devices}}
+                                    {{if eq .Brand $brandId}}
+                                        {{$hasOwned = true}}
+                                    {{end}}
+                                {{end}}
+                                
+                                {{if $hasOwned}}
+                                <div class="owned-devices-section">
+                                    {{range $.Devices.Devices}}
+                                        {{if eq .Brand $brandId}}
+                                        <div class="product-item" onclick="selectProduct('{{.Brand}}', '{{.ProductID}}', '{{.ProductName}}', '{{.Name}}', {{toJSON .DeviceIdentifier}})">
+                                            <div class="product-info">
+                                                <h5 class="product-name">{{.Name}}</h5>
+                                                <span class="product-actions">{{.ProductName}}</span>
+                                            </div>
+                                            <span class="product-owned-badge">{{$.I18n.T "devices.ownedBadge"}}</span>
+                                        </div>
+                                        {{end}}
+                                    {{end}}
+                                </div>
+                                {{end}}
+                                
+                                <!-- Separator -->
+                                {{$hasOwned := false}}
+                                {{range $.Devices.Devices}}
+                                    {{if eq .Brand $brandId}}
+                                        {{$hasOwned = true}}
+                                    {{end}}
+                                {{end}}
+                                
+                                <!-- Catalog Section (from partials) -->
+                                {{if $hasOwned}}
+                                <div class="section-divider">{{$.I18n.T "devices.availableToAdd"}}</div>
+                                {{end}}
+                                
+                                <!-- Include brand-specific catalog partial using dynamic rendering -->
+                                {{renderCatalog $brandId $.I18n .}}
+                            </div>
+                        </div>
+                    {{end}}
+                    
+                    <!-- Custom Device -->
+                    <div class="accordion-item">
+                        <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
+                            <span class="accordion-toggle-icon">▶</span>
+                            <div class="accordion-brand-icon">✏️</div>
+                            <span class="accordion-brand-name">{{$.I18n.T "devices.customDeviceTitle"}}</span>
+                            <span class="accordion-count">{{$.I18n.T "devices.customDeviceSubtitle"}}</span>
+                        </button>
+                        <div class="accordion-products">
+                            <div class="product-item" onclick="selectProduct('custom', 'custom', '{{.I18n.T "devices.customDeviceTitle"}}')">
+                                <div class="product-info">
+                                    <h5 class="product-name">{{.I18n.T "devices.createCustom"}}</h5>
+                                    <span class="product-actions">{{.I18n.T "devices.httpBasedActions"}}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Step 2: Configure Device Form -->
-                <div id="step2-body" style="display:none">
-                    <form id="deviceForm" onsubmit="saveDevice(event)">
+            </div>
+            
+            <!-- Step 2: Configure Device Form -->
+            <div id="step2-body" style="display:none">
+                <form id="deviceForm" onsubmit="saveDevice(event)">
+                    <div class="form-group">
+                        <label for="devName">{{.I18n.T "devices.displayName"}}</label>
+                        <input type="text" id="devName" required placeholder="{{.I18n.T "devices.displayNamePlaceholder"}}">
+                        <small class="form-help">{{.I18n.T "devices.displayNameHelp"}}</small>
+                    </div>
+                    
+                    <!-- Catalog Device: Product Model (read-only display) -->
+                    <div class="form-group" id="catalogProductGroup">
+                        <label for="devProductDisplay">{{.I18n.T "devices.productModel"}}</label>
+                        <input type="text" id="devProductDisplay" readonly>
+                        <input type="hidden" id="devProduct">
+                    </div>
+                    
+                    <!-- Custom Device: Product Name -->
+                    <div class="form-group" id="customProductGroup" style="display:none">
+                        <label for="customProductName">{{.I18n.T "devices.deviceType"}}</label>
+                        <input type="text" id="customProductName" placeholder="{{.I18n.T "devices.deviceTypePlaceholder"}}">
+                        <small class="form-help">{{.I18n.T "devices.deviceTypeHelp"}}</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="devRoom">{{.I18n.T "devices.room"}}<span class="optional-label">{{.I18n.T "devices.optional"}}</span></label>
+                        <input type="text" id="devRoom" placeholder="{{.I18n.T "devices.roomPlaceholder"}}">
+                    </div>
+                    
+                    <!-- Device Identification Required Fields (per brand) -->
+                    {{range .Brands}}
+                    {{$brand := .}}
+                    <div class="brand-required-fields" data-brand="{{$brand.ID}}" style="display:none;">
+                        {{range $brand.DeviceIdentificationRequireds}}
+                        {{if ne .Type "model"}}
                         <div class="form-group">
-                            <label for="devName">{{.I18n.T "devices.displayName"}}</label>
-                            <input type="text" id="devName" required placeholder="{{.I18n.T "devices.displayNamePlaceholder"}}">
-                            <small class="form-help">{{.I18n.T "devices.displayNameHelp"}}</small>
-                        </div>
-                        
-                        <div class="form-group" id="catalogProductGroup">
-                            <label for="devProductDisplay">{{.I18n.T "devices.productModel"}}</label>
-                            <input type="text" id="devProductDisplay" readonly>
-                            <input type="hidden" id="devProduct">
-                        </div>
-
-                        {{range .Devices.BrandsSorted}}
-                        {{$brand := .}}
-                        <div class="brand-required-fields" data-brand="{{$brand.ID}}" style="display:none;">
-                            {{range $brand.DeviceIdentificationRequireds}}
-                            {{if ne .Type "model"}}
-                            <div class="form-group">
-                                <label for="required_{{$brand.ID}}_{{.Type}}">{{.Label}}</label>
-                                <input type="text"
-                                       id="required_{{$brand.ID}}_{{.Type}}"
-                                       data-brand="{{$brand.ID}}"
-                                       data-type="{{.Type}}"
-                                       data-required="{{if .Required}}true{{else}}false{{end}}"
-                                       placeholder="{{.Placeholder}}"
-                                       {{if .Required}}required{{end}} />
-                                {{if .Description}}<small class="form-help">{{.Description}}</small>{{end}}
-                            </div>
-                            {{end}}
-                            {{end}}
+                            <label for="required_{{$brand.ID}}_{{.Type}}">{{.Label}}</label>
+                            <input type="text"
+                                    id="required_{{$brand.ID}}_{{.Type}}"
+                                    data-brand="{{$brand.ID}}"
+                                    data-type="{{.Type}}"
+                                    data-required="{{if .Required}}true{{else}}false{{end}}"
+                                    placeholder="{{.Placeholder}}">
+                            {{if .Description}}<small class="form-help">{{.Description}}</small>{{end}}
                         </div>
                         {{end}}
+                        {{end}}
+                    </div>
+                    {{end}}
+                    
+                    <!-- Catalog Device: API Credentials -->
+                    <fieldset class="form-section" id="credFieldset">
+                        <legend>{{.I18n.T "devices.apiCredentials"}}</legend>
+                        <div id="credFields"></div>
+                        <div id="credDocsLink"></div>
+                    </fieldset>
 
-                        <!-- Custom Device: Product Name -->
-                        <div class="form-group" id="customProductGroup" style="display:none">
-                            <label for="customProductName">{{.I18n.T "devices.deviceType"}}</label>
-                            <input type="text" id="customProductName" placeholder="{{.I18n.T "devices.deviceTypePlaceholder"}}">
-                            <small class="form-help">{{.I18n.T "devices.deviceTypeHelp"}}</small>
+                    <!-- Brand Credentials Already Connected Notice -->
+                    <div id="brandCredentialsConnected" class="brand-connected-notice" style="display:none;">
+                        <div class="brand-connected-info">
+                            <span class="brand-connected-icon">✅</span>
+                            <div>
+                                <h4 id="brandConnectedTitle" class="brand-connected-heading"></h4>
+                                <p id="brandConnectedDesc" class="brand-connected-desc"></p>
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="devRoom">{{.I18n.T "devices.room"}}<span class="optional-label">{{.I18n.T "devices.optional"}}</span></label>
-                            <input type="text" id="devRoom" placeholder="{{.I18n.T "devices.roomPlaceholder"}}">
-                        </div>
-                        
-                        <!-- Catalog Device: API Credentials -->
-                        <fieldset class="form-section" id="credFieldset">
-                            <legend>{{.I18n.T "devices.apiCredentials"}}</legend>
-                            <div id="credFields"></div>
-                            <div id="credDocsLink"></div>
-                        </fieldset>
-
-                        <div id="brandCredentialsConnected" class="form-group" style="display:none;">
-                            <p style="margin:0 0 0.5rem; color:#666;">
-                                If you want to change the credentials, <a href="/brand-settings">go to Brand Settings</a>.
-                            </p>
-                        </div>
-                        
-                        <!-- Custom Device: HTTP Actions -->
-                        <fieldset class="form-section" id="customActionsFieldset" style="display:none">
-                            <legend>{{.I18n.T "devices.customActions"}}</legend>
-                            <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">{{.I18n.T "devices.customActionsDesc"}}</p>
-                            <div id="customActionsList"></div>
-                            <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">{{.I18n.T "devices.addAction"}}</button>
-                        </fieldset>
-                    </form>
-                </div>
+                        <a href="/brand-settings" class="btn btn-secondary btn-sm" target="_blank">{{.I18n.T "devices.manageBrands"}} ↗</a>
+                    </div>
+                    
+                    <!-- Custom Device: HTTP Actions -->
+                    <fieldset class="form-section" id="customActionsFieldset" style="display:none">
+                        <legend>{{.I18n.T "devices.customActions"}}</legend>
+                        <p style="font-size:0.9rem; color:#666; margin-bottom:1rem">{{.I18n.T "devices.customActionsDesc"}}</p>
+                        <div id="customActionsList"></div>
+                        <button type="button" class="btn btn-secondary" onclick="addCustomAction()" style="margin-top:0.75rem">{{.I18n.T "devices.addAction"}}</button>
+                    </fieldset>
+                </form>
             </div>
-            
-            <div class="modal-footer">
-                <div id="step1-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">{{.I18n.T "devices.cancelButton"}}</button>
-                </div>
-                <div id="step2-footer" style="display:none">
-                    <button type="button" class="btn btn-secondary" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
-                    <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">{{.I18n.T "devices.addDeviceButton"}}</button>
-                </div>
+        </div>
+        
+        <div class="modal-footer">
+            <div id="step1-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">{{.I18n.T "devices.cancelButton"}}</button>
+            </div>
+            <div id="step2-footer" style="display:none">
+                <button type="button" class="btn btn-secondary" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
+                <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">{{.I18n.T "devices.addDeviceButton"}}</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Quick Connect Modal (for owned devices only) -->
-    <div id="quickConnectModal" class="modal">
-        <div class="modal-content modal-wide">
-            <div class="modal-header">
-                <span class="close" onclick="closeQuickConnectModal()">&times;</span>
-                <h2 id="qcTitle">{{.I18n.T "devices.quickConnectTitle"}}</h2>
-                <p id="qcSubtitle">{{.I18n.T "devices.quickConnectSubtitle"}}</p>
+<!-- Quick Connect Modal (for owned devices only) -->
+<div id="quickConnectModal" class="modal">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <span class="close" onclick="closeQuickConnectModal()">&times;</span>
+            <h2 id="qcTitle">{{.I18n.T "devices.quickConnectTitle"}}</h2>
+            <p id="qcSubtitle">{{.I18n.T "devices.quickConnectSubtitle"}}</p>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Search & Filter -->
+            <div style="margin-bottom: 1.5rem;">
+                <input type="text" id="qcSearchBox" placeholder="{{.I18n.T "devices.quickConnectSearch"}}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
             </div>
-            
-            <div class="modal-body">
-                <!-- Search & Filter -->
-                <div style="margin-bottom: 1.5rem;">
-                    <input type="text" id="qcSearchBox" placeholder="{{.I18n.T "devices.quickConnectSearch"}}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
-                </div>
 
-                <!-- Product List -->
-                <div id="qcProductList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
-                    <!-- Populated by JS -->
-                </div>
-
-                <!-- Loading State -->
-                <div id="qcLoading" style="text-align: center; display: none;">
-                    <div style="font-size: 2rem; margin: 2rem 0;">⏳</div>
-                    <p>{{.I18n.T "devices.quickConnectLoading"}}</p>
-                </div>
-
-                <!-- Empty State -->
-                <div id="qcEmpty" style="text-align: center; display: none;">
-                    <div style="font-size: 2rem; margin: 2rem 0;">📭</div>
-                    <p>{{.I18n.T "devices.quickConnectEmpty"}}</p>
-                </div>
+            <!-- Product List -->
+            <div id="qcProductList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+                <!-- Populated by JS -->
             </div>
-            
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeQuickConnectModal()">{{.I18n.T "button.cancel"}}</button>
+
+            <!-- Loading State -->
+            <div id="qcLoading" style="text-align: center; display: none;">
+                <div style="font-size: 2rem; margin: 2rem 0;">⏳</div>
+                <p>{{.I18n.T "devices.quickConnectLoading"}}</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="qcEmpty" style="text-align: center; display: none;">
+                <div style="font-size: 2rem; margin: 2rem 0;">📭</div>
+                <p>{{.I18n.T "devices.quickConnectEmpty"}}</p>
             </div>
         </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeQuickConnectModal()">{{.I18n.T "button.cancel"}}</button>
+        </div>
     </div>
-
-<script id="devicesTranslations" type="application/json">
-{{.I18n.TByPrefix "devices" | jsonMarshal}}
-</script>
-
-<script>
-    // Load i18n translations
-    const devicesI18n = JSON.parse(document.getElementById('devicesTranslations').textContent);
-
-    // =============================================
-    // Option B: Devices Enhanced Layout
-    // =============================================
-    
-    // Navigate to Brand Settings page
-    function goToBrandSettings() {
-        window.location.href = '/brand-settings';
-    }
-
-    // =============================================
-    // Utility Functions
-    // =============================================
-    function escapeJsString(str) {
-        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-    }
-
-    // =============================================
-    // Brand & Product Catalog
-    // =============================================
-    // Pre-loaded from server on page load (sorted by sort_order ascending)
-    let BRANDS = {{toJSON .Devices.BrandsSorted}} || [];
-
-    // Devices pre-loaded from server on page load
-    let MY_DEVICES = {{toJSON .Devices.Devices}} || [];
-    const DEVICE_TEMPLATES_BY_BRAND = {{jsonMarshal .Devices.DeviceTemplatesByBrand}} || {};
-    window._myBrands = {{jsonMarshal .MyBrands}} || [];
-
-    // Action metadata (icons + labels)
-    const ACTION_META = {
-        on:         { label: 'Turn On',              icon: '🔆' },
-        off:        { label: 'Turn Off',             icon: '🔅' },
-        toggle:     { label: 'Toggle On/Off',        icon: '🔄' },
-        color:      { label: 'Set Color',            icon: '🎨' },
-        brightness: { label: 'Set Brightness',       icon: '✦' },
-        color_temp: { label: 'Color Temperature',    icon: '🌡' },
-        scene:      { label: 'Play Scene / Effect',  icon: '✨' },
-        flash:      { label: 'Flash Alert',          icon: '⚡' },
-    };
-
-    async function apiRequest(method, path, body) {
-        const opts = { method, credentials: 'include', headers: {} };
-        if (body) {
-            opts.headers['Content-Type'] = 'application/json';
-            opts.body = JSON.stringify(body);
-        }
-        const r = await fetch(API_BASE + path, opts);
-        if (!r.ok) {
-            const tx = await r.text();
-            throw new Error(tx || r.status);
-        }
-        return r.status === 204 ? null : r.json();
-    }
-
-    async function loadBrandsAndProducts() {
-        // Brands are pre-loaded from server on page load
-        // This function is deprecated, kept only for backward compatibility
-        // Products are loaded on-demand via loadProductsForBrand()
-    }
-    
-    async function loadProductsForBrand(brandId) {
-        // All products are pre-loaded from server on page load
-        // This function is deprecated, kept for backward compatibility
-        // If a brand's products are not yet loaded, they will be when user clicks accordion
-        return [];
-    }
-
-    // Products are loaded on-demand via loadProductsForBrand() to minimize bandwidth
-    // Render (Simplified)
-    // =============================================
-    let activeFilter = 'all';
-
-    function filterByBrand(brandId, btn) {
-        activeFilter = brandId;
-        document.querySelectorAll('.filter-tab').forEach(tb => tb.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // Show/hide device cards based on filter
-        document.querySelectorAll('.device-card').forEach(card => {
-            const cardBrand = card.dataset.brand;
-            card.style.display = (brandId === 'all' || cardBrand === brandId) ? 'block' : 'none';
-        });
-    }
-
-    // =============================================
-    // Modal
-    // =============================================
-    let selectedBrand = null;
-    let editingId = null;
-
-    function openAddModal() {
-        editingId = null;
-        selectedBrand = null;
-        selectedProduct = null;
-        window.customActions = [];
-        showStep(1);
-        document.getElementById('deviceModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-
-    async function openEditModal(devId) {
-        editingId = devId;
-        const dev = MY_DEVICES.find(d => d.id === devId);
-        if (!dev) return;
-        
-        try {
-            selectedBrand = dev.brand;
-            selectedProduct = dev.product_id;
-            
-            if (dev.brand === 'custom') {
-                setStep2Custom();
-                document.getElementById('customProductName').value = dev.product_id;
-            } else {
-                const brand = BRANDS.find(b => b.id === dev.brand);
-                if (brand) {
-                    setStep2Brand(brand);
-                    document.getElementById('devProduct').value = dev.product_id;
-                    const productModelValue = dev.device_identifier && dev.device_identifier.model ? dev.device_identifier.model : (dev.product_name || dev.product_id || '');
-                    document.getElementById('devProductDisplay').value = productModelValue;
-                    const requiredFields = brand.device_identification_required || [];
-                    requiredFields.forEach(field => {
-                        if (field.type === 'model') return;
-                        const el = document.querySelector('[data-brand="' + brand.id + '"][data-type="' + field.type + '"]');
-                        if (el) el.value = dev.device_identifier && dev.device_identifier[field.type] ? dev.device_identifier[field.type] : '';
-                    });
-                }
-                renderCredFields(dev.brand);
-            }
-            
-            // Use credentials from MY_DEVICES (pre-loaded from server)
-            document.getElementById('devName').value = dev.name;
-            document.getElementById('devRoom').value = dev.room || '';
-            
-            const deviceIdentifier = dev.device_identifier || {};
-            const brand = BRANDS.find(b => b.id === dev.brand);
-            if (brand && brand.credential_fields) {
-                brand.credential_fields.forEach(f => {
-                    if (f.type !== 'info') {
-                        const el = document.getElementById('cred_' + f.id);
-                        if (el) el.value = deviceIdentifier[f.id] || '';
-                    }
-                });
-            }
-        } catch (e) {
-            alert(devicesI18n['failedLoadDetails'] + e.message);
-            return;
-        }
-        
-        document.getElementById('devSaveBtn').textContent = devicesI18n['saveChanges'];
-        showStep(2);
-        document.getElementById('deviceModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        const modal = document.getElementById('deviceModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // =============================================
-    // Quick Connect Modal (for owned devices)
-    // =============================================
-    let quickConnectBrandId = null;
-    let quickConnectProducts = [];
-
-    function openQuickConnectModal(brandId) {
-        quickConnectBrandId = brandId;
-        const brand = BRANDS.find(b => b.id === brandId);
-        if (!brand) return;
-
-        document.getElementById('qcTitle').textContent = devicesI18n['quickConnectTitle'] + ' - ' + brand.name;
-        const subtitleMsg = devicesI18n['quickConnectSubtitle'];
-        document.getElementById('qcSubtitle').textContent = subtitleMsg.replace('{brand}', brand.name);
-        
-        showQuickConnectLoading(true);
-        document.getElementById('quickConnectModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-        
-        loadQuickConnectProducts(brandId);
-    }
-
-    function closeQuickConnectModal() {
-        const modal = document.getElementById('quickConnectModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        quickConnectBrandId = null;
-        quickConnectProducts = [];
-    }
-
-    async function loadQuickConnectProducts(brandId) {
-        try {
-            const params = new URLSearchParams({
-                brand_id: brandId,
-                active_only: 'true',
-                limit: 500,
-                offset: 0,
-                sort_by: 'name'
-            });
-            const response = await fetch(`/api/catalog/products?${params}`, { credentials: 'include' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            
-            quickConnectProducts = data.products || [];
-            renderQuickConnectProducts(quickConnectProducts);
-            showQuickConnectLoading(false);
-        } catch (error) {
-            console.error(devicesI18n['failedLoadProducts'] + ' ' + error);
-            showQuickConnectLoading(false);
-            document.getElementById('qcEmpty').style.display = 'block';
-        }
-    }
-
-    function renderQuickConnectProducts(products) {
-        const searchTerm = document.getElementById('qcSearchBox')?.value.toLowerCase() || '';
-        const filtered = products.filter(p => 
-            p.name.toLowerCase().includes(searchTerm) || 
-            (p.model && p.model.toLowerCase().includes(searchTerm))
-        );
-
-        const listDiv = document.getElementById('qcProductList');
-        if (!filtered || filtered.length === 0) {
-            listDiv.innerHTML = '';
-            document.getElementById('qcEmpty').style.display = 'block';
-            return;
-        }
-
-        document.getElementById('qcEmpty').style.display = 'none';
-        listDiv.innerHTML = filtered.map(product => `
-            <div class="qc-product-card" onclick="selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">
-                ${product.image_url ? `<img src="${product.image_url}" alt="${escapeJsString(product.name)}" class="qc-product-image" onerror="this.style.display='none'">` : '<div class="qc-product-image-placeholder">📱</div>'}
-                <div class="qc-product-info">
-                    <div class="qc-product-name">${escapeJsString(product.name)}</div>
-                    ${product.model ? `<div class="qc-product-model">${escapeJsString(product.model)}</div>` : ''}
-                </div>
-                <button class="qc-add-btn" onclick="event.stopPropagation(); selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">${escapeJsString(devicesI18n['quickConnectIOwn'] || 'I Own This')}</button>
-            </div>
-        `).join('');
-    }
-
-    function showQuickConnectLoading(show) {
-        document.getElementById('qcLoading').style.display = show ? 'block' : 'none';
-        document.getElementById('qcProductList').style.display = show ? 'none' : 'grid';
-        document.getElementById('qcEmpty').style.display = 'none';
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchBox = document.getElementById('qcSearchBox');
-        if (searchBox) {
-            searchBox.addEventListener('input', () => {
-                renderQuickConnectProducts(quickConnectProducts);
-            });
-        }
-    });
-
-    function selectQuickConnectDevice(productId, productName, brandId) {
-        // Set selected device for the main add form
-        selectedBrand = brandId;
-        selectedProduct = productId;
-        selectedProductName = productName;
-        
-        // Close quick connect modal and open the device configuration form
-        closeQuickConnectModal();
-        
-        // Jump to step 2 with the selected product pre-filled
-        const brand = BRANDS.find(b => b.id === brandId);
-        if (brand) {
-            setStep2Brand(brand);
-            document.getElementById('devProduct').value = productId;
-            renderCredFields(brandId);
-            document.getElementById('devName').value = '';
-            document.getElementById('devRoom').value = '';
-            document.getElementById('devSaveBtn').textContent = devicesI18n['addDeviceButton'];
-            editingId = null;
-            showStep(2);
-            document.getElementById('deviceModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    // Close modal when clicking outside
-    document.addEventListener('click', e => {
-        const qcModal = document.getElementById('quickConnectModal');
-        if (qcModal && e.target === qcModal) {
-            closeQuickConnectModal();
-        }
-    });
-
-    // Close modal when clicking outside of modal-content
-    document.addEventListener('click', e => {
-        const modal = document.getElementById('deviceModal');
-        if (!modal) return;
-        
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    function showStep(n) {
-        // Toggle body visibility
-        document.getElementById('step1-body').style.display = n === 1 ? 'block' : 'none';
-        document.getElementById('step2-body').style.display = n === 2 ? 'block' : 'none';
-        
-        // Toggle header visibility
-        document.getElementById('step1-header').style.display = n === 1 ? 'block' : 'none';
-        document.getElementById('step2-header').style.display = n === 2 ? 'block' : 'none';
-        
-        // Toggle footer visibility
-        document.getElementById('step1-footer').style.display = n === 1 ? 'block' : 'none';
-        document.getElementById('step2-footer').style.display = n === 2 ? 'block' : 'none';
-    }
-
-    // =============================================
-    // Accordion Functions
-    // =============================================
-    
-    function filterCatalogByCategory(btn, brandId, category) {
-        // Update active button
-        btn.closest('.catalog-category-filters').querySelectorAll('.category-filter-btn').forEach(b => {
-            b.classList.remove('active');
-        });
-        btn.classList.add('active');
-         
-        // Filter items in the catalog section
-        const section = document.querySelector(`.catalog-products-section[data-brand-id="${brandId}"]`);
-        if (!section) return;
-         
-        section.querySelectorAll('.catalog-product-item').forEach(item => {
-            if (category === '' || item.dataset.category === category) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
-    }
-    
-    function toggleAccordion(headerBtn) {
-        const item = headerBtn.closest('.accordion-item');
-        const isOpen = item.classList.contains('open');
-        
-        // Close all other accordion items
-        document.querySelectorAll('.accordion-item.open').forEach(i => {
-            if (i !== item) i.classList.remove('open');
-        });
-        
-        // Toggle current item
-        item.classList.toggle('open', !isOpen);
-    }
-    
-    function selectProduct(brandId, productId, productName, deviceName, deviceIdentifier) {
-        selectedBrand = brandId;
-        selectedProduct = productId;
-        selectedProductName = productName;
-        
-        if (brandId === 'custom') {
-            setStep2Custom();
-        } else {
-            const brand = BRANDS.find(b => b.id === brandId);
-            setStep2Brand(brand);
-            document.getElementById('devProduct').value = productId;
-            document.getElementById('devProductDisplay').value = productName || '';
-            
-            const devNameInput = document.getElementById('devName');
-            if (deviceName) {
-                devNameInput.value = deviceName;
-            } else {
-                devNameInput.value = '';
-                devNameInput.placeholder = 'e.g., ' + productName;
-            }
-            
-            if (deviceIdentifier && typeof deviceIdentifier === 'object') {
-                Object.keys(deviceIdentifier).forEach(key => {
-                    const credField = document.getElementById('cred_' + key);
-                    if (credField && deviceIdentifier[key]) {
-                        credField.value = deviceIdentifier[key];
-                    }
-                });
-            }
-            
-            renderCredFields(brandId);
-        }
-        
-        document.getElementById('deviceForm').reset();
-        if (brandId !== 'custom') {
-            document.getElementById('devProduct').value = productId;
-            document.getElementById('devProductDisplay').value = productName || '';
-            if (deviceName) {
-                document.getElementById('devName').value = deviceName;
-            }
-            if (deviceIdentifier && typeof deviceIdentifier === 'object') {
-                Object.keys(deviceIdentifier).forEach(key => {
-                    const credField = document.getElementById('cred_' + key);
-                    if (credField && deviceIdentifier[key]) {
-                        credField.value = deviceIdentifier[key];
-                    }
-                });
-            }
-        }
-        document.getElementById('devSaveBtn').textContent = devicesI18n['addDeviceButton'];
-        showStep(2);
-    }
-
-    function openAffiliate(event, affiliateUrl) {
-        event.stopPropagation(); // Prevent triggering selectProduct
-        event.preventDefault();
-        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
-    }
-
-    function goToStep1() {
-        //renderBrandAccordion();
-        showStep(1);
-    }
-
-    function syncBrandRequiredFields(brandId) {
-        document.querySelectorAll('.brand-required-fields input[data-type]').forEach(input => {
-            const isSelected = input.dataset.brand === brandId;
-            const shouldRequire = isSelected && input.dataset.required === 'true';
-            input.required = shouldRequire;
-            input.disabled = !isSelected;
-            input.closest('.brand-required-fields').style.display = isSelected ? 'block' : 'none';
-        });
-    }
-
-    function setStep2Brand(brand) {
-        // Update step 2 header with brand info
-        const brandColor = brand.brand_color || '#888';
-        const brandIcon = brand.icon || '🔌';
-        document.getElementById('step2BrandBadge').innerHTML =
-            `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
-        const actionWord = editingId ? devicesI18n['editDevice'] : devicesI18n['configureDevice'];
-        document.getElementById('step2Title').textContent = actionWord + ' ' + brand.name + ' Device';
-        document.getElementById('step2Desc').textContent = devicesI18n['fillDetailsDesc'];
-        
-        document.getElementById('catalogProductGroup').style.display = 'block';
-        syncBrandRequiredFields(brand.id);
-        document.getElementById('customProductGroup').style.display = 'none';
-        document.getElementById('customActionsFieldset').style.display = 'none';
-        document.getElementById('devProduct').required = true;
-        renderCredFields(brand.id);
-    }
-    
-    function setStep2Custom() {
-        // Update step 2 header for custom device
-        document.getElementById('step2BrandBadge').innerHTML =
-            `<span class="brand-step-badge" style="background:#FF573318;border-color:#FF5733;color:#FF5733">✏️ ${devicesI18n['customDeviceTitle']}</span>`;
-        const actionWord = editingId ? devicesI18n['editCustomDevice'] : devicesI18n['configureCustomDevice'];
-        document.getElementById('step2Title').textContent = actionWord;
-        document.getElementById('step2Desc').textContent = devicesI18n['customDeviceDesc'];
-        
-        document.getElementById('catalogProductGroup').style.display = 'none';
-        document.getElementById('brandCredentialsConnected').style.display = 'none';
-        document.querySelectorAll('.brand-required-fields').forEach(el => {
-            el.style.display = 'none';
-            el.querySelectorAll('input[data-type]').forEach(input => {
-                input.required = false;
-                input.disabled = true;
-            });
-        });
-        document.getElementById('customProductGroup').style.display = 'block';
-        document.getElementById('credFieldset').style.display = 'none';
-        document.getElementById('customActionsFieldset').style.display = 'block';
-        document.getElementById('devProduct').required = false;
-        
-        // Initialize custom actions list
-        window.customActions = [];
-        renderCustomActionsList();
-    }
-
-    function renderCredFields(brandId) {
-        const credFieldset = document.getElementById('credFieldset');
-        const connectedNotice = document.getElementById('brandCredentialsConnected');
-        const connectedBrand = (window._myBrands || []).find(b => b.id === brandId && b.is_connected);
-
-        if (connectedBrand) {
-            document.getElementById('credFields').innerHTML = '';
-            document.getElementById('credDocsLink').innerHTML = '';
-            if (credFieldset) credFieldset.style.display = 'none';
-            if (connectedNotice) connectedNotice.style.display = 'block';
-            return;
-        }
-
-        if (credFieldset) credFieldset.style.display = 'block';
-        if (connectedNotice) connectedNotice.style.display = 'none';
-
-        const brand = BRANDS.find(b => b.id === brandId);
-        if (!brand || !brand.credential_fields) { 
-            document.getElementById('credFields').innerHTML = ''; 
-            return; 
-        }
-
-        document.getElementById('credFields').innerHTML = brand.credential_fields.map(f => {
-            if (f.type === 'info') return `<div class="cred-info"><p>${f.help}</p></div>`;
-            const isPwd = f.type === 'password';
-            return `
-            <div class="form-group">
-                <label for="cred_${f.id}">${f.label}</label>
-                <div class="cred-input-row">
-                    <input type="${isPwd ? 'password' : 'text'}" id="cred_${f.id}"
-                           ${isPwd ? 'placeholder="••••••••••••••••"' : ''} autocomplete="new-password">
-                    ${isPwd ? `<button type="button" class="show-hide-btn" onclick="toggleCredVis('cred_${f.id}',this)">${devicesI18n['showPassword']}</button>` : ''}
-                </div>
-                <small class="form-help">${f.help}</small>
-            </div>`;
-        }).join('');
-
-        // Render docs link if available
-        document.getElementById('credDocsLink').innerHTML = brand.docs_url
-            ? `<a href="${brand.docs_url}" target="_blank" rel="noopener" class="docs-link">📖 ${brand.docs_label} ↗</a>`
-            : '';
-    }
-
-    function toggleCredVis(inputId, btn) {
-        const el = document.getElementById(inputId);
-        el.type = el.type === 'password' ? 'text' : 'password';
-        btn.textContent = el.type === 'password' ? devicesI18n['showPassword'] : devicesI18n['hidePassword'];
-    }
-    
-    // =============================================
-    // Custom Actions
-    // =============================================
-    function renderCustomActionsList() {
-        if (!window.customActions) window.customActions = [];
-        const html = window.customActions.map((action, idx) => `
-            <div class="custom-action-card" style="border:1px solid #ddd; border-radius:6px; padding:1rem; margin-bottom:1rem; background:#f9f9f9">
-                <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem">
-                    <input type="text" placeholder="Action name (e.g., turn_on, set_brightness)" 
-                           value="${action.action_name || ''}" 
-                           onchange="customActions[${idx}].action_name = this.value"
-                           style="flex:1">
-                    <button type="button" class="btn btn-secondary" onclick="removeCustomAction(${idx})">Remove</button>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem">
-                    <input type="text" placeholder="HTTP Method (GET, POST, PUT...)" 
-                           value="${action.http_method || 'POST'}" 
-                           onchange="customActions[${idx}].http_method = this.value">
-                    <input type="text" placeholder="URL (e.g., http://device.local/api/action)" 
-                           value="${action.http_url || ''}" 
-                           onchange="customActions[${idx}].http_url = this.value">
-                </div>
-                <textarea placeholder="Headers (JSON format, optional). Example: {\"Content-Type\": \"application/json\"}" 
-                          rows="2" style="width:100%; padding:0.5rem; margin-bottom:0.75rem; font-family:monospace; font-size:0.85rem"
-                          onchange="customActions[${idx}].http_headers = this.value">${action.http_headers || ''}</textarea>
-                <textarea placeholder="Body template (JSON with {placeholders} for values). Example: {\"action\": \"{action_name}\", \"brightness\": {brightness}}" 
-                          rows="3" style="width:100%; padding:0.5rem; font-family:monospace; font-size:0.85rem"
-                          onchange="customActions[${idx}].http_body_template = this.value">${action.http_body_template || ''}</textarea>
-            </div>
-        `).join('');
-        document.getElementById('customActionsList').innerHTML = html || `<p style="color:#999">${devicesI18n['noCustomActions']}</p>`;
-    }
-    
-    function addCustomAction() {
-        if (!window.customActions) window.customActions = [];
-        window.customActions.push({
-            action_name: '',
-            http_method: 'POST',
-            http_url: '',
-            http_headers: '',
-            http_body_template: ''
-        });
-        renderCustomActionsList();
-    }
-    
-    function removeCustomAction(idx) {
-        window.customActions.splice(idx, 1);
-        renderCustomActionsList();
-    }
-
-    // =============================================
-    // CRUD
-    // =============================================
-    async function saveDevice(e) {
-        e.preventDefault();
-        const btn = document.getElementById('devSaveBtn');
-        btn.disabled = true;
-        try {
-            const name = document.getElementById('devName').value;
-            const room = document.getElementById('devRoom').value || null;
-            
-            // Handle custom devices
-            if (selectedBrand === 'custom') {
-                const customProductName = document.getElementById('customProductName').value;
-                if (!customProductName) { alert(devicesI18n['pleaseEnterDeviceType']); btn.disabled = false; return; }
-                if (!window.customActions || window.customActions.length === 0) { 
-                    alert(devicesI18n['pleaseAddAction']); btn.disabled = false; return; 
-                }
-                
-                // Create custom product
-                const productBody = { name: customProductName, description: '' };
-                const productRes = await apiRequest('POST', '/custom-products', productBody);
-                const customProductId = productRes.id;
-                
-                // Create custom actions
-                for (const action of window.customActions) {
-                    if (!action.action_name || !action.http_url) {
-                        alert(devicesI18n['skippingAction']); 
-                        continue;
-                    }
-                    const actionBody = {
-                        custom_product_id: customProductId,
-                        action_name: action.action_name,
-                        http_method: action.http_method || 'POST',
-                        http_url: action.http_url,
-                        http_headers: action.http_headers ? JSON.parse(action.http_headers) : {},
-                        http_body_template: action.http_body_template || ''
-                    };
-                    await apiRequest('POST', '/custom-actions', actionBody);
-                }
-                
-                // Save device with custom product
-                const deviceBody = {
-                    name: name,
-                    brand: 'custom',
-                    product_id: customProductId,
-                    room: room,
-                    device_identifier: {}
-                };
-                if (editingId) {
-                    await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
-                } else {
-                    await apiRequest('POST', '/devices', deviceBody);
-                }
-            } 
-            // Handle catalog devices
-            else {
-                const deviceIdentifier = {};
-                const brand = BRANDS.find(b => b.id === selectedBrand);
-                if (brand && brand.credential_fields) {
-                    brand.credential_fields.forEach(f => {
-                        if (f.type !== 'info') {
-                            const el = document.getElementById('cred_' + f.id);
-                            if (el && el.value) deviceIdentifier[f.id] = el.value;
-                        }
-                    });
-                }
-
-                const requiredInputs = document.querySelectorAll('.brand-required-fields[data-brand="' + selectedBrand + '"] [data-type]');
-                const requiredValues = {};
-                let missingRequired = false;
-                const productModelValue = (document.getElementById('devProductDisplay')?.value || '').trim();
-                const productModelRequired = (brand && (brand.device_identification_required || [])).some(field => field.type === 'model');
-
-                if (productModelRequired && !productModelValue) {
-                    missingRequired = true;
-                    document.getElementById('devProductDisplay').focus();
-                }
-
-                if (productModelValue) {
-                    requiredValues.model = productModelValue;
-                }
-
-                requiredInputs.forEach(input => {
-                    const value = (input.value || '').trim();
-                    if (input.hasAttribute('required') && !value) {
-                        missingRequired = true;
-                        input.focus();
-                        return;
-                    }
-                    if (value) {
-                        requiredValues[input.dataset.type] = value;
-                    }
-                });
-                if (missingRequired) {
-                    alert(devicesI18n['requiredFieldMissing'] || 'Please complete the required device information.');
-                    btn.disabled = false;
-                    return;
-                }
-
-                const deviceBody = {
-                    name: name,
-                    brand: selectedBrand,
-                    product_id: document.getElementById('devProduct').value,
-                    room: room,
-                    device_identifier: { ...deviceIdentifier, ...requiredValues }
-                };
-                if (editingId) {
-                    await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
-                } else {
-                    await apiRequest('POST', '/devices', deviceBody);
-                }
-            }
-            
-            closeModal();
-            // Reload page to get fresh device list from server
-            window.location.reload();
-        } catch (e) {
-            alert(devicesI18n['failedSaveDevice'] + e.message);
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function deleteDevice(devId) {
-        const dev = MY_DEVICES.find(d => d.id === devId);
-        if (!dev) return;
-        if (!confirm(`Remove "${dev.name}"?\n\nConditions using this device will lose their action.`)) return;
-        try {
-            await apiRequest('DELETE', `/devices?id=${devId}`);
-            // Reload page to get fresh device list from server
-            window.location.reload();
-        } catch (e) {
-            alert(devicesI18n['failedDelete'] + e.message);
-        }
-    }
-
-    let testDeviceId = null;
-
-    function openDeviceTestModal(devId) {
-        const dev = MY_DEVICES.find(d => d.id === devId);
-        if (!dev) return;
-        if (!dev.is_configured) { 
-            alert(devicesI18n['completeSetupBeforeTest']); 
-            return;
-        }
-
-        testDeviceId = devId;
-        const templateSelect = document.getElementById('testTemplateSelect');
-        const subtitle = document.getElementById('deviceTestSubtitle');
-        subtitle.textContent = `Select a template and action to test "${dev.name}".`;
-
-        templateSelect.innerHTML = '<option value="">Select a template</option>';
-        (DEVICE_TEMPLATES_BY_BRAND[dev.brand] || []).forEach(template => {
-            const option = document.createElement('option');
-            option.value = template.id;
-            option.textContent = template.template_name;
-            option.dataset.category = template.category || '';
-            option.dataset.requiredParameters = JSON.stringify(template.required_parameters || []);
-            option.dataset.uiFields = JSON.stringify(template.ui_fields || []);
-            templateSelect.appendChild(option);
-        });
-        templateSelect.value = '';
-        renderTestTemplateFields(null);
-        document.getElementById('deviceTestModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeDeviceTestModal() {
-        document.getElementById('deviceTestModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
-        testDeviceId = null;
-    }
-
-    function renderTestTemplateFields(templateOption) {
-        const fieldsContainer = document.getElementById('testTemplateFields');
-        fieldsContainer.innerHTML = '';
-        if (!templateOption || !templateOption.value) return;
-
-        const uiFields = JSON.parse(templateOption.dataset.uiFields || '[]');
-        const requiredParameters = JSON.parse(templateOption.dataset.requiredParameters || '[]');
-        uiFields.forEach((field, index) => {
-            const fieldName = field.name || field.key;
-            if (!fieldName) return;
-            const fieldId = `testParam_${index}`;
-            const group = document.createElement('div');
-            group.className = 'form-group';
-
-            const label = document.createElement('label');
-            label.htmlFor = fieldId;
-            label.textContent = fieldName;
-            group.appendChild(label);
-
-            let input;
-            if (field.type === 'select' && Array.isArray(field.options)) {
-                input = document.createElement('select');
-                field.options.forEach(optionValue => {
-                    const option = document.createElement('option');
-                    option.value = optionValue;
-                    option.textContent = optionValue;
-                    input.appendChild(option);
-                });
-            } else {
-                input = document.createElement('input');
-                input.type = field.type === 'slider' ? 'range' : (field.type || 'text');
-                if (field.min !== undefined) input.min = field.min;
-                if (field.max !== undefined) input.max = field.max;
-            }
-            input.id = fieldId;
-            input.dataset.parameter = fieldName;
-            input.required = requiredParameters.includes(fieldName);
-            group.appendChild(input);
-            fieldsContainer.appendChild(group);
-        });
-    }
-
-    document.getElementById('testTemplateSelect').addEventListener('change', function() {
-        const option = this.options[this.selectedIndex];
-        renderTestTemplateFields(option);
-    });
-
-    async function runDeviceTest() {
-        if (!testDeviceId) return;
-        const templateSelect = document.getElementById('testTemplateSelect');
-        const templateOption = templateSelect.options[templateSelect.selectedIndex];
-        if (!templateOption || !templateOption.value) {
-            alert('Please select a template.');
-            return;
-        }
-
-        const params = {};
-        const required = JSON.parse(templateOption.dataset.requiredParameters || '[]');
-        let missingParameter = false;
-        document.querySelectorAll('#testTemplateFields [data-parameter]').forEach(input => {
-            const value = input.value;
-            if (input.required && !value) missingParameter = true;
-            if (value !== '') params[input.dataset.parameter] = input.type === 'number' || input.type === 'range' ? Number(value) : value;
-        });
-        if (missingParameter || required.some(parameter => params[parameter] === undefined)) {
-            alert('Please complete the required template parameters.');
-            return;
-        }
-
-        const btn = document.getElementById('runDeviceTestButton');
-        btn.disabled = true;
-        try {
-            const testRequest = {
-                template_id: Number(templateOption.value),
-                action: params.state || params.power_state || params.action || templateOption.dataset.category,
-                params: params
-            };
-            
-            await apiRequest('POST', `/devices/test?id=${testDeviceId}`, testRequest);
-            const dev = MY_DEVICES.find(d => d.id === testDeviceId);
-            closeDeviceTestModal();
-            const msg = devicesI18n['testCommandSent'];
-            alert(msg.replace('{0}', dev ? dev.name : 'device'));
-        } catch (e) {
-            alert(devicesI18n['testFailed'] + e.message);
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    (async () => {
-        await loadBrandsAndProducts();
-        
-        // Update action chip icons based on ACTION_META
-        document.querySelectorAll('.action-chip[data-action]').forEach(chip => {
-            const action = chip.dataset.action;
-            const meta = ACTION_META[action];
-            if (meta) {
-                chip.textContent = (meta.icon || '') + ' ' + (meta.label || action);
-            }
-        });
-    })();
-    </script>
+</div>
+{{end}}
+{{define "scripts"}}
+<script src="/js/devices.js"></script>
 {{end}}

@@ -48,6 +48,8 @@ type PageData struct {
 	PlatformMeta            map[string]map[string]interface{}
 	EventBadgeClass         map[string]string
 	EventFieldOptions       []controller.EventFieldOption
+	ConditionTemplates      []controller.ConditionTemplate
+	ConditionProperties     []controller.EventSchemaField
 }
 
 type UserProfile struct {
@@ -338,6 +340,7 @@ func loadTemplates() map[string]*template.Template {
 
 	baseLayoutPath := filepath.Join("templates", "layouts", "base.html")
 	channelLayoutPath := filepath.Join("templates", "layouts", "channels.html")
+	deviceLayoutPath := filepath.Join("templates", "layouts", "devices.html")
 	headerPath := filepath.Join("templates", "partials", "header.html")
 	nologinheaderPath := filepath.Join("templates", "partials", "nologinheader.html")
 	loginPath := filepath.Join("templates", "partials", "login.html")
@@ -429,7 +432,17 @@ func loadTemplates() map[string]*template.Template {
 	for _, pagePath := range pages {
 		name := strings.TrimSuffix(filepath.Base(pagePath), filepath.Ext(pagePath))
 		// Combine all file paths for parsing
-		filePaths := []string{baseLayoutPath, channelLayoutPath, headerPath, nologinheaderPath, loginPath, pagePath}
+		// Only include the appropriate layout based on the page type to avoid template conflicts
+		filePaths := []string{baseLayoutPath, headerPath, nologinheaderPath, loginPath, pagePath}
+
+		// Add the appropriate layout file based on page name
+		switch name {
+		case "channel", "channels", "conditions", "condition":
+			filePaths = append([]string{channelLayoutPath}, filePaths...)
+		case "devices", "brand-settings":
+			filePaths = append([]string{deviceLayoutPath}, filePaths...)
+		}
+
 		filePaths = append(filePaths, catalogFiles...)
 
 		tmpl, err := template.New(name).Funcs(funcMap).ParseFiles(filePaths...)
@@ -540,6 +553,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				data.Condition = pageData.Condition
 				data.PlatformMeta = pageData.PlatformMeta
 				data.EventFieldOptions = pageData.EventFieldOptions
+				data.ConditionTemplates = pageData.ConditionTemplates
+				data.ConditionProperties = pageData.ConditionProperties
 			} else {
 				// This is the conditions list page
 				pageData := controller.PrepareConditionsPageData(channelID)
@@ -572,27 +587,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Dashboard = pageData
 	}
 
-	// Fetch devices page data if on /devices page
-	if cfg.Name == "devices" {
-		pageData := controller.PrepareDevicesPageData()
-		myBrandSettings := controller.MyBrandSettings{}
-		data.MyBrands = myBrandSettings.ListMyBrands()
-		data.Devices = pageData
-	}
-
 	// Fetch channels page data if on /channels page
 	if cfg.Name == "channels" {
 		pageData := controller.PrepareChannelsPageData()
 		data.Channels = pageData
 	}
 
-	// Fetch brand-settings page data if on /brand-settings page
-	if cfg.Name == "brand-settings" {
+	// Fetch shared brand data for brand-settings and devices pages.
+	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
 		myBrandSettings := controller.MyBrandSettings{}
 		data.MyBrands = myBrandSettings.ListMyBrands()
 
 		brandList := controller.BrandList{}
 		data.Brands = brandList.ListAll()
+
+		if cfg.Name == "devices" {
+			data.Devices = controller.PrepareDevicesPageData(data.Brands)
+		}
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "page", data); err != nil {

@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    const { PLATFORM_META, PLATFORM_EVENTS, apiRequest, escHtml, hasActiveFilter, openModal, closeModal, buildTestEvent, getEventParameters, getEventLabel } = window;
+    const { PLATFORM_META, PLATFORM_EVENTS, apiRequest, escHtml, hasActiveFilter, openModal, closeModal, createTestEventFromMetadata, getEventParameters, getEventLabel } = window;
     const t = window.channelDetailTranslations || {}; // Fallback to empty object if not loaded
     const getChannelIdFromURL = () => {
         const match = window.location.pathname.match(/^\/channels\/([^\/]+)\/?$/);
@@ -148,9 +148,10 @@
                 if (input) customParams[param.name] = param.type === 'checkbox' ? input.checked : input.value; 
             }); 
             console.log('[runConditionTest] Built custom params:', customParams);
+            const testEvent = await createTestEventFromMetadata(platform, eventType, customParams, { watchTargetId: channelId });
             displayTestResults(await apiRequest('POST', '/conditions/test-all', { 
                 watch_target_id: channelId, 
-                test_event: buildTestEvent(eventType, platform, customParams), 
+                test_event: testEvent, 
                 trigger_real_device: document.getElementById('testTriggerRealDevice').checked 
             })); 
         } catch (error) { 
