@@ -932,48 +932,87 @@
     if (!meta) return;
 
     try {
-      const emailInput = prompt(window._i18nMsg?.['brandSettings.sso.emailPrompt'] || 'Enter your email:');
-      if (!emailInput || !emailInput.trim()) {
+      // Step 1: Check if user exists in the brand's system
+      // This endpoint is handled by main.go which adds X-User-ID from session
+      const checkUrl = `/auth/brand/${encodeURIComponent(meta.id)}/check-sso`;
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        credentials: 'include'
+      }).then(async r => {
+        if (!r.ok) {
+          let errorMessage = `HTTP ${r.status}`;
+          try {
+            const payload = await r.json();
+            errorMessage = payload.message || payload.error || errorMessage;
+          } catch (e) {
+            // Response wasn't JSON, use status code only
+          }
+          throw new Error(errorMessage);
+        }
+        return r.json();
+      });
+
+      // Case 1: User already registered
+      if (checkResponse.exists_in_unicorn && checkResponse.registered_with_us) {
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || getBrandName(meta.id) + ' is already connected!'}`);
+        setTimeout(() => window.location.reload(), 1000);
         return;
       }
 
-      const button = event?.target;
-      if (button) {
-        button.disabled = true;
-        button.textContent = window._i18nMsg?.['brandSettings.modal.authenticating'] || 'Authenticating...';
+      // Case 2: User exists but not registered with us, or doesn't exist at all
+      let shouldRegister = false;
+      if (checkResponse.exists_in_unicorn && !checkResponse.registered_with_us) {
+        // User exists in brand system, ask to connect
+        shouldRegister = confirm(
+          window._i18nMsg?.['brandSettings.sso.connectExisting'] || 
+          `Account found in ${getBrandName(meta.id)}. Connect it to your Taucho account?`
+        );
+      } else if (!checkResponse.exists_in_unicorn) {
+        // User doesn't exist, ask to create
+        shouldRegister = confirm(
+          window._i18nMsg?.['brandSettings.sso.createAccount'] || 
+          `Create a new ${getBrandName(meta.id)} account with your email?`
+        );
       }
 
-      const response = await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso`, {
-        email: emailInput.trim()
+      if (!shouldRegister) {
+        return;
+      }
+
+      // Step 2: Register/Connect the user
+      // This endpoint is handled by main.go which adds X-User-ID from session
+      const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
+      const registerResponse = await fetch(registerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: '{}',
+        credentials: 'include'
+      }).then(async r => {
+        if (!r.ok) {
+          let errorMessage = `HTTP ${r.status}`;
+          try {
+            const payload = await r.json();
+            errorMessage = payload.message || payload.error || errorMessage;
+          } catch (e) {
+            // Response wasn't JSON, use status code only
+          }
+          throw new Error(errorMessage);
+        }
+        return r.json();
       });
 
-      // Check if user exists or needs to register
-      if (response && response.user_exists === false) {
-        const registerConfirm = confirm(
-          window._i18nMsg?.['brandSettings.sso.registerConfirm'] || 
-          `User not found. Create new account for ${emailInput}?`
-        );
-        if (registerConfirm) {
-          await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso-register`, {
-            email: emailInput.trim()
-          });
-          showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.registrationSuccess'] || 'Account created successfully!'}`);
-        }
-      } else if (response && response.success) {
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.loginSuccess'] || 'Logged in successfully!'}`);
+      if (!registerResponse.success) {
+        showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
+        return;
       }
 
-      // Reload after success to reflect connection
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+      setTimeout(() => window.location.reload(), 1500);
+
     } catch (error) {
       showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = window._i18nMsg?.['brandSettings.sso.authenticate'] || 'Connect with SSO';
-      }
     }
   }
 

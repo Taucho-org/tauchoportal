@@ -301,6 +301,76 @@ func main() {
 		</html>
 		`)
 	})
+	// SSO check and register endpoints - handles auth internally and proxies to API with X-User-ID header
+	mux.HandleFunc("/auth/brand/", func(w http.ResponseWriter, r *http.Request) {
+		// Extract path: /auth/brand/{brandId}/{action}
+		path := strings.TrimPrefix(r.URL.Path, "/auth/brand/")
+		parts := strings.Split(path, "/")
+		if len(parts) < 2 {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		brandID := parts[0]
+		action := parts[1]
+
+		// Only handle SSO check and register
+		if (action != "check-sso" && action != "register-sso") || r.Method == "GET" && action == "register-sso" {
+			// Not an SSO endpoint, pass to API proxy
+			proxy.ServeHTTP(w, r)
+			return
+		}
+
+		// Get current user from session
+		user := server.fetchUser(r)
+		if user == nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Build the API request
+		apiEndpoint := fmt.Sprintf("%s/auth/brand/%s/%s", apiURL, url.QueryEscape(brandID), action)
+		req, err := http.NewRequestWithContext(r.Context(), r.Method, apiEndpoint, r.Body)
+		if err != nil {
+			http.Error(w, "failed to create request", http.StatusInternalServerError)
+			return
+		}
+
+		// Copy headers (except Host and Content-Length)
+		for header, values := range r.Header {
+			if header != "Host" && header != "Content-Length" {
+				for _, value := range values {
+					req.Header.Add(header, value)
+				}
+			}
+		}
+
+		// Add X-User-ID header with current user's ID
+		req.Header.Set("X-User-ID", strconv.Itoa(user.ID))
+
+		// Add identity token if available
+		attachIdentityToken(req, tokenSource)
+
+		// Execute the request
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("API request failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		// Copy response headers
+		for header, values := range resp.Header {
+			for _, value := range values {
+				w.Header().Add(header, value)
+			}
+		}
+
+		// Write response status and body
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
+	})
 	mux.Handle("/", server)
 
 	port := os.Getenv("PORT")
