@@ -21,65 +21,81 @@ This document lists all endpoints needed for frontend integration with Unicorn d
 
 **Endpoint:** `GET /auth/brand/unicorn/check-sso`
 
-**Purpose:** Check if user exists in Unicorn and in our database
+**Purpose:** Check if logged-in user exists in Unicorn. If they do exist, automatically create our credential record (no need to call register).
 
 **Authentication:** Required
 ```
 Header: X-User-ID: {user_id}
 ```
 
-**Query Parameters:**
-```
-email=user@example.com
-```
+**Email Resolution:**
+The endpoint automatically retrieves the user's email in this priority order:
+1. **From users table** (primary) - Most reliable, no extra headers needed
+2. **From query parameter** - `?user_email=user@example.com` (fallback)
+3. **From X-User-Email header** (fallback) - For custom auth setups
 
-**Example Request:**
+**Example Requests:**
+
+*Standard (email from database):*
 ```bash
-curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso?email=user@example.com" \
+curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso" \
   -H "X-User-ID: 123"
 ```
 
-**Response: User Exists (200 OK)**
+*With explicit email (if user has no email in database):*
+```bash
+curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso?user_email=user@example.com" \
+  -H "X-User-ID: 123"
+```
+
+*With email header:*
+```bash
+curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso" \
+  -H "X-User-ID: 123" \
+  -H "X-User-Email: user@example.com"
+```
+
+**Response: User Exists → Auto-Registered! (200 OK)**
 ```json
 {
-  "exists_in_unicorn": true,
+  "exists_in_brand": true,
   "registered_with_us": true,
   "credential_id": "ubcred_1726588615234",
-  "device_count": 2,
-  "message": "User already registered with us"
+  "device_count": 0,
+  "message": "User found in Unicorn and automatically registered with us"
 }
 ```
 
-**Response: Exists in Unicorn, Not Registered With Us (200 OK)**
+**Notes on Auto-Registration:**
+- If user exists in Unicorn but we don't have a record, we **automatically create** a credential record
+- No need to call the register endpoint in this case
+- The credential status is set to "registered"
+- You can immediately proceed to SSO exchange (step 3)
+
+**Response: User Does Not Exist → Please Register (200 OK)**
 ```json
 {
-  "exists_in_unicorn": true,
+  "exists_in_brand": false,
   "registered_with_us": false,
   "credential_id": null,
   "device_count": 0,
-  "message": "User exists in Unicorn but needs to register with us"
+  "message": "User does not exist in Unicorn. Please register first."
 }
 ```
 
-**Response: User Does Not Exist (404 Not Found)**
-```json
-{
-  "exists_in_unicorn": false,
-  "registered_with_us": false,
-  "credential_id": null,
-  "device_count": 0,
-  "message": "User does not exist in Unicorn"
-}
-```
+**What This Means:**
+- `exists_in_brand: true` + `registered_with_us: true` → User found! Already set up. **Skip to step 3 (SSO Exchange)**
+- `exists_in_brand: false` + `registered_with_us: false` → User not found. **Proceed to step 2 (Register)**
 
 **Error Responses:**
-- `400 Bad Request` - Missing email parameter
+- `400 Bad Request` - Email not available in database and not provided via query/header
 - `401 Unauthorized` - Missing/invalid X-User-ID header
+- `404 Not Found` - Brand not found
 - `500 Internal Server Error` - Unicorn API unreachable
 
 ---
 
-### 2. Register New User
+### 2. Register New User (Only if User Doesn't Exist)
 
 **Endpoint:** `POST /auth/brand/unicorn/register-sso`
 

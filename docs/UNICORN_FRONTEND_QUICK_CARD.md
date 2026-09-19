@@ -4,14 +4,21 @@
 
 ### 1️⃣ Check User
 ```
-GET /auth/brand/unicorn/check-sso?email=user@example.com
+GET /auth/brand/unicorn/check-sso
 Header: X-User-ID: 123
+(Email auto-retrieved from users database)
 
 Response: {
-  "exists_in_unicorn": true/false,
+  "exists_in_brand": true/false,
   "registered_with_us": true/false,
   "device_count": 0
 }
+```
+
+*Alternative with explicit email (if not in database):*
+```
+GET /auth/brand/unicorn/check-sso?user_email=user@example.com
+Header: X-User-ID: 123
 ```
 
 ### 2️⃣ Register User
@@ -44,37 +51,38 @@ Response: {
 
 ---
 
-## Frontend Flow
+## Frontend Flow (Simplified!)
 
 ```
 1. User visits Unicorn section
    ↓
-2. GET /auth/brand/unicorn/check-sso?email=user@email
+2. GET /auth/brand/unicorn/check-sso
+   (uses logged-in user's email automatically)
    ↓
-   ├─ exists_in_unicorn = false
-   │  └─ Show: "No account. Create one?"
+   ├─ exists_in_brand = false
+   │  └─ Show: "No account in Unicorn. Create one?"
    │     ├─ User clicks YES
-   │     │  └─ POST /auth/brand/unicorn/register-sso → success
+   │     │  └─ POST /auth/brand/unicorn/register-sso
+   │     │     └─ If success → Continue to step 3
    │     └─ User clicks NO
    │        └─ Exit
    │
-   └─ exists_in_unicorn = true
-      ├─ registered_with_us = true
-      │  └─ Already connected, load devices
-      └─ registered_with_us = false
-         └─ Show: "Account found. Connect?"
-            ├─ User clicks YES
-            │  └─ Continue to step 3
-            └─ User clicks NO
-               └─ Exit
+   └─ exists_in_brand = true
+      └─ registered_with_us = true (auto-created!)
+         └─ User already registered ✓
+            └─ Continue directly to step 3 (SSO Exchange)
 
-3. POST /auth/brand/unicorn/sso-exchange with assertion
+3. POST /auth/brand/unicorn/sso-exchange
    ↓
    ├─ success = true
    │  └─ Display devices
    └─ success = false
       └─ Show error message
 ```
+
+**Key Difference:**
+- ✅ If user exists in Unicorn: Auto-registered! Skip registration step, go straight to SSO exchange
+- ❌ If user doesn't exist: Must call register endpoint first
 
 ---
 
@@ -84,9 +92,9 @@ Response: {
 |------|---------|--------|
 | 200 | OK | Data returned successfully |
 | 201 | Created | Registration successful |
-| 400 | Bad Request | Check your input (email, body) |
+| 400 | Bad Request | Check X-User-Email header or auth setup |
 | 401 | Unauthorized | Missing X-User-ID header |
-| 404 | Not Found | User doesn't exist in Unicorn |
+| 404 | Not Found | Brand not found |
 | 409 | Conflict | User already exists |
 | 422 | Invalid Assertion | Bad SSO assertion (expired?) |
 | 500 | Server Error | Contact support |
@@ -96,9 +104,9 @@ Response: {
 ## Example JavaScript
 
 ```javascript
-// Check
+// Check (email automatically retrieved from database)
 const checkResp = await fetch(
-  `/auth/brand/unicorn/check-sso?email=${email}`,
+  '/auth/brand/unicorn/check-sso',
   { headers: { 'X-User-ID': userId } }
 ).then(r => r.json());
 
@@ -127,7 +135,7 @@ const connResp = await fetch(
 
 ## What You Need from Taucho
 
-1. **User Email** - Already have if logged in
+1. **User Email** - Automatically retrieved from users database table
 2. **User ID** - Use for X-User-ID header
 3. **SSO Assertion JWT** - Created by Taucho backend before calling endpoint 3
 
@@ -149,10 +157,15 @@ cd tauchoapis
 go run ./cmd
 
 # Terminal 2: Test endpoints
-curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso?email=test@example.com" \
+# Standard (email from database)
+curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso" \
+  -H "X-User-ID: 123"
+
+# With explicit email (if user has no email)
+curl -X GET "http://localhost:8080/auth/brand/unicorn/check-sso?user_email=test@example.com" \
   -H "X-User-ID: 123"
 ```
 
 ---
 
-**Last Updated:** September 17, 2026
+**Last Updated:** September 18, 2026

@@ -934,6 +934,7 @@
     try {
       // Step 1: Check if user exists in the brand's system
       // This endpoint is handled by main.go which adds X-User-ID from session
+      // Key: If user exists in brand but not registered with us, backend auto-registers them
       const checkUrl = `/auth/brand/${encodeURIComponent(meta.id)}/check-sso`;
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
@@ -952,64 +953,55 @@
         return r.json();
       });
 
-      // Case 1: User already registered
-      if (checkResponse.exists_in_unicorn && checkResponse.registered_with_us) {
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || getBrandName(meta.id) + ' is already connected!'}`);
+      // Case 1: User exists in brand (and we auto-registered them, so registered_with_us will be true)
+      if (checkResponse.exists_in_brand && checkResponse.registered_with_us) {
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
         setTimeout(() => window.location.reload(), 1000);
         return;
       }
 
-      // Case 2: User exists but not registered with us, or doesn't exist at all
-      let shouldRegister = false;
-      if (checkResponse.exists_in_unicorn && !checkResponse.registered_with_us) {
-        // User exists in brand system, ask to connect
-        shouldRegister = confirm(
-          window._i18nMsg?.['brandSettings.sso.connectExisting'] || 
-          `Account found in ${getBrandName(meta.id)}. Connect it to your Taucho account?`
-        );
-      } else if (!checkResponse.exists_in_unicorn) {
-        // User doesn't exist, ask to create
-        shouldRegister = confirm(
+      // Case 2: User doesn't exist in brand - ask to create account
+      if (!checkResponse.exists_in_brand) {
+        const shouldRegister = confirm(
           window._i18nMsg?.['brandSettings.sso.createAccount'] || 
           `Create a new ${getBrandName(meta.id)} account with your email?`
         );
-      }
 
-      if (!shouldRegister) {
-        return;
-      }
-
-      // Step 2: Register/Connect the user
-      // This endpoint is handled by main.go which adds X-User-ID from session
-      const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
-      const registerResponse = await fetch(registerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: '{}',
-        credentials: 'include'
-      }).then(async r => {
-        if (!r.ok) {
-          let errorMessage = `HTTP ${r.status}`;
-          try {
-            const payload = await r.json();
-            errorMessage = payload.message || payload.error || errorMessage;
-          } catch (e) {
-            // Response wasn't JSON, use status code only
-          }
-          throw new Error(errorMessage);
+        if (!shouldRegister) {
+          return;
         }
-        return r.json();
-      });
 
-      if (!registerResponse.success) {
-        showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
-        return;
+        // Register/Create the user
+        const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
+        const registerResponse = await fetch(registerUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: '{}',
+          credentials: 'include'
+        }).then(async r => {
+          if (!r.ok) {
+            let errorMessage = `HTTP ${r.status}`;
+            try {
+              const payload = await r.json();
+              errorMessage = payload.message || payload.error || errorMessage;
+            } catch (e) {
+              // Response wasn't JSON, use status code only
+            }
+            throw new Error(errorMessage);
+          }
+          return r.json();
+        });
+
+        if (!registerResponse.success) {
+          showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
+          return;
+        }
+
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        setTimeout(() => window.location.reload(), 1500);
       }
-
-      showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
-      setTimeout(() => window.location.reload(), 1500);
 
     } catch (error) {
       showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);

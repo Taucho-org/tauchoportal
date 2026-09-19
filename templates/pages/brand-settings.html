@@ -18,17 +18,23 @@
             <div id="brandSettingsMsg" class="status-msg" style="display:none;"></div>
             <div id="brandsGrid" class="brands">
                 {{range .MyBrands}}
-                <article class="brand-card {{if .IsConnected}}is-connected{{end}}">
+                {{$statusClass := ""}}
+                {{if .IsConnected}}{{$statusClass = "is-connected"}}{{else if .IsRegistered}}{{$statusClass = "is-registered"}}{{end}}
+                <article class="brand-card {{$statusClass}}">
                     <div class="brand-card-header">
                         <div class="brand-card-identity">
                             <div class="brand-logo" aria-hidden="true"><img src="/image/brand_{{.ID}}.png" alt="{{.Name}}"></div>
                             <div>
                                 <h3 class="brand-name">{{.Name}}</h3>
-                                <p class="brand-description">{{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}</p>
+                                <p class="brand-description">
+                                    {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else if .IsRegistered}}{{$.I18n.T "brandSettings.registered"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
+                                </p>
                             </div>
                         </div>
-                        <span class="status-badge {{if .IsConnected}}connected{{else}}disconnected{{end}}">
-                            {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
+                        {{$badgeClass := "disconnected"}}
+                        {{if .IsConnected}}{{$badgeClass = "connected"}}{{else if .IsRegistered}}{{$badgeClass = "registered"}}{{end}}
+                        <span class="status-badge {{$badgeClass}}">
+                            {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else if .IsRegistered}}{{$.I18n.T "brandSettings.registered"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
                         </span>
                     </div>
                     <div class="brand-details">
@@ -45,6 +51,8 @@
                             <button type="button" class="btn-disconnect brand-action-button" data-brand-id="{{.ID}}" data-brand-action="disconnect" onclick="promptDisconnect('{{.ID}}')">
                                 {{$.I18n.T "brandSettings.disconnect"}}
                             </button>
+                        {{else if .IsRegistered}}
+                            <!-- Registered brands show no action buttons -->
                         {{else}}
                             <button type="button" class="btn-connect brand-action-button" data-brand-id="{{.ID}}" data-brand-action="connect" onclick="handleBrandAction('{{.ID}}')">
                                 {{$.I18n.T "brandSettings.connect"}}

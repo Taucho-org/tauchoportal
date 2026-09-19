@@ -12,6 +12,7 @@ type MyConnectedBrand struct {
 	ID                       string                 `json:"id"`
 	Name                     string                 `json:"name"`
 	IsConnected              bool                   `json:"is_connected"`
+	IsRegistered             bool                   `json:"is_registered"`
 	AuthType                 *string                `json:"auth_type"`
 	Status                   *string                `json:"status"`
 	ConnectedAt              *string                `json:"connected_at"`
@@ -42,6 +43,14 @@ type MyBrandsListResponse struct {
 func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 	var response MyBrandsListResponse
 	apiRequest(&response, http.MethodGet, "/auth/brands")
+	
+	// Set IsRegistered based on Status field
+	for i := range response.Brands {
+		if response.Brands[i].Status != nil && *response.Brands[i].Status == "registered" {
+			response.Brands[i].IsRegistered = true
+		}
+	}
+	
 	return response.Brands
 }
 

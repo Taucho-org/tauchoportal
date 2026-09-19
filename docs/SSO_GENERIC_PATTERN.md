@@ -13,29 +13,26 @@ Currently, **Unicorn** (Unicorn Extermination Section) is the first brand to imp
 ### User Flow
 
 ```
-User clicks "Connect with SSO" on brand card
+User clicks "Connect with SSO" on unconnected brand card
     ↓
-Frontend fetches current user's email & ID
+GET /auth/brand/{brandId}/check-sso
     ↓
-GET /auth/brand/{brandId}/check-sso?email=user@example.com
-    ↓
-    ├─ User already registered
-    │  └─ ✅ Show "Already connected", reload
+    ├─ exists_in_brand = true
+    │  └─ Backend automatically registered user
+    │  └─ registered_with_us = true
+    │  └─ ✅ Show "Connected!", reload page
     │
-    ├─ User exists in brand system but not registered with us
-    │  └─ Show confirmation: "Account found. Connect?"
-    │     ├─ YES → Register/Connect
-    │     └─ NO → Cancel
-    │
-    └─ User doesn't exist in brand system
+    └─ exists_in_brand = false
        └─ Show confirmation: "Create new account?"
-          ├─ YES → Create & Register
+          ├─ YES → POST /auth/brand/{brandId}/register-sso
+          │        └─ ✅ Account created, reload page
           └─ NO → Cancel
-    ↓
-POST /auth/brand/{brandId}/register-sso
-    ↓
-✅ Connection successful, reload page
 ```
+
+**Key Change from Previous Version:**
+- When a user exists in the brand system but we don't have them registered yet, the **backend automatically registers them** during the check
+- No need for a separate registration step if `exists_in_brand: true`
+- Only show registration dialog if `exists_in_brand: false`
 
 ---
 
@@ -51,25 +48,36 @@ X-User-ID: {user_id}
 
 **Query Parameters:** None (email is retrieved from session)
 
-**Response (200 OK):**
+**Response (200 OK) - User Exists (Auto-Registered):**
 ```json
 {
-  "exists_in_unicorn": true,        // Does user exist in brand system?
-  "registered_with_us": true,       // Is user already connected to Taucho?
-  "credential_id": "ubcred_...",    // (Optional) Credential ID if registered
-  "device_count": 2,                // Number of devices
-  "message": "User already registered with us"
+  "exists_in_brand": true,
+  "registered_with_us": true,
+  "credential_id": "ubcred_...",
+  "device_count": 2,
+  "message": "User found in brand and automatically registered with us"
+}
+```
+
+**Response (200 OK) - User Doesn't Exist:**
+```json
+{
+  "exists_in_brand": false,
+  "registered_with_us": false,
+  "credential_id": null,
+  "device_count": 0,
+  "message": "User does not exist in brand system"
 }
 ```
 
 **Error Responses:**
 - `401` - Missing/invalid X-User-ID header
-- `404` - User doesn't exist in brand system
+- `404` - Brand doesn't exist
 - `500` - Server error
 
 ---
 
-### 2. Register/Connect User
+### 2. Register New User (Only if `exists_in_brand: false`)
 **Endpoint:** `POST /auth/brand/{brandId}/register-sso`
 
 **Required Headers:**
@@ -107,45 +115,47 @@ Content-Type: application/json
 
 ### In `public/js/brand-settings.js`
 
-The `openSSOModal(brandId)` function handles the complete flow:
+The `openSSOModal(brandId)` function handles the simplified flow:
 
 ```javascript
 async function openSSOModal(brand) {
-  // 1. Get current user's email & ID
-  const currentUser = await apiRequest('GET', '/auth/user');
-  
-  // 2. Check status (email comes from session via X-User-ID)
+  // 1. Check if user exists in brand system
   const checkResponse = await fetch(
     `/auth/brand/${encodeURIComponent(meta.id)}/check-sso`,
-    { headers: { 'X-User-ID': currentUser.id.toString() } }
+    { credentials: 'include' }
   ).then(r => r.json());
   
-  // 3. Handle three cases
-  if (checkResponse.exists_in_unicorn && checkResponse.registered_with_us) {
-    // Already connected - reload
+  // 2. If exists in brand (backend auto-registered them)
+  if (checkResponse.exists_in_brand && checkResponse.registered_with_us) {
+    // User already connected - reload
+    showToast('✅ Connected!');
     window.location.reload();
-  } else if (checkResponse.exists_in_unicorn && !checkResponse.registered_with_us) {
-    // Ask to connect existing account
-    const ok = confirm('Account found. Connect?');
-  } else {
-    // Ask to create new account
-    const ok = confirm('Create new account?');
+    return;
   }
   
-  // 4. Register if user confirmed
-  if (ok) {
-    const registerResponse = await fetch(
+  // 3. If doesn't exist in brand - ask to create
+  if (!checkResponse.exists_in_brand) {
+    const ok = confirm('Create new account?');
+    if (!ok) return;
+    
+    // Register the user
+    const regResp = await fetch(
       `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`,
       {
         method: 'POST',
-        headers: { 'X-User-ID': currentUser.id.toString() },
-        body: '{}'
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+        credentials: 'include'
       }
     ).then(r => r.json());
     
-    if (registerResponse.success) {
-      window.location.reload();
+    if (!regResp.success) {
+      showToast(`❌ ${regResp.message}`);
+      return;
     }
+    
+    showToast('✅ Connected!');
+    window.location.reload();
   }
 }
 ```
@@ -169,10 +179,9 @@ The `handleBrandAction()` function routes to `openSSOModal()` if `authentication
 To support SSO for a new brand:
 
 ### Backend
-1. Implement the three endpoints:
-   - `GET /auth/brand/{brandId}/check-sso?email={email}`
-   - `POST /auth/brand/{brandId}/register-sso`
-   - `POST /auth/brand/{brandId}/sso-exchange` (if needed for device sync)
+1. Implement two endpoints:
+   - `GET /auth/brand/{brandId}/check-sso` - Check status (auto-register if exists)
+   - `POST /auth/brand/{brandId}/register-sso` - Create new account (if doesn't exist)
 
 2. Register the brand in the database with `authentication_type: 'sso'`
 
@@ -183,10 +192,10 @@ To support SSO for a new brand:
 
 ## Important Notes
 
-- **Email is required** - User must be logged in and have a verified email
-- **No manual email entry** - Email comes from logged-in user, not prompted
-- **One-click registration** - User just confirms, no password entry needed
-- **Session-based** - Uses X-User-ID header, requires active session
+- **Email is automatic** - Comes from logged-in user's session
+- **Auto-registration** - If user exists in brand system, backend automatically registers them
+- **No password setup** - Email-only registration, no password entry needed
+- **Session-based** - Uses X-User-ID header (set by main.go server-side)
 - **Automatic reload** - Page reloads after successful connection
 
 ---
@@ -207,13 +216,12 @@ To support SSO for a new brand:
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| "Could not get current user" | Not logged in | Log in first |
 | "HTTP 401" | X-User-ID missing | Ensure user session is active |
-| "HTTP 404" | Endpoint not implemented | Backend needs to implement check-sso endpoint |
-| "User already registered" | HTTP 409 | User already connected, just reload |
+| "HTTP 404" | Brand not found | Check brand ID and backend configuration |
+| "User already registered" | HTTP 409 | User already connected, try refreshing |
 | "Registration failed" | Invalid email or DB error | Check backend logs |
 
 ---
 
-**Last Updated:** September 17, 2026
-**Generic Pattern Version:** 1.0
+**Last Updated:** September 18, 2026  
+**Generic Pattern Version:** 2.0 (Auto-registration enabled)
