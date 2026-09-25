@@ -40,14 +40,14 @@ type DeviceTemplateExamples struct {
 }
 
 type DeviceTemplate struct {
-	Id                     int                                `json:"id"`
-	BrandName              string                             `json:"brand_name"`
-	TemplateName           string                             `json:"template_name"`
-	Category               string                             `json:"category"`
-	Description            string                             `json:"description"`
-	HttpMethod             string                             `json:"http_method"`
-	RequiredParameters     []string                           `json:"required_parameters"`
-	OptionalParameters     []string                           `json:"optional_parameters"`
+	Id                        int                                `json:"id"`
+	BrandName                 string                             `json:"brand_name"`
+	TemplateName              string                             `json:"template_name"`
+	Category                  string                             `json:"category"`
+	Description               string                             `json:"description"`
+	HttpMethod                string                             `json:"http_method"`
+	DeviceIdentifyParameters  []string                           `json:"device_identify_parameters"`
+	OptionalParameters        []string                           `json:"optional_parameters"`
 	ParameterDefaults      DeviceTemplateParameterDefaults    `json:"parameter_defaults"`
 	ParameterConstraints   DeviceTemplateParameterConstraints `json:"parameter_constraints"`
 	UiFields               []DeviceTemplateUIField            `json:"ui_fields"`

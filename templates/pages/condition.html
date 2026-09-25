@@ -85,8 +85,19 @@
   <div class="submitarea">
     <div id="sendingParameterContainer">
         <h3 id="sendingParameterTitle">{{.I18n.T "condition.sendingParams.title"}}</h3>
-        <div id="sendingParameterArea">{{.I18n.T "condition.sendingParams.none"}}</div>
-        <div id="sendingParamJsonArea"><div class="jsontab"><img src="/image/jsonareaedge.png" width="43" height="27"><a onclick="if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParamJsonArea').classList.remove('active');}else {document.getElementById('sendingParamJsonArea').classList.add('active')};if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParameterArea').classList.add('hide')}else {document.getElementById('sendingParameterArea').classList.remove('hide')};return false">JSON</a></div>
+        
+        <!-- Device Action Configuration Form - Simplified Main View -->
+        <div id="sendingParameterArea" class="device-action-form">
+            <div class="form-section">
+                <label for="deviceActionGroup">{{.I18n.T "condition.deviceAction.selectGroup" "Select Device Group"}}</label>
+                <select id="deviceActionGroup" class="form-control">
+                    <option value="">Loading device groups...</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- JSON Editor Toggle and Advanced Options -->
+        <div id="sendingParamJsonArea"><div class="jsontab"><img src="/image/jsonareaedge.png" width="43" height="27"><a onclick="if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParamJsonArea').classList.remove('active');}else {document.getElementById('sendingParamJsonArea').classList.add('active')};if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParameterArea').classList.add('hide')}else {document.getElementById('sendingParameterArea').classList.remove('hide')};return false">{{.I18n.T "condition.sendingParams.jsonEditor" "JSON (Advanced)"}}</a></div>
             <div id="sendingParameterJsonWrapper"><textarea id="sendingparamjson" onchange="refreshRequest()">{{.Condition.DeviceActionParams}}</textarea></div>
         </div>
     </div>
@@ -95,6 +106,44 @@
         <div class="btn btn-primary" id="submitConditionButton" onclick="submitCondition()">{{.I18n.T "condition.button.submit"}}</div>
     </div>
   </div>
+
+    <!-- Device Action Configuration Modal -->
+    <div id="deviceActionModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('deviceActionModal')">×</span>
+                <h2>{{.I18n.T "condition.modal.deviceAction.title" "Device Action Configuration"}}</h2>
+                <p>{{.I18n.T "condition.modal.deviceAction.description" "Select an action template and configure parameters"}}</p>
+            </div>
+            <div class="modal-body">
+                <!-- Template Selector -->
+                <div class="form-section">
+                    <label for="modal_deviceActionTemplate">{{.I18n.T "condition.deviceAction.selectTemplate" "Select Action Template"}}</label>
+                    <select id="modal_deviceActionTemplate" class="form-control">
+                        <option value="">Select template...</option>
+                        <option value="__custom__">{{.I18n.T "condition.deviceAction.customTemplate" "Custom Template (JSON)"}}</option>
+                    </select>
+                </div>
+                
+                <!-- Custom Template JSON Input -->
+                <div class="form-section" id="modal_customTemplateContainer" style="display:none;">
+                    <label for="modal_customTemplateJSON">{{.I18n.T "condition.deviceAction.customTemplateJson" "Template JSON"}}</label>
+                    <textarea id="modal_customTemplateJSON" class="condition-textarea" style="width: 100%; height: 200px; font-family: monospace; border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;" placeholder="Enter template JSON here..."></textarea>
+                    <small style="display: block; margin-top: 0.5rem; color: #666;">{{.I18n.T "condition.deviceAction.customTemplateHint" "Example: {\"command\": \"on\", \"brightness\": 50}"}}</small>
+                </div>
+                
+                <!-- Parameters Container -->
+                <div class="form-section" id="modal_paramSectionContainer" style="display:none;">
+                    <label>{{.I18n.T "condition.deviceAction.parameters" "Parameters"}}</label>
+                    <div id="modal_deviceActionParams" class="parameters-container"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deviceActionModal')">{{.I18n.T "condition.button.cancel"}}</button>
+                <button type="button" class="btn btn-primary" onclick="deviceActionHandler.saveAndClose()">{{.I18n.T "condition.modal.button.okay"}}</button>
+            </div>
+        </div>
+    </div>
 
     <div id="boolModal" class="modal lower">
         <div class="modal-content modal-large">
@@ -402,6 +451,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Test Condition Modal -->
+    <div id="testConditionModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span class="close" onclick="closeTestModal()">×</span>
+                <h2>Test Condition</h2>
+                <p>Test your condition against a sample event to verify it works correctly</p>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
+                <div>
+                    <label for="testEventType" style="display:block; font-weight:600; margin-bottom:0.5rem;">Event Type:</label>
+                    <select id="testEventType" onchange="updateTestEventParams()" style="width:100%; padding:0.75rem; border:1px solid #ced4da; border-radius:6px;">
+                        <option value="">Select an event type...</option>
+                    </select>
+                </div>
+                <div id="testEventParamsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9;">
+                    <p style="color:#666; font-size:0.9rem;">Event parameters will appear here</p>
+                </div>
+                <div id="testResultsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9; display:none;">
+                    <div style="font-weight:600; margin-bottom:0.75rem;">Test Results:</div>
+                    <div id="testResultsContent" style="font-family:monospace; white-space:pre-wrap; font-size:0.9rem;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeTestModal()">{{.I18n.T "condition.button.close"}}</button>
+                <button type="button" class="btn btn-primary" onclick="runConditionTest()">Test Condition</button>
+            </div>
+        </div>
+    </div>
 </div>
 {{end}}
 
@@ -675,8 +754,9 @@ async function runConditionTest() {
 function submitCondition() {
     const conditionID = '{{.Condition.ID}}';
     const channelID = '{{.CurrentChannel.ID}}';
-    const conditionName = '{{.Condition.Name}}';
+    const conditionName = document.querySelector('[data-condition-name]')?.value || '{{.Condition.Name}}';
     
+    // Get the condition data
     const data = getConditionData();
     const conditionLogic = parseJSON(data.logic);
     const deviceActionParams = parseJSON(data.params);
@@ -691,14 +771,78 @@ function submitCondition() {
         return;
     }
     
+    // Extract device action components
+    let deviceActionBody = null;
+    let deviceActionParamName = null;
+    let deviceActionParamEvaluator = null;
+
+    if (deviceActionParams && typeof deviceActionParams === 'object') {
+        // Validate device action structure if present
+        if (deviceActionParams.device_action_body) {
+            deviceActionBody = deviceActionParams.device_action_body;
+            deviceActionParamName = deviceActionParams.device_action_param_name;
+            deviceActionParamEvaluator = deviceActionParams.device_action_param_evaluator;
+
+            // Validate required fields
+            if (!deviceActionBody.method || !deviceActionBody.url || !deviceActionBody.body) {
+                alert('Invalid device action template: missing method, url, or body');
+                return;
+            }
+
+            // Validate placeholders
+            const bodyStr = JSON.stringify(deviceActionBody.body);
+            if (!bodyStr.includes('{device_id}') || !bodyStr.includes('{model_id}')) {
+                alert('Template must contain {device_id} and {model_id} placeholders');
+                return;
+            }
+
+            // If flexible parameter is configured, validate it
+            if (deviceActionParamEvaluator) {
+                // Validate operator is in allowed list
+                const allowedOperators = ['PARAM', 'REGEX_EXTRACT', 'SUBSTRING', 'FIRST', 'LAST', 'COLOR_PICKUP', 
+                                         'PARSEINT', 'WHOLESENTENCE', 'ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE', 'MODULO', 'EXCHANGE'];
+                if (!allowedOperators.includes(deviceActionParamEvaluator.operator)) {
+                    alert('Invalid operator: ' + deviceActionParamEvaluator.operator);
+                    return;
+                }
+
+                // Validate parameter path exists
+                if (!deviceActionParamName) {
+                    alert('Flexible parameter configured but no parameter name specified');
+                    return;
+                }
+
+                // Validate path exists in body
+                const bodyObj = deviceActionBody.body;
+                const pathParts = deviceActionParamName.split('.');
+                let current = bodyObj;
+                for (const part of pathParts) {
+                    if (current === null || current === undefined || !(part in current)) {
+                        alert('Parameter path "' + deviceActionParamName + '" does not exist in template body');
+                        return;
+                    }
+                    current = current[part];
+                }
+            }
+
+            // Validate device_group_id if present
+            if (deviceActionParams.device_group_id) {
+                if (typeof deviceActionParams.device_group_id !== 'string' || !deviceActionParams.device_group_id.trim()) {
+                    alert('Invalid device group ID');
+                    return;
+                }
+            }
+        }
+    }
+    
     const conditionData = {
         name: conditionName,
         event_type: '{{.Condition.EventType}}',
         is_enabled: true,
         condition_logic: conditionLogic,
-        device_id: '{{.Condition.DeviceID}}' || null,
-        device_action: '{{.Condition.DeviceAction}}' || null,
-        device_action_params: deviceActionParams || null
+        device_action_body: deviceActionBody,
+        device_action_param_name: deviceActionParamName,
+        device_action_param_evaluator: deviceActionParamEvaluator
     };
     
     // Determine if this is a create or update
@@ -774,7 +918,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     conditionEditor.refresh();
 
-    // Initialize device action parameters editor
+    // Initialize device action parameters handler
     const sendingParamTextarea = document.getElementById('sendingparamjson');
     
     // Pretty-print sendingparamjson if it has content
@@ -787,16 +931,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Only create the editor if there's actual content, otherwise just let the textarea be
-    deviceParamsEditor = new ConditionEditor('sendingparamjson', {
-        baseType: 'WHOLESENTENCE',
-        drawingArea: document.getElementById('sendingParameterArea'),
-        logicDescriptionArea: null,
+    // Initialize the device action handler (with modal)
+    deviceActionHandler = new DeviceActionHandler('sendingParameterArea', {
         platform: conditionToolboxContext.platform,
-        eventType: conditionToolboxContext.eventType,
-        eventFieldOptions: conditionToolboxContext.eventFieldOptions
+        eventFieldOptions: conditionToolboxContext.eventFieldOptions,
+        jsonTextarea: sendingParamTextarea
     });
-    deviceParamsEditor.refresh();
+    
+    // Load existing data if available
+    if (sendingParamTextarea.value.trim()) {
+        deviceActionHandler.loadFromJson();
+    }
     
     // Override test modal close buttons to use custom closeTestModal function
     const testModal = document.getElementById('testConditionModal');
@@ -818,8 +963,16 @@ function refreshSummary() {
 }
 
 function refreshRequest() {
-    if (deviceParamsEditor) {
-        deviceParamsEditor.refresh();
+    if (deviceActionHandler) {
+        // Sync from JSON textarea to form if JSON is being edited
+        const sendingParamTextarea = document.getElementById('sendingparamjson');
+        if (sendingParamTextarea.value.trim()) {
+            try {
+                deviceActionHandler.setJSON(sendingParamTextarea.value);
+            } catch (e) {
+                console.warn('Could not sync JSON to form:', e);
+            }
+        }
     }
 }
 
