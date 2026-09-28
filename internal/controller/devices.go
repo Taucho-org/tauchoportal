@@ -47,14 +47,10 @@ type DeleteDeviceResponse struct {
 	Status string `json:"status"`
 }
 
-type TestDeviceParams struct {
-	Brightness int `json:"brightness"`
-}
-
 type TestDeviceRequest struct {
-	TemplateId int              `json:"template_id"`
-	Action     string           `json:"action"`
-	Params     TestDeviceParams `json:"params"`
+	TemplateId int                    `json:"template_id"`
+	Action     string                 `json:"action,omitempty"`
+	Params     map[string]interface{} `json:"params"`
 }
 
 type TestDeviceResponse struct {

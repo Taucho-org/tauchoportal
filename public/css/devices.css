@@ -100,15 +100,38 @@ body {
     border: none;
 }
 
-.quick-connect-btn {
-    background: #28a745;
-    color: white;
-    border: 1px solid #22863a;
+.quick-connect {
+    background: #eaf4f8;
+    border-radius: 8px;
+    padding: 1.5rem;
 }
 
-.quick-connect-btn:hover {
-    background: #218838;
-    border-color: #1e7e34;
+.quick-connect h3 {
+    color: #0969da;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.quick-connect-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.quick-connect-buttons button {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #0969da;
+    border-radius: 4px;
+    color: #0969da;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.quick-connect-buttons button:hover {
+    background: #559cec;
+    color: white;
 }
 
 /* Brand Pills Status */

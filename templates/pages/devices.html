@@ -57,21 +57,21 @@
                         <div class="modal-header">
                             <span class="close" onclick="closeDeviceTestModal()">&times;</span>
                             <h2>{{.I18n.T "devices.testButton"}}</h2>
-                            <p id="deviceTestSubtitle">Select a template and action to test this device.</p>
+                            <p id="deviceTestSubtitle">{{.I18n.T "devices.testDialogSubtitle"}}</p>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label for="testTemplateSelect">Template</label>
-                                <select id="testTemplateSelect" required>
-                                    <option value="">Select a template</option>
+                                <label for="testTemplateSelect">{{.I18n.T "devices.testTemplateLabel"}}</label>
+                                <select id="testTemplateSelect" required onchange="renderTestTemplateFields()">
+                                    <option value="">{{.I18n.T "devices.testTemplatePlaceholder"}}</option>
                                 </select>
-                                <small class="form-help">Choose the request template to run against this device.</small>
+                                <small class="form-help">{{.I18n.T "devices.testTemplateHelp"}}</small>
                             </div>
                             <div id="testTemplateFields"></div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="closeDeviceTestModal()">Cancel</button>
-                            <button type="button" class="btn btn-primary" id="runDeviceTestButton" onclick="runDeviceTest()">Run Test</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeDeviceTestModal()">{{.I18n.T "devices.cancelButton"}}</button>
+                            <button type="button" class="btn btn-primary" id="runDeviceTestButton" onclick="runDeviceTest()">{{.I18n.T "devices.runTest"}}</button>
                         </div>
                     </div>
                 </div>
@@ -81,9 +81,9 @@
 
         <!-- Quick Connect New Brand Section -->
          {{ if $hasConnected }}
-        <div style="background: #eaf4f8; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-            <h3 style="color: #0969da; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">🚀 {{.I18n.T "devices.quickConnect" }}</h3>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <div class="quick-connect">
+            <h3>🚀 {{.I18n.T "devices.quickConnect" }}</h3>
+            <div class="quick-connect-buttons">
                 {{range .Brands }}
                 {{$brandId := .ID}}
                 {{$deviceCount := 0}}
@@ -91,7 +91,7 @@
                     {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
                 {{end}}
                 {{if gt $deviceCount 0}}
-                <button style="padding: 0.5rem 1rem; background: white; border: 1px solid #0969da; border-radius: 4px; color: #0969da; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
+                <button onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
                 {{end}}
                 {{end}}
             </div>
@@ -101,7 +101,7 @@
         <!-- Device List (pre-rendered) with Catalog Injections -->
         <div class="devices-list" id="devicesList">
             {{if eq (len .Devices.Devices) 0}}
-            <p class="no-devices-msg">No devices yet. Click "+ Add Device" above to get started.</p>
+            <p class="no-devices-msg">{{.I18n.T "devices.noDevices"}}</p>
             {{else}}
             {{range $idx, $device := .Devices.Devices}}
                 {{$brandLogo := $device.BrandLogo}}
@@ -142,54 +142,6 @@
                     </div>
                 </div>
 
-                <!-- Inject Catalog/Advertisement every 3 items -->
-                {{if eq $idx 2}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 0}}
-                        {{$catalogBrand := index $brands 0}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
-
-                {{if eq $idx 5}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 1}}
-                        {{$catalogBrand := index $brands 1}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
-
-                {{if eq $idx 8}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 2}}
-                        {{$catalogBrand := index $brands 2}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
             {{end}}
             <!-- Add New Device Card (dotted border, like in mock) -->
             <div class="device-card addnew" onclick="openAddModal()">
@@ -421,7 +373,7 @@
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">{{.I18n.T "devices.cancelButton"}}</button>
             </div>
             <div id="step2-footer" style="display:none">
-                <button type="button" class="btn btn-secondary" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
+                <button type="button" class="btn btn-secondary" id="backToSelectionButton" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
                 <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">{{.I18n.T "devices.addDeviceButton"}}</button>
             </div>
         </div>
@@ -469,4 +421,11 @@
 {{end}}
 {{define "scripts"}}
 <script src="/js/devices.js"></script>
+<script id="mydevices" type="application/json">
+{{toJSON .Devices.Devices}}
+</script>
+<script>
+    const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
+    window.MY_DEVICES = myDevices || [];
+</script>
 {{end}}

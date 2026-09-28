@@ -783,6 +783,8 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 - Required and optional parameters with constraints
 - UI hints and examples
 
+For select fields where the display label differs from the value sent to the API, use `{ "label": "...", "value": ... }` entries in `ui_fields[].options`; the value can be a string, integer, or other JSON scalar and is submitted as that type. `parameter_constraints` describes validation metadata such as `{ "type": "integer", "min": 0, "max": 1 }` and is not used to map labels to values.
+
 **Example usage:**
 ```bash
 # List templates for Govee

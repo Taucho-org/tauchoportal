@@ -403,7 +403,6 @@ type DevicesPageData struct {
 	Brands                 map[string]*BrandForTemplate
 	BrandsSorted           []*BrandForTemplate
 	BrandIDs               []string
-	DeviceTemplatesByBrand map[string][]DeviceTemplate
 }
 
 // PrepareDevicesPageData prepares all data needed to render the devices page
@@ -414,7 +413,6 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 	// Fetch all active brands from catalog
 	brandsMap := make(map[string]*BrandForTemplate)
 	brandsSorted := make([]*BrandForTemplate, 0)
-	deviceTemplatesByBrand := make(map[string][]DeviceTemplate)
 
 	// Build brands map for quick lookup and sorted slice
 	sort.Slice(brandList, func(i, j int) bool {
@@ -436,7 +434,6 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 		}
 		brandsMap[b.ID] = brandForTemplate
 		brandsSorted = append(brandsSorted, brandForTemplate)
-		deviceTemplatesByBrand[b.ID] = DeviceTemplates{}.ListTemplatesByBrand(b.ID)
 	}
 
 	// Convert devices to template format
@@ -482,7 +479,6 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 		Brands:                 brandsMap,
 		BrandsSorted:           brandsSorted,
 		BrandIDs:               getBrandIDsFromDevices(devicesForTemplate),
-		DeviceTemplatesByBrand: deviceTemplatesByBrand,
 	}
 }
 

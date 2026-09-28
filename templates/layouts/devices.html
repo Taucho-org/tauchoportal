@@ -23,18 +23,13 @@ const devicesI18n = JSON.parse(document.getElementById('devicesTranslations').te
 <script id="allbrands" type="application/json">
 {{toJSON .Brands}}
 </script>
-<script id="mydevices" type="application/json">
-{{toJSON .Devices.Devices}}
-</script>
 <script id="mybrands" type="application/json">
 {{toJSON .MyBrands}}
 </script>
 <script>
 const allBrands = JSON.parse(document.getElementById('allbrands').textContent);
-const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
 const myBrands = JSON.parse(document.getElementById('mybrands').textContent);
 window.BRANDS = allBrands || [];
-window.MY_DEVICES = myDevices || [];
 window.MY_BRANDS = [];
 for (const mybrandindex in myBrands) {
     window.MY_BRANDS[myBrands[mybrandindex].id] = myBrands[mybrandindex];
