@@ -40,7 +40,7 @@ type PageData struct {
 	EventTypes              []string
 	ChannelDetail           *controller.ChannelDetailForTemplate
 	ChannelDetailConditions []controller.ConditionDetailForTemplate
-	Devices                 []controller.DeviceForTemplate
+	Devices                 *controller.DevicesPageData
 	Channels                *controller.ChannelsPageData
 	Dashboard               *controller.DashboardPageData
 	MyBrands                []controller.MyConnectedBrand
@@ -593,7 +593,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Channels = pageData
 	}
 
-	// Fetch brand-settings page data if on /brand-settings page
+	// Fetch shared brand data for brand-settings and devices pages.
 	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
 		myBrandSettings := controller.MyBrandSettings{}
 		data.MyBrands = myBrandSettings.ListMyBrands()
@@ -601,7 +601,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		brandList := controller.BrandList{}
 		data.Brands = brandList.ListAll()
 
-		data.Devices = controller.PrepareDevicesPageData(data.Brands)
+		if cfg.Name == "devices" {
+			data.Devices = controller.PrepareDevicesPageData(data.Brands)
+		}
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "page", data); err != nil {

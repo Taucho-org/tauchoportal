@@ -2,7 +2,6 @@
 
 {{define "deviceshead"}}
 <link rel="stylesheet" href="/css/modals.css">
-<link rel="stylesheet" href="/css/devices.css">
 <link rel="stylesheet" href="/css/catalog.css">
 {{end}}
 
@@ -27,7 +26,7 @@
                         {{range .Brands}}
                             {{$brandId := .ID}}
                             {{$deviceCount := 0}}
-                            {{range $.Devices}}
+                            {{range $.Devices.Devices}}
                                 {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
                             {{end}}
                             {{if gt $deviceCount 0}}
@@ -51,23 +50,48 @@
                         <button class="manage-brands-link" onclick="goToBrandSettings()" title='{{.I18n.T "devices.manageBrands"}}'>⚙️</button>
                     </div>
                 </div>
+
+                <!-- Device Test Modal -->
+                <div id="deviceTestModal" class="modal">
+                    <div class="modal-content modal-small">
+                        <div class="modal-header">
+                            <span class="close" onclick="closeDeviceTestModal()">&times;</span>
+                            <h2>{{.I18n.T "devices.testButton"}}</h2>
+                            <p id="deviceTestSubtitle">{{.I18n.T "devices.testDialogSubtitle"}}</p>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="testTemplateSelect">{{.I18n.T "devices.testTemplateLabel"}}</label>
+                                <select id="testTemplateSelect" required onchange="renderTestTemplateFields()">
+                                    <option value="">{{.I18n.T "devices.testTemplatePlaceholder"}}</option>
+                                </select>
+                                <small class="form-help">{{.I18n.T "devices.testTemplateHelp"}}</small>
+                            </div>
+                            <div id="testTemplateFields"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeDeviceTestModal()">{{.I18n.T "devices.cancelButton"}}</button>
+                            <button type="button" class="btn btn-primary" id="runDeviceTestButton" onclick="runDeviceTest()">{{.I18n.T "devices.runTest"}}</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
 
         <!-- Quick Connect New Brand Section -->
          {{ if $hasConnected }}
-        <div style="background: #eaf4f8; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
-            <h3 style="color: #0969da; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">🚀 {{.I18n.T "devices.quickConnect" }}</h3>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <div class="quick-connect">
+            <h3>🚀 {{.I18n.T "devices.quickConnect" }}</h3>
+            <div class="quick-connect-buttons">
                 {{range .Brands }}
                 {{$brandId := .ID}}
                 {{$deviceCount := 0}}
-                {{range $.Devices}}
+                {{range $.Devices.Devices}}
                     {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
                 {{end}}
                 {{if gt $deviceCount 0}}
-                <button style="padding: 0.5rem 1rem; background: white; border: 1px solid #0969da; border-radius: 4px; color: #0969da; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
+                <button onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
                 {{end}}
                 {{end}}
             </div>
@@ -76,16 +100,14 @@
 
         <!-- Device List (pre-rendered) with Catalog Injections -->
         <div class="devices-list" id="devicesList">
-            {{if eq (len .Devices) 0}}
-            <p class="no-devices-msg">No devices yet. Click "+ Add Device" above to get started.</p>
+            {{if eq (len .Devices.Devices) 0}}
+            <p class="no-devices-msg">{{.I18n.T "devices.noDevices"}}</p>
             {{else}}
-            {{range $idx, $device := .Devices}}
-                {{$brandColor := $device.BrandColor}}
-                {{if not $brandColor}}{{$brandColor = "#888888"}}{{end}}
+            {{range $idx, $device := .Devices.Devices}}
                 {{$brandLogo := $device.BrandLogo}}
                 
                 <div class="device-card" data-id="{{$device.ID}}" data-brand="{{$device.Brand}}">
-                    <div class="device-header-section" data-brand="{{$device.Brand}}" style="background:linear-gradient(135deg, {{$brandColor}} 0%, {{$brandColor}} 100%);">
+                    <div class="device-header-section" data-brand="{{$device.Brand}}">
                         <h4 class="device-header-name">{{$device.Name}}</h4>
                         <p class="device-header-brand">{{$device.ProductName}}</p>
                     </div>
@@ -113,61 +135,13 @@
                             {{end}}
                         </div>
                         <div class="device-ctrl">
-                            <button class="action-btn test" onclick="testDevice('{{$device.ID}}')">{{$.I18n.T "devices.testButton"}}</button>
+                            <button class="action-btn test" onclick="openDeviceTestModal('{{$device.ID}}')">{{$.I18n.T "devices.testButton"}}</button>
                             <button class="action-btn edit" onclick="openEditModal('{{$device.ID}}')">{{$.I18n.T "devices.editButton"}}</button>
                             <button class="action-btn delete" onclick="deleteDevice('{{$device.ID}}')">{{$.I18n.T "devices.deleteButton"}}</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Inject Catalog/Advertisement every 3 items -->
-                {{if eq $idx 2}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 0}}
-                        {{$catalogBrand := index $brands 0}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
-
-                {{if eq $idx 5}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 1}}
-                        {{$catalogBrand := index $brands 1}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
-
-                {{if eq $idx 8}}
-                    {{$brands := $.Brands}}
-                    {{if gt (len $brands) 2}}
-                        {{$catalogBrand := index $brands 2}}
-                        <div class="catalog-injection-row">
-                            <div class="catalog-injection-header">
-                                <h3>💡 Discover More {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}Smart Devices{{end}}</h3>
-                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">View All</a>
-                            </div>
-                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
-                                {{renderCatalog $catalogBrand.ID $.I18n .}}
-                            </div>
-                        </div>
-                    {{end}}
-                {{end}}
             {{end}}
             <!-- Add New Device Card (dotted border, like in mock) -->
             <div class="device-card addnew" onclick="openAddModal()">
@@ -181,7 +155,7 @@
         </div>
 
         <!-- Empty State -->
-        {{if eq (len .Devices) 0}}
+        {{if eq (len .Devices.Devices) 0}}
         <div class="empty-state">
             <div class="empty-icon"><img src="/image/waiting_s.png" /></div>
             <h2>{{.I18n.T "devices.emptyNoDevices"}}</h2>
@@ -225,7 +199,7 @@
                         {{$brandColor := .BrandColor}}
                         {{$brandLogo := .LogoURL}}
                         {{$ownedDevices := 0}}
-                        {{range $.Devices}}
+                        {{range $.Devices.Devices}}
                             {{if eq .Brand $brandId}}{{$ownedDevices = add $ownedDevices 1}}{{end}}
                         {{end}}
                         
@@ -254,7 +228,7 @@
                             <div class="accordion-products">
                                 <!-- Owned Devices Section -->
                                 {{$hasOwned := false}}
-                                {{range $.Devices}}
+                                {{range $.Devices.Devices}}
                                     {{if eq .Brand $brandId}}
                                         {{$hasOwned = true}}
                                     {{end}}
@@ -262,9 +236,9 @@
                                 
                                 {{if $hasOwned}}
                                 <div class="owned-devices-section">
-                                    {{range $.Devices}}
+                                    {{range $.Devices.Devices}}
                                         {{if eq .Brand $brandId}}
-                                        <div class="product-item" onclick="selectProduct('{{.Brand}}', '{{.ProductID}}', '{{.ProductName}}', '{{.Name}}', {{toJSON .Credentials}})">
+                                        <div class="product-item" onclick="selectProduct('{{.Brand}}', '{{.ProductID}}', '{{.ProductName}}', '{{.Name}}', {{toJSON .DeviceIdentifier}})">
                                             <div class="product-info">
                                                 <h5 class="product-name">{{.Name}}</h5>
                                                 <span class="product-actions">{{.ProductName}}</span>
@@ -278,7 +252,7 @@
                                 
                                 <!-- Separator -->
                                 {{$hasOwned := false}}
-                                {{range $.Devices}}
+                                {{range $.Devices.Devices}}
                                     {{if eq .Brand $brandId}}
                                         {{$hasOwned = true}}
                                     {{end}}
@@ -399,7 +373,7 @@
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">{{.I18n.T "devices.cancelButton"}}</button>
             </div>
             <div id="step2-footer" style="display:none">
-                <button type="button" class="btn btn-secondary" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
+                <button type="button" class="btn btn-secondary" id="backToSelectionButton" onclick="goToStep1()">{{.I18n.T "devices.backSelection"}}</button>
                 <button type="submit" form="deviceForm" class="btn btn-primary" id="devSaveBtn">{{.I18n.T "devices.addDeviceButton"}}</button>
             </div>
         </div>
@@ -446,30 +420,12 @@
 </div>
 {{end}}
 {{define "scripts"}}
-<script id="devicesTranslations" type="application/json">
-{{.I18n.TByPrefix "devices" | jsonMarshal}}
-</script>
-
-<script id="allbrands" type="application/json">
-{{toJSON .Brands}}
-</script>
+<script src="/js/devices.js"></script>
 <script id="mydevices" type="application/json">
-{{toJSON .Devices}}
-</script>
-<script id="mybrands" type="application/json">
-{{toJSON .MyBrands}}
+{{toJSON .Devices.Devices}}
 </script>
 <script>
-const allBrands = JSON.parse(document.getElementById('allbrands').textContent);
-const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
-const myBrands = JSON.parse(document.getElementById('mybrands').textContent);
-window.BRANDS = allBrands || [];
-window.MY_DEVICES = myDevices || [];
-window.MY_BRANDS = [];
-for (const mybrandindex in myBrands) {
-    window.MY_BRANDS[myBrands[mybrandindex].id] = myBrands[mybrandindex];
-}
+    const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
+    window.MY_DEVICES = myDevices || [];
 </script>
-
-<script src="/js/devices.js"></script>
 {{end}}

@@ -1,0 +1,268 @@
+{
+	"brands": [{
+            "id": "dwango",
+            "name": "Dwango",
+            "logo_url": "/image/brand_dwango.png",
+            "brand_color": "#6F6E6F",
+            "affiliate_url": "",
+            "icon": "💡",
+            "credential_fields": [{
+                    "id": "api_key",
+                    "label": "Dwango API Key",
+                    "type": "password",
+                    "help": "Dwango",
+                    "placeholder": ""
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://en.dwango.co.jp",
+            "docs_label": "- no api -",
+            "sort_order": 1
+        }, {
+            "id": "unicorn",
+            "name": "Unicorn E.",
+            "logo_url": "/image/brand_unicorn.png",
+            "brand_color": "#ff1100",
+            "affiliate_url": "",
+            "icon": "🦄",
+            "credential_fields": [{
+                    "id": "api_key",
+                    "label": "Unicorn Exterminator Key",
+                    "type": "password",
+                    "help": "Get in Unicorn Extermination Home → Order preset item",
+                    "placeholder": ""
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://unicornextermination.info",
+            "docs_label": "Unicorn Exterminator API",
+            "sort_order": 2
+        }, {
+            "id": "govee",
+            "name": "Govee",
+            "logo_url": "/image/brand_govee.png",
+            "brand_color": "#4F7EFF",
+            "affiliate_url": "",
+            "icon": "💡",
+            "credential_fields": [{
+                    "id": "api_key",
+                    "label": "Govee API Key",
+                    "type": "password",
+                    "help": "Get in Govee Home app → Profile → About Us → Request API Key",
+                    "placeholder": ""
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }, {
+                    "type": "model",
+                    "label": "Device Model (SKU)",
+                    "description": "Device model (SKU) ",
+                    "placeholder": "H619Z",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://developer.govee.com",
+            "docs_label": "Govee Developer API",
+            "sort_order": 3
+        }, {
+            "id": "wiz",
+            "name": "WiZ",
+            "logo_url": "/image/brand_wiz.png",
+            "brand_color": "#444444",
+            "affiliate_url": "",
+            "icon": "W",
+            "credential_fields": null,
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://docs.pro.wizconnected.com/",
+            "docs_label": "WiZ Pro API",
+            "sort_order": 4
+        }, {
+            "id": "lifx",
+            "name": "LIFX",
+            "logo_url": "/image/brand_lifx.png",
+            "brand_color": "#FFC700",
+            "affiliate_url": "",
+            "icon": "💫",
+            "credential_fields": [{
+                    "id": "personal_token",
+                    "label": "LIFX Personal Token",
+                    "type": "password",
+                    "help": "Get from https://cloud.lifx.com/settings/tokens",
+                    "placeholder": ""
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://api.developer.lifx.com",
+            "docs_label": "LIFX API Docs",
+            "sort_order": 5
+        }, {
+            "id": "hue",
+            "name": "Philips Hue",
+            "logo_url": "/image/brand_hue.png",
+            "brand_color": "#0066FF",
+            "affiliate_url": "",
+            "icon": "🔆",
+            "credential_fields": [{
+                    "id": "bridge_host",
+                    "label": "Bridge IP/Hostname",
+                    "type": "text",
+                    "help": "Found on device or hue.com/settings",
+                    "placeholder": "192.168.1.100"
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://developers.meethue.com",
+            "docs_label": "Philips Hue Developer Docs",
+            "sort_order": 6
+        }, {
+            "id": "nanoleaf",
+            "name": "Nanoleaf",
+            "logo_url": "/image/brand_nanoleaf.png",
+            "brand_color": "#000000",
+            "affiliate_url": "",
+            "icon": "✨",
+            "credential_fields": [{
+                    "id": "auth_token",
+                    "label": "Auth Token",
+                    "type": "password",
+                    "help": "Hold power button on device for 5 seconds",
+                    "placeholder": ""
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://nanoleaf.me/docs",
+            "docs_label": "Nanoleaf Developer API",
+            "sort_order": 7
+        }, {
+            "id": "wled",
+            "name": "WLED (DIY)",
+            "logo_url": "/image/brand_wled.png",
+            "brand_color": "#00FF00",
+            "affiliate_url": "",
+            "icon": "🎨",
+            "credential_fields": [{
+                    "id": "device_ip",
+                    "label": "Device IP Address",
+                    "type": "text",
+                    "help": "IP address of your WLED device",
+                    "placeholder": "192.168.1.50"
+                }
+            ],
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://kno.wled.ge",
+            "docs_label": "WLED Documentation",
+            "sort_order": 8
+        }, {
+            "id": "kasa",
+            "name": "TP-Link Kasa",
+            "logo_url": "/image/brand_kasa.png",
+            "brand_color": "#4FC3F7",
+            "affiliate_url": "",
+            "icon": "📱",
+            "credential_fields": null,
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://github.com/smartdevicelink",
+            "docs_label": "Kasa Documentation",
+            "sort_order": 12
+        }, {
+            "id": "yeelight",
+            "name": "Yeelight",
+            "logo_url": "/image/brand_yeelight.png",
+            "brand_color": "#FFD700",
+            "affiliate_url": "",
+            "icon": "🌟",
+            "credential_fields": null,
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://yeelight.readthedocs.io",
+            "docs_label": "Yeelight Docs",
+            "sort_order": 13
+        }, {
+            "id": "amazon",
+            "name": "Amazon Alexa",
+            "logo_url": "/image/brand_amazon.png",
+            "brand_color": "#FF9900",
+            "affiliate_url": "",
+            "icon": "🔊",
+            "credential_fields": null,
+            "device_identification_required": [{
+                    "type": "mac_address",
+                    "label": "MAC Address",
+                    "description": "The MAC address of the LIFX device on your network",
+                    "placeholder": "aa:bb:cc:dd:ee:ff",
+                    "required": true
+                }
+            ],
+            "docs_url": "https://developer.amazon.com/alexa",
+            "docs_label": "Amazon Developer",
+            "sort_order": 15
+        }
+    ]
+}
