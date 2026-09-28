@@ -722,8 +722,8 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 ### Devices (`/devices/...`)
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/devices` | List all devices (credentials omitted) |
-| GET | `/devices/get?id=<id>` | Get a single device (includes credentials) |
+| GET | `/devices` | List all devices (`device_identification` omitted) |
+| GET | `/devices/get?id=<id>` | Get a single device (includes `device_identification`) |
 | POST | `/devices` | Register a device |
 | PATCH | `/devices/update?id=<id>` | Update a device |
 | DELETE | `/devices?id=<id>` | Delete a device |
@@ -782,6 +782,8 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 - Authentication type (api_key, bearer_token, oauth, none)
 - Required and optional parameters with constraints
 - UI hints and examples
+
+For select fields where the display label differs from the value sent to the API, use `{ "label": "...", "value": ... }` entries in `ui_fields[].options`; the value can be a string, integer, or other JSON scalar and is submitted as that type. `parameter_constraints` describes validation metadata such as `{ "type": "integer", "min": 0, "max": 1 }` and is not used to map labels to values.
 
 **Example usage:**
 ```bash
@@ -1559,16 +1561,16 @@ Registered smart home devices. Credentials are stored per-brand.
 | amazon | `endpoint_id` |
 | custom | *(empty; actions are user-defined HTTP requests)* |
 
-> **Storage note:** `credentials` is stored as a JSONB column in PostgreSQL. The flat layout (no brand nesting) is intentional — brand is a separate column and nesting would be redundant.  
-> **Security note:** Credentials contain API keys and local IPs. Omit or mask the `credentials` field from `GET /devices` list responses; include it only in `GET /devices/get?id=<id>`.
+> **Storage note:** `device_identification` is stored as a JSONB column in PostgreSQL. It contains values specific to an individual device, such as a device ID or local IP address. Brand authentication values belong in `user_brand_credentials`.  
+> **Security note:** Omit the `device_identification` field from `GET /devices` list responses; include it only in `GET /devices/get?id=<id>`.
 > **Actions note:** `supported_actions` is populated from the product definition in the catalog. If a product is not in the catalog, this field is omitted from the response.
 
 | Method | Path | Body / Params | Description |
 |--------|------|---------------|-------------|
-| GET | `/devices` | — | List all devices for the authenticated user (`credentials` omitted) |
-| GET | `/devices/get?id=<id>` | — | Get a single device (includes `credentials`) |
-| POST | `/devices` | `{ name, brand, product_id, room?, credentials }` | Register a device |
-| PATCH | `/devices/update?id=<id>` | any subset of `{ name, product_id, room, credentials }` | Update a device |
+| GET | `/devices` | — | List all devices for the authenticated user (`device_identification` omitted) |
+| GET | `/devices/get?id=<id>` | — | Get a single device (includes `device_identification`) |
+| POST | `/devices` | `{ name, brand, product_id, room?, credentials?, device_identification? }` | Register a device |
+| PATCH | `/devices/update?id=<id>` | any subset of `{ name, product_id, room, credentials?, device_identification? }` | Update a device |
 | DELETE | `/devices?id=<id>` | — | Delete a device (conditions using it should have device_id cleared) |
 | POST | `/devices/test?id=<id>` | — | Send a brief test command to the physical device (flash/ping) |
 
@@ -2300,6 +2302,84 @@ Test credentials without saving (validation only).
   "error": "Invalid API key. Check your Govee app settings."
 }
 ```
+
+---
+
+#### POST /auth/brand/\<brand_id\>/test-device
+
+Test connectivity to a **specific device** using credentials and device identifier.
+
+Used in setup wizard after user enters credentials and device ID. Verifies the device exists and is reachable before allowing registration.
+
+**Body:**
+```json
+{
+  "credentials": {
+    "api_key": "sk_live_..."  // varies by brand
+  },
+  "device_identifier": {
+    "type": "device_id",      // or "mac_address", "ip_address"
+    "value": "1a2b3c4d5e6f"
+  }
+}
+```
+
+**Response `200` (device found & online):**
+```json
+{
+  "is_found": true,
+  "is_reachable": true,
+  "device_id": "1a2b3c4d5e6f",
+  "device_name": "Living Room Light",
+  "device_type": "light",
+  "status": "online",
+  "mac_address": "AA:BB:CC:DD:EE:FF",
+  "ip_address": "192.168.1.100",
+  "message": "Device found and reachable"
+}
+```
+
+**Response `200` (device found but offline):**
+```json
+{
+  "is_found": true,
+  "is_reachable": false,
+  "device_id": "1a2b3c4d5e6f",
+  "device_name": "Living Room Light",
+  "status": "offline",
+  "message": "Device found but offline"
+}
+```
+
+**Response `200` (device not found):**
+```json
+{
+  "is_found": false,
+  "is_reachable": false,
+  "message": "Device not found in account",
+  "suggestion": "Check that the device ID is correct and the device is registered with your account"
+}
+```
+
+**Response `200` (invalid credentials):**
+```json
+{
+  "is_found": false,
+  "is_reachable": false,
+  "message": "Invalid API key",
+  "suggestion": "Verify your credentials are correct"
+}
+```
+
+**Supported Brands:**
+| Brand | Identifier Types |
+|-------|-----------------|
+| Govee | device_id |
+| Philips Hue | device_id, mac_address |
+| TP-Link Kasa | device_id, mac_address, ip_address |
+| LIFX | device_id, mac_address |
+| Nanoleaf | ip_address, mac_address |
+| Tuya | device_id |
 
 ---
 
