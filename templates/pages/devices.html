@@ -29,7 +29,7 @@
                             {{range $.Devices.Devices}}
                                 {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
                             {{end}}
-                            {{if gt $deviceCount 0}}
+                            {{if or (gt $deviceCount 0) (eq $brandId "taucho")}}
                                 {{$hasConnected = true}}
                                 <div class="brand-pill connected" data-brand-id="{{$brandId}}">
                                     {{if .LogoURL}}
@@ -90,7 +90,7 @@
                 {{range $.Devices.Devices}}
                     {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
                 {{end}}
-                {{if gt $deviceCount 0}}
+                {{if or (gt $deviceCount 0) (eq $brandId "taucho")}}
                 <button onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
                 {{end}}
                 {{end}}

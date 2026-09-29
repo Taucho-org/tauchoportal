@@ -96,7 +96,7 @@ const BRANDS = [
 ```javascript
 const BRANDS = (window._brandMetadata || []).map(brand => ({
   id: brand.id,
-  authType: brand.auth_type || 'unknown',
+  authenticationType: brand.authentication_type || 'unknown',
   requiresToken: brand.requires_token !== false
 }));
 ```

@@ -189,7 +189,7 @@ async function testDeviceConnection(step) {
 
     const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(setupWizardState.brandId)}/test`, {
       credentials: credentialsPayload,
-      auth_type: getBrandMeta(setupWizardState.brandId)?.authentication_type || 'unknown'
+      auth_type: getConnectionAuthType(setupWizardState.brandId)
     });
 
     // Render results
@@ -426,4 +426,3 @@ All changes are:
 - ✅ Use existing utilities (escapeHtml, showToast, apiRequest, etc.)
 - ✅ Support i18n localization
 - ✅ Responsive and accessible
-

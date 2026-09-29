@@ -38,7 +38,7 @@ let activeTestRequestId = 0;
 async function openDeviceTestModal(deviceId) {
     const device = window.MY_DEVICES.find(item => item.id === deviceId);
     if (!device) return;
-    if (!device.is_configured) {
+    if (!device.is_configured && device.brand !== 'taucho') {
         alert(devicesI18n['completeSetupBeforeTest']);
         return;
     }
@@ -778,6 +778,14 @@ function renderCredFields(brandId) {
     const myBrand = window.MY_BRANDS ? window.MY_BRANDS[brandId] : null;
     const isConnected = !!(myBrand && myBrand.is_connected);
 
+    if (brandId === 'taucho') {
+        if (credFieldset) credFieldset.style.display = 'none';
+        if (connectedNotice) connectedNotice.style.display = 'none';
+        document.getElementById('credFields').replaceChildren();
+        document.getElementById('credDocsLink').replaceChildren();
+        return;
+    }
+
     if (isConnected) {
         if (credFieldset) credFieldset.style.display = 'none';
         if (connectedNotice) {
@@ -986,9 +994,11 @@ async function saveDevice(e) {
                 brand: selectedBrand,
                 product_id: document.getElementById('devProduct').value,
                 room: room,
-                credentials: creds,
                 device_identifier: deviceIdentifier
             };
+            if (selectedBrand !== 'taucho') {
+                deviceBody.credentials = creds;
+            }
             if (editingId) {
                 await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
             } else {

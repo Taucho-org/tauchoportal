@@ -1,0 +1,48 @@
+{{define "catalog-taucho"}}
+<div class="catalog-taucho brand-catalog" data-brand="taucho">
+    <div class="catalog-header-section">
+        <h2>{{.I18n.T "catalog.taucho.title"}}</h2>
+    </div>
+    <div class="catalog-products">
+        <article class="catalog-card" data-product-id="taucho-device-1">
+            <div class="catalog-image placeholder">
+                <span class="catalog-placeholder-icon">💡</span>
+            </div>
+            <div class="catalog-info">
+                <h3 class="catalog-product-name">{{.I18n.T "catalog.taucho.product1"}}</h3>
+                <p class="catalog-description">{{.I18n.T "catalog.taucho.stubDescription"}}</p>
+            </div>
+            <div class="catalog-actions-bar">
+                <button type="button" class="btn btn-add-device taucho-add-device"
+                        data-product-id="taucho-device-1"
+                        data-product-name="{{.I18n.T "catalog.taucho.product1"}}">
+                    + {{.I18n.T "catalog.addDevice"}}
+                </button>
+            </div>
+        </article>
+        <article class="catalog-card" data-product-id="taucho-device-2">
+            <div class="catalog-image placeholder">
+                <span class="catalog-placeholder-icon">✨</span>
+            </div>
+            <div class="catalog-info">
+                <h3 class="catalog-product-name">{{.I18n.T "catalog.taucho.product2"}}</h3>
+                <p class="catalog-description">{{.I18n.T "catalog.taucho.stubDescription"}}</p>
+            </div>
+            <div class="catalog-actions-bar">
+                <button type="button" class="btn btn-add-device taucho-add-device"
+                        data-product-id="taucho-device-2"
+                        data-product-name="{{.I18n.T "catalog.taucho.product2"}}">
+                    + {{.I18n.T "catalog.addDevice"}}
+                </button>
+            </div>
+        </article>
+    </div>
+</div>
+<script>
+document.addEventListener('click', event => {
+    const button = event.target.closest('.taucho-add-device');
+    if (!button) return;
+    selectProduct('taucho', button.dataset.productId, button.dataset.productName);
+});
+</script>
+{{end}}

@@ -7,6 +7,8 @@ import (
 // MyBrandSettings handles user's connected brands from /auth/brands endpoint
 type MyBrandSettings struct{}
 
+const BuiltInBrandID = "taucho"
+
 // MyConnectedBrand represents a brand with connection status from the /auth/brands API
 type MyConnectedBrand struct {
 	ID                       string                 `json:"id"`
@@ -42,7 +44,13 @@ type MyBrandsListResponse struct {
 func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 	var response MyBrandsListResponse
 	apiRequest(&response, http.MethodGet, "/auth/brands")
-	return response.Brands
+	brands := make([]MyConnectedBrand, 0, len(response.Brands))
+	for _, brand := range response.Brands {
+		if brand.ID != BuiltInBrandID {
+			brands = append(brands, brand)
+		}
+	}
+	return brands
 }
 
 // GetMyBrandDetails fetches a specific connected brand with credential fields

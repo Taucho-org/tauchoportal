@@ -55,12 +55,12 @@ Passes both datasets:
 const BRANDS = (window._allBrands || []).map(brand => ({
   id: brand.id,
   name: brand.name,
-  authType: brand.auth_type || 'unknown',
+  authenticationType: brand.authentication_type || 'unknown',
   requiresToken: brand.requires_token !== false
 }));
 ```
 - Built from `window._allBrands` (all catalog brands)
-- Extracts proper metadata: id, name, auth_type, requires_token
+- Extracts catalog metadata: id, name, authentication_type, requires_token
 
 #### Setup Guides Caching
 ```javascript

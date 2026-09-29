@@ -42,6 +42,15 @@
     return BRAND_LOOKUP[normalizeBrandId(brandId)] || null;
   }
 
+  function getConnectionAuthType(brandId, meta = getBrandMeta(brandId)) {
+    const normalizedId = normalizeBrandId(brandId);
+    const userBrand = (window._myBrands || []).find(
+      brand => normalizeBrandId(brand.id) === normalizedId
+    );
+    const authType = userBrand?.auth_type || meta?.authentication_type || 'unknown';
+    return authType === 'api-key' ? 'api_key' : authType;
+  }
+
   function getBrandName(brandId) {
     const normalizedId = normalizeBrandId(brandId);
     for (const brand of BRANDS) {
@@ -375,11 +384,16 @@
     return (meta && Array.isArray(meta.credential_fields)) ? meta.credential_fields : [];
   }
 
+  function getStepCredentialFields(step, meta = getBrandMeta(setupWizardState.brandId)) {
+    const stepFields = Array.isArray(step?.credential_fields) ? step.credential_fields : [];
+    return stepFields.length ? stepFields : getCredentialFieldDefs(meta);
+  }
+
   function renderCredentialsForm(step, container) {
     container.innerHTML = '';
-    
-    // Only render if there are credential fields
-    if (!step.credential_fields || step.credential_fields.length === 0) {
+    const meta = getBrandMeta(setupWizardState.brandId);
+    const credentialFields = getStepCredentialFields(step, meta);
+    if (!credentialFields.length) {
       return;
     }
 
@@ -390,41 +404,38 @@
     legend.textContent = window._i18nMsg?.['brandSettings.modal.enterCredentials'] || 'Enter Your Credentials';
     fieldset.appendChild(legend);
 
-    const meta = getBrandMeta(setupWizardState.brandId);
+    const guide = setupGuidesCache.get(normalizeBrandId(setupWizardState.brandId));
     if (!meta) return;
 
-    const fieldIds = meta.auth_type === 'api_key' 
-      ? ['api_key'] 
-      : meta.auth_type === 'local' 
-        ? ['device_ip', ...(meta.requires_token ? ['api_key'] : [])]
-        : [];
-
-    fieldIds.forEach(fieldId => {
+    credentialFields.forEach(field => {
+      if (!field.id || field.type === 'info') return;
+      const fieldId = field.id;
       const group = document.createElement('div');
       group.className = 'form-group';
 
       // Label
       const label = document.createElement('label');
       label.htmlFor = fieldId;
-      label.textContent = fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      label.textContent = field.label || fieldId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
       // Input
       const input = document.createElement('input');
-      const isPassword = fieldId.includes('password') || fieldId === 'api_key';
-      input.type = isPassword ? 'password' : 'text';
+      const isPassword = field.type === 'password' || fieldId.includes('password') || fieldId === 'api_key';
+      input.type = field.type === 'email' ? 'email' : isPassword ? 'password' : 'text';
       input.id = fieldId;
-      input.autocomplete = isPassword ? 'new-password' : 'new-password';
-      input.placeholder = fieldId.replace(/_/g, ' ');
+      input.autocomplete = 'new-password';
+      input.required = field.required !== false;
+      input.placeholder = field.placeholder || fieldId.replace(/_/g, ' ');
       input.addEventListener('input', (e) => {
         setupWizardState.credentials[field.id] = e.target.value;
       });
 
       group.appendChild(input);
 
-      if (guide.helpFields && guide.helpFields[fieldId]) {
+      if (field.help || guide?.helpFields?.[fieldId]) {
         const hint = document.createElement('span');
         hint.className = 'field-hint';
-        hint.textContent = guide.helpFields[fieldId];
+        hint.textContent = field.help || guide?.helpFields?.[fieldId];
         group.appendChild(hint);
       }
 
@@ -582,7 +593,8 @@
     if (!checkbox.checked) return;
 
     // Validate credentials first
-    const missingFields = step.credential_fields.filter(
+    const credentialFields = getStepCredentialFields(step);
+    const missingFields = credentialFields.filter(
       field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
     );
 
@@ -600,13 +612,13 @@
     try {
       // Build credentials payload
       const credentialsPayload = {};
-      step.credential_fields.forEach(field => {
+      credentialFields.forEach(field => {
         credentialsPayload[field.id] = setupWizardState.credentials[field.id];
       });
 
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(setupWizardState.brandId)}/test`, {
         credentials: credentialsPayload,
-        auth_type: getBrandMeta(setupWizardState.brandId)?.authentication_type || 'unknown'
+        auth_type: getConnectionAuthType(setupWizardState.brandId)
       });
 
       // Render results
@@ -682,7 +694,8 @@
     }
 
     // Validate credentials
-    const missingFields = step.credential_fields.filter(
+    const credentialFields = getStepCredentialFields(step);
+    const missingFields = credentialFields.filter(
       field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
     );
 
@@ -700,14 +713,14 @@
     try {
       // Build credentials payload
       const credentialsPayload = {};
-      step.credential_fields.forEach(field => {
+      credentialFields.forEach(field => {
         credentialsPayload[field.id] = setupWizardState.credentials[field.id];
       });
 
       // Call device-specific test endpoint with all device identifiers
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(setupWizardState.brandId)}/test-device`, {
         credentials: credentialsPayload,
-        auth_type: getBrandMeta(setupWizardState.brandId)?.authentication_type || 'unknown',
+        auth_type: getConnectionAuthType(setupWizardState.brandId),
         device_info: deviceInfo  // Pass all identifiers: { device_id: "...", mac_address: "...", sku: "..." }
       });
 
@@ -801,9 +814,9 @@
 
   // Builds the { fieldId: value } credentials payload directly from the brand's
   // credential_fields, skipping "info" fields (which have no input).
-  function buildCredentialsPayload(meta) {
+  function buildCredentialsPayload(meta, step) {
     const payload = {};
-    getCredentialFieldDefs(meta).forEach(field => {
+    getStepCredentialFields(step, meta).forEach(field => {
       if (!field.id || field.type === 'info') return;
       payload[field.id] = setupWizardState.credentials[field.id] || '';
     });
@@ -811,6 +824,12 @@
   }
 
   async function testWizardCredentials(brandId) {
+    const meta = getBrandMeta(brandId);
+    if (!meta) {
+      showToast(window._i18nMsg?.['brandSettings.error.invalidBrand'] || 'Brand not found.');
+      return;
+    }
+
     const guide = setupGuidesCache.get(normalizeBrandId(brandId));
     if (!guide || !guide.steps) {
       showToast(window._i18nMsg?.['brandSettings.error.loadingGuide'] || 'Error loading setup guide.');
@@ -825,12 +844,13 @@
     }
 
     // Validate that all required credential fields have values
-    if (!currentStep.credential_fields || currentStep.credential_fields.length === 0) {
+    const credentialFields = getStepCredentialFields(currentStep, meta);
+    if (!credentialFields.length) {
       showToast(window._i18nMsg?.['brandSettings.error.noCredentialsRequired'] || 'No credentials to test.');
       return;
     }
 
-    const missingFields = currentStep.credential_fields.filter(
+    const missingFields = credentialFields.filter(
       field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
     );
 
@@ -847,12 +867,10 @@
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      const credentialsPayload = buildCredentialsPayload(meta, currentStep);
 
       const result = await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/test`, {
-        auth_type: meta.authType,
+        auth_type: getConnectionAuthType(brandId, meta),
         credentials: credentialsPayload
       });
 
@@ -875,6 +893,12 @@
   }
 
   async function saveWizardCredentials(brandId) {
+    const meta = getBrandMeta(brandId);
+    if (!meta) {
+      showToast(window._i18nMsg?.['brandSettings.error.invalidBrand'] || 'Brand not found.');
+      return;
+    }
+
     const guide = setupGuidesCache.get(normalizeBrandId(brandId));
     if (!guide || !guide.steps) {
       showToast(window._i18nMsg?.['brandSettings.error.loadingGuide'] || 'Error loading setup guide.');
@@ -888,12 +912,13 @@
     }
 
     // Validate that all required credential fields have values
-    if (!currentStep.credential_fields || currentStep.credential_fields.length === 0) {
+    const credentialFields = getStepCredentialFields(currentStep, meta);
+    if (!credentialFields.length) {
       showToast(window._i18nMsg?.['brandSettings.error.noCredentialsRequired'] || 'No credentials required for this step.');
       return;
     }
 
-    const missingFields = currentStep.credential_fields.filter(
+    const missingFields = credentialFields.filter(
       field => !setupWizardState.credentials[field.id] || setupWizardState.credentials[field.id].trim() === ''
     );
 
@@ -904,12 +929,10 @@
     }
 
     try {
-      const credentialsPayload = meta.auth_type === 'api_key'
-        ? { api_key: setupWizardState.credentials.api_key }
-        : { bridge_ip: setupWizardState.credentials.device_ip, api_key: setupWizardState.credentials.api_key };
+      const credentialsPayload = buildCredentialsPayload(meta, currentStep);
 
       await apiRequest('POST', `/auth/brand/${encodeURIComponent(brandId)}/connect`, {
-        auth_type: meta.authType,
+        auth_type: getConnectionAuthType(brandId, meta),
         credentials: credentialsPayload
       });
 
