@@ -451,7 +451,8 @@ function closeModal() {
 // Quick Connect Modal (for owned devices)
 // =============================================
 let quickConnectBrandId = null;
-let quickConnectProducts = [];
+let quickConnectSearchTimeout = null;
+let quickConnectRequestId = 0;
 
 function openQuickConnectModal(brandId) {
     quickConnectBrandId = brandId;
@@ -462,11 +463,12 @@ function openQuickConnectModal(brandId) {
     const subtitleMsg = devicesI18n['quickConnectSubtitle'];
     document.getElementById('qcSubtitle').textContent = subtitleMsg.replace('{brand}', brand.name);
     
+    document.getElementById('qcSearchBox').value = '';
     showQuickConnectLoading(true);
     document.getElementById('quickConnectModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
     
-    loadQuickConnectProducts(brandId);
+    loadQuickConnectProducts(brandId, '', ++quickConnectRequestId);
 }
 
 function closeQuickConnectModal() {
@@ -475,15 +477,17 @@ function closeQuickConnectModal() {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
     }
+    clearTimeout(quickConnectSearchTimeout);
+    quickConnectRequestId++;
     quickConnectBrandId = null;
-    quickConnectProducts = [];
 }
 
-async function loadQuickConnectProducts(brandId) {
+async function loadQuickConnectProducts(brandId, searchTerm, requestId) {
     try {
         const params = new URLSearchParams({
             brand_id: brandId,
             active_only: 'true',
+            search: searchTerm,
             limit: 500,
             offset: 0,
             sort_by: 'name'
@@ -491,33 +495,29 @@ async function loadQuickConnectProducts(brandId) {
         const response = await fetch(`/api/catalog/products?${params}`, { credentials: 'include' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        
-        quickConnectProducts = data.products || [];
-        renderQuickConnectProducts(quickConnectProducts);
+        if (requestId !== quickConnectRequestId) return;
+
         showQuickConnectLoading(false);
+        renderQuickConnectProducts(data.products || []);
     } catch (error) {
+        if (requestId !== quickConnectRequestId) return;
         console.error(devicesI18n['failedLoadProducts'] + ' ' + error);
+        document.getElementById('qcProductList').innerHTML = '';
         showQuickConnectLoading(false);
         document.getElementById('qcEmpty').style.display = 'block';
     }
 }
 
 function renderQuickConnectProducts(products) {
-    const searchTerm = document.getElementById('qcSearchBox')?.value.toLowerCase() || '';
-    const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) || 
-        (p.model && p.model.toLowerCase().includes(searchTerm))
-    );
-
     const listDiv = document.getElementById('qcProductList');
-    if (!filtered || filtered.length === 0) {
+    if (!products || products.length === 0) {
         listDiv.innerHTML = '';
         document.getElementById('qcEmpty').style.display = 'block';
         return;
     }
 
     document.getElementById('qcEmpty').style.display = 'none';
-    listDiv.innerHTML = filtered.map(product => `
+    listDiv.innerHTML = products.map(product => `
         <div class="qc-product-card" onclick="selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">
             ${product.image_url ? `<img src="${product.image_url}" alt="${escapeJsString(product.name)}" class="qc-product-image" onerror="this.style.display='none'">` : '<div class="qc-product-image-placeholder">📱</div>'}
             <div class="qc-product-info">
@@ -539,7 +539,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBox = document.getElementById('qcSearchBox');
     if (searchBox) {
         searchBox.addEventListener('input', () => {
-            renderQuickConnectProducts(quickConnectProducts);
+            clearTimeout(quickConnectSearchTimeout);
+            const requestId = ++quickConnectRequestId;
+            const searchTerm = searchBox.value.trim();
+            const brandId = quickConnectBrandId;
+            if (!brandId) return;
+            showQuickConnectLoading(true);
+            quickConnectSearchTimeout = setTimeout(() => {
+                loadQuickConnectProducts(brandId, searchTerm, requestId);
+            }, 250);
         });
     }
 });

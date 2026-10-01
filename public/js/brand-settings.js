@@ -339,7 +339,7 @@
     const saveBtn = document.querySelector('[data-wizard-action="save"]');
 
     if (titleEl) titleEl.textContent = step.title;
-    if (contentEl) contentEl.textContent = step.content;
+    if (contentEl) contentEl.innerHTML = step.content;
     if (progressEl) progressEl.textContent = `Step ${stepIndex + 1} of ${guide.steps.length}`;
 
     if (backBtn) backBtn.style.display = stepIndex > 0 ? 'block' : 'none';
