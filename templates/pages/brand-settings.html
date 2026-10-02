@@ -18,17 +18,23 @@
             <div id="brandSettingsMsg" class="status-msg" style="display:none;"></div>
             <div id="brandsGrid" class="brands">
                 {{range .MyBrands}}
-                <article class="brand-card {{if .IsConnected}}is-connected{{end}}">
+                {{$statusClass := ""}}
+                {{if .IsConnected}}{{$statusClass = "is-connected"}}{{else if .IsRegistered}}{{$statusClass = "is-registered"}}{{end}}
+                <article class="brand-card {{$statusClass}}">
                     <div class="brand-card-header">
                         <div class="brand-card-identity">
                             <div class="brand-logo" aria-hidden="true"><img src="/image/brand_{{.ID}}.png" alt="{{.Name}}"></div>
                             <div>
                                 <h3 class="brand-name">{{.Name}}</h3>
-                                <p class="brand-description">{{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}</p>
+                                <p class="brand-description">
+                                    {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else if .IsRegistered}}{{$.I18n.T "brandSettings.registered"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
+                                </p>
                             </div>
                         </div>
-                        <span class="status-badge {{if .IsConnected}}connected{{else}}disconnected{{end}}">
-                            {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
+                        {{$badgeClass := "disconnected"}}
+                        {{if .IsConnected}}{{$badgeClass = "connected"}}{{else if .IsRegistered}}{{$badgeClass = "registered"}}{{end}}
+                        <span class="status-badge {{$badgeClass}}">
+                            {{if .IsConnected}}{{$.I18n.T "brandSettings.connected"}}{{else if .IsRegistered}}{{$.I18n.T "brandSettings.registered"}}{{else}}{{$.I18n.T "brandSettings.notConnected"}}{{end}}
                         </span>
                     </div>
                     <div class="brand-details">
@@ -45,6 +51,8 @@
                             <button type="button" class="btn-disconnect brand-action-button" data-brand-id="{{.ID}}" data-brand-action="disconnect" onclick="promptDisconnect('{{.ID}}')">
                                 {{$.I18n.T "brandSettings.disconnect"}}
                             </button>
+                        {{else if .IsRegistered}}
+                            <!-- Registered brands show no action buttons -->
                         {{else}}
                             <button type="button" class="btn-connect brand-action-button" data-brand-id="{{.ID}}" data-brand-action="connect" onclick="handleBrandAction('{{.ID}}')">
                                 {{$.I18n.T "brandSettings.connect"}}
@@ -143,18 +151,18 @@
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="setupWizardTitle">
         <div class="modal-header">
             <button type="button" class="close" data-close-modal="setupWizardModal" aria-label="{{.I18n.T "brandSettings.modal.close"}}">&times;</button>
-            <h2 id="setupWizardTitle">Setup Guide</h2>
-            <p id="setupWizardProgress" class="modal-progress">Step 1 of 5</p>
+            <h2 id="setupWizardTitle">{{.I18n.T "brandSettings.wizard.title"}}</h2>
+            <p id="setupWizardProgress" class="modal-progress">{{.I18n.T "brandSettings.wizard.progress" "1" "5"}}</p>
         </div>
         <div class="modal-body">
             <p id="setupWizardContent" class="wizard-step-content"></p>
             <div id="setupWizardCredentials" class="wizard-credentials-section"></div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn-secondary" data-wizard-action="back" style="display:none">Back</button>
-            <button type="button" class="btn-secondary" data-wizard-action="next">Next</button>
-            <button type="button" class="btn-primary" data-wizard-action="test" style="display:none">Test Credentials</button>
-            <button type="button" class="btn-primary" data-wizard-action="save" style="display:none">Save & Connect</button>
+            <button type="button" class="btn-secondary" data-wizard-action="back" style="display:none">{{.I18n.T "brandSettings.wizard.back"}}</button>
+            <button type="button" class="btn-secondary" data-wizard-action="next">{{.I18n.T "brandSettings.wizard.next"}}</button>
+            <button type="button" class="btn-primary" data-wizard-action="test" style="display:none">{{.I18n.T "brandSettings.wizard.testCredentials"}}</button>
+            <button type="button" class="btn-primary" data-wizard-action="save" style="display:none">{{.I18n.T "brandSettings.wizard.saveConnect"}}</button>
         </div>
     </div>
 </div>

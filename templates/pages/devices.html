@@ -13,7 +13,9 @@
                     <h1><img src="/image/gadget_s.png" /> {{.I18n.T "devices.pageTitle"}}</h1>
                     <p>{{.I18n.T "devices.pageDesc"}}<a href="/channels">{{.I18n.T "devices.pageWatched"}}</a>{{.I18n.T "devices.pageEnd"}}</p>
                 </div>
-                <button class="btn btn-primary" onclick="openAddModal()">{{.I18n.T "devices.addDevice"}}</button>
+                <div class="page-header-buttons">
+                    <button class="btn btn-primary" onclick="openAddModal()">{{.I18n.T "devices.addDevice"}}</button>
+                </div>
             </div>
 
             <!-- Brand Status Widget -->
@@ -98,50 +100,103 @@
         </div>
         {{end}}
 
-        <!-- Device List (pre-rendered) with Catalog Injections -->
-        <div class="devices-list" id="devicesList">
-            {{if eq (len .Devices.Devices) 0}}
-            <p class="no-devices-msg">{{.I18n.T "devices.noDevices"}}</p>
-            {{else}}
-            {{range $idx, $device := .Devices.Devices}}
-                {{$brandLogo := $device.BrandLogo}}
-                
-                <div class="device-card" data-id="{{$device.ID}}" data-brand="{{$device.Brand}}">
-                    <div class="device-header-section" data-brand="{{$device.Brand}}">
-                        <h4 class="device-header-name">{{$device.Name}}</h4>
-                        <p class="device-header-brand">{{$device.ProductName}}</p>
+        <!-- Device Groups: every device owns an implicit group; only groups with 2+ devices are presented as groups -->
+        {{if gt (len .MultiDeviceGroups) 0}}
+        <div class="device-groups" id="deviceGroups">
+            {{range $group := .MultiDeviceGroups}}
+            <section class="device-group" data-group-id="{{$group.ID}}">
+                <div class="device-group-header">
+                    <div class="device-group-title">
+                        <h3>📦 {{$group.Name}}</h3>
+                        {{if eq $group.Option "queue"}}
+                        <span class="group-option-badge queue" title="{{$.I18n.T "devices.groupOptionQueueDesc"}}">🎟️ {{$.I18n.T "devices.groupOptionQueue"}}</span>
+                        {{else}}
+                        <span class="group-option-badge sequential" title="{{$.I18n.T "devices.groupOptionSequentialDesc"}}">🎉 {{$.I18n.T "devices.groupOptionSequential"}}</span>
+                        {{end}}
+                        <span class="group-count">{{replace ($.I18n.T "devices.groupDeviceCount") "{0}" (tostring (len $group.Devices))}}</span>
                     </div>
-                    <div class="device-body">
-                        <div class="device-badges">
-                            {{if eq $device.Status "online"}}
-                            <span class="status-badge online">{{$.I18n.T "devices.statOnline"}}</span>
-                            {{else}}
-                            <span class="status-badge offline">{{$.I18n.T "devices.statOffline"}}</span>
-                            {{end}}
-                            {{if $device.Room}}
-                            <span class="device-room">🏠 {{$device.Room}}</span>
-                            {{end}}
-                        </div>
-                        <div class="device-action-chips">
-                            {{range $aidx, $action := $device.SupportedActions}}
-                                {{if lt $aidx 5}}
-                                <span class="action-chip" data-action="{{$action}}">
-                                    {{$action}}
-                                </span>
-                                {{end}}
-                            {{end}}
-                            {{if gt (len $device.SupportedActions) 5}}
-                            <span class="action-chip more">+{{sub (len $device.SupportedActions) 5}}</span>
-                            {{end}}
-                        </div>
-                        <div class="device-ctrl">
-                            <button class="action-btn test" onclick="openDeviceTestModal('{{$device.ID}}')">{{$.I18n.T "devices.testButton"}}</button>
-                            <button class="action-btn edit" onclick="openEditModal('{{$device.ID}}')">{{$.I18n.T "devices.editButton"}}</button>
-                            <button class="action-btn delete" onclick="deleteDevice('{{$device.ID}}')">{{$.I18n.T "devices.deleteButton"}}</button>
-                        </div>
+                    <div class="device-group-actions">
+                        <button class="action-btn" onclick="openGroupModal('{{$group.ID}}')">{{$.I18n.T "devices.manageGroup"}}</button>
+                        <button class="action-btn delete" onclick="ungroupGroup('{{$group.ID}}')">{{$.I18n.T "devices.ungroup"}}</button>
                     </div>
                 </div>
+                <div class="devices-list group-devices-list">
+                    {{range $group.Devices}}
+                        {{template "deviceCard" (dict "Device" . "InGroup" true "CanGroup" false "I18n" $.I18n)}}
+                    {{end}}
+                    {{if $group.CanAddMore}}
+                    <div class="device-card addnew compact" onclick="openGroupModal('{{$group.ID}}')">
+                        <div class="info">
+                            <h3>{{$.I18n.T "devices.addDevicesToGroup"}}</h3>
+                            <p>{{$.I18n.T "devices.addDevicesToGroupDesc"}}</p>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </section>
+            {{end}}
+        </div>
+        {{end}}
 
+        <!-- Standalone devices (single-device groups and legacy ungrouped devices) with Catalog Injections -->
+        <div class="devices-list" id="devicesList">
+            {{if eq (len .Devices) 0}}
+            <p class="no-devices-msg">{{.I18n.T "devices.noDevices"}}</p>
+            {{else}}
+            {{if eq (len .StandaloneDevices) 0}}
+            <p class="no-devices-msg">{{.I18n.T "devices.allDevicesGrouped"}}</p>
+            {{end}}
+            {{range $idx, $device := .StandaloneDevices}}
+                {{template "deviceCard" (dict "Device" $device "InGroup" false "CanGroup" $device.Groupable "I18n" $.I18n)}}
+
+                <!-- Inject Catalog/Advertisement every 3 items -->
+                {{if eq $idx 2}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 0}}
+                        {{$catalogBrand := index $brands 0}}
+                        <div class="catalog-injection-row">
+                            <div class="catalog-injection-header">
+                                <h3>💡 {{$.I18n.T "devices.discoverMore"}} {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}{{$.I18n.T "devices.smartDevices"}}{{end}}</h3>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">{{$.I18n.T "devices.viewAll"}}</a>
+                            </div>
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
+                            </div>
+                        </div>
+                    {{end}}
+                {{end}}
+
+                {{if eq $idx 5}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 1}}
+                        {{$catalogBrand := index $brands 1}}
+                        <div class="catalog-injection-row">
+                            <div class="catalog-injection-header">
+                                <h3>💡 {{$.I18n.T "devices.discoverMore"}} {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}{{$.I18n.T "devices.smartDevices"}}{{end}}</h3>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">{{$.I18n.T "devices.viewAll"}}</a>
+                            </div>
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
+                            </div>
+                        </div>
+                    {{end}}
+                {{end}}
+
+                {{if eq $idx 8}}
+                    {{$brands := $.Brands}}
+                    {{if gt (len $brands) 2}}
+                        {{$catalogBrand := index $brands 2}}
+                        <div class="catalog-injection-row">
+                            <div class="catalog-injection-header">
+                                <h3>💡 {{$.I18n.T "devices.discoverMore"}} {{if $catalogBrand}}{{$catalogBrand.Name}}{{else}}{{$.I18n.T "devices.smartDevices"}}{{end}}</h3>
+                                <a href="#" onclick="filterByBrand('{{$catalogBrand.ID}}', document.querySelector('[data-filter=\'{{$catalogBrand.ID}}\']')); return false;">{{$.I18n.T "devices.viewAll"}}</a>
+                            </div>
+                            <div class="catalog-items-horizontal" id="catalog-{{$catalogBrand.ID}}">
+                                {{renderCatalog $catalogBrand.ID $.I18n .}}
+                            </div>
+                        </div>
+                    {{end}}
+                {{end}}
             {{end}}
             <!-- Add New Device Card (dotted border, like in mock) -->
             <div class="device-card addnew" onclick="openAddModal()">
@@ -167,6 +222,53 @@
         <!-- How to Use Legend Section -->
         <div class="howtouse">{{.I18n.TH "devices.howToUse" }}</div>
     </div>
+{{end}}
+
+{{define "deviceCard"}}
+{{$device := .Device}}
+{{$brandColor := $device.BrandColor}}
+{{if not $brandColor}}{{$brandColor = "#888888"}}{{end}}
+<div class="device-card" data-id="{{$device.ID}}" data-brand="{{$device.Brand}}" data-group-id="{{$device.DeviceGroupID}}">
+    <div class="device-header-section" data-brand="{{$device.Brand}}" style="background:linear-gradient(135deg, {{$brandColor}} 0%, {{$brandColor}} 100%);">
+        <h4 class="device-header-name">{{$device.Name}}</h4>
+        <p class="device-header-brand">{{$device.ProductName}}</p>
+    </div>
+    <div class="device-body">
+        <div class="device-badges">
+            {{if eq $device.Status "online"}}
+            <span class="status-badge online">{{.I18n.T "devices.statOnline"}}</span>
+            {{else}}
+            <span class="status-badge offline">{{.I18n.T "devices.statOffline"}}</span>
+            {{end}}
+            {{if $device.Room}}
+            <span class="device-room">🏠 {{$device.Room}}</span>
+            {{end}}
+        </div>
+        <div class="device-action-chips">
+            {{range $aidx, $action := $device.SupportedActions}}
+                {{if lt $aidx 5}}
+                <span class="action-chip" data-action="{{$action}}">
+                    {{$action}}
+                </span>
+                {{end}}
+            {{end}}
+            {{if gt (len $device.SupportedActions) 5}}
+            <span class="action-chip more">+{{sub (len $device.SupportedActions) 5}}</span>
+            {{end}}
+        </div>
+        <div class="device-ctrl">
+            <button class="action-btn test" onclick="testDevice('{{$device.ID}}')">{{.I18n.T "devices.testButton"}}</button>
+            <button class="action-btn edit" onclick="openEditModal('{{$device.ID}}')">{{.I18n.T "devices.editButton"}}</button>
+            {{if .CanGroup}}
+            <button class="action-btn group" onclick="openGroupModal('', '{{$device.ID}}')" title="{{.I18n.T "devices.groupButtonTitle"}}">{{.I18n.T "devices.groupButton"}}</button>
+            {{end}}
+            {{if .InGroup}}
+            <button class="action-btn ungroup" onclick="removeFromGroup('{{$device.ID}}')" title="{{.I18n.T "devices.removeFromGroupTitle"}}">{{.I18n.T "devices.removeFromGroup"}}</button>
+            {{end}}
+            <button class="action-btn delete" onclick="deleteDevice('{{$device.ID}}')">{{.I18n.T "devices.deleteButton"}}</button>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "dialogs"}}
@@ -316,6 +418,19 @@
                         <label for="devRoom">{{.I18n.T "devices.room"}}<span class="optional-label">{{.I18n.T "devices.optional"}}</span></label>
                         <input type="text" id="devRoom" placeholder="{{.I18n.T "devices.roomPlaceholder"}}">
                     </div>
+
+                    {{if gt (len .MultiDeviceGroups) 0}}
+                    <div class="form-group" id="devGroupFormGroup">
+                        <label for="devGroup">{{.I18n.T "devices.addToGroup"}}<span class="optional-label">{{.I18n.T "devices.optional"}}</span></label>
+                        <select id="devGroup">
+                            <option value="">{{.I18n.T "devices.noGroupStandalone"}}</option>
+                            {{range .MultiDeviceGroups}}
+                            <option value="{{.ID}}" data-group-key="{{.GroupKey}}">📦 {{.Name}}</option>
+                            {{end}}
+                        </select>
+                        <small class="form-help">{{.I18n.T "devices.addToGroupHelp"}}</small>
+                    </div>
+                    {{end}}
                     
                     <!-- Device Identification Required Fields (per brand) -->
                     {{range .Brands}}
@@ -418,14 +533,84 @@
         </div>
     </div>
 </div>
+
+<!-- Device Group Modal (create / edit group and choose member devices) -->
+<div id="groupModal" class="modal">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <span class="close" onclick="closeGroupModal()">&times;</span>
+            <h2 id="groupModalTitle">{{.I18n.T "devices.groupDevicesTitle"}}</h2>
+            <p>{{.I18n.T "devices.groupModalDesc"}}</p>
+        </div>
+
+        <div class="modal-body">
+            <form id="groupForm" onsubmit="saveGroup(event)">
+                <div class="form-group">
+                    <label for="groupName">{{.I18n.T "devices.groupName"}}</label>
+                    <input type="text" id="groupName" required maxlength="100" placeholder="{{.I18n.T "devices.groupNamePlaceholder"}}">
+                </div>
+
+                <div class="form-group">
+                    <label>{{.I18n.T "devices.groupOption"}}</label>
+                    <div class="group-option-cards">
+                        <label class="group-option-card">
+                            <input type="radio" name="groupOption" value="sequential" checked>
+                            <span class="group-option-card-body">
+                                <strong>🎉 {{.I18n.T "devices.groupOptionSequential"}}</strong>
+                                <small>{{.I18n.T "devices.groupOptionSequentialDesc"}}</small>
+                            </span>
+                        </label>
+                        <label class="group-option-card">
+                            <input type="radio" name="groupOption" value="queue">
+                            <span class="group-option-card-body">
+                                <strong>🎟️ {{.I18n.T "devices.groupOptionQueue"}}</strong>
+                                <small>{{.I18n.T "devices.groupOptionQueueDesc"}}</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <fieldset class="form-section">
+                    <legend>{{.I18n.T "devices.groupMembers"}} <span id="groupSelectedCount" class="group-selected-count"></span></legend>
+                    <p id="groupCompatNote" class="group-compat-note"></p>
+                    <input type="text" id="groupDeviceSearch" class="group-device-search" placeholder="{{.I18n.T "devices.groupDeviceSearch"}}" oninput="filterGroupDeviceList(this.value)">
+                    <div id="groupDeviceList" class="group-device-list"></div>
+                    <small class="form-help">{{.I18n.T "devices.groupCompatibleHelp"}} {{.I18n.T "devices.groupMembersHelp"}}</small>
+                    <p class="group-move-note">⚠️ {{.I18n.T "devices.groupMoveNote"}}</p>
+                </fieldset>
+            </form>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-danger-outline" id="groupUngroupBtn" onclick="ungroupGroup(editingGroupId)" style="display:none; margin-right:auto">{{.I18n.T "devices.ungroup"}}</button>
+            <button type="button" class="btn btn-secondary" onclick="closeGroupModal()">{{.I18n.T "devices.cancelButton"}}</button>
+            <button type="submit" form="groupForm" class="btn btn-primary" id="groupSaveBtn">{{.I18n.T "devices.createGroup"}}</button>
+        </div>
+    </div>
+</div>
 {{end}}
 {{define "scripts"}}
 <script src="/js/devices.js"></script>
 <script id="mydevices" type="application/json">
-{{toJSON .Devices.Devices}}
+{{toJSON .Devices}}
+</script>
+<script id="mybrands" type="application/json">
+{{toJSON .MyBrands}}
+</script>
+<script id="mydevicegroups" type="application/json">
+{{toJSON .DeviceGroups}}
 </script>
 <script>
-    const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
-    window.MY_DEVICES = myDevices || [];
+const allBrands = JSON.parse(document.getElementById('allbrands').textContent);
+const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
+const myBrands = JSON.parse(document.getElementById('mybrands').textContent);
+const myDeviceGroups = JSON.parse(document.getElementById('mydevicegroups').textContent);
+window.BRANDS = allBrands || [];
+window.MY_DEVICES = myDevices || [];
+window.DEVICE_GROUPS = myDeviceGroups || [];
+window.MY_BRANDS = [];
+for (const mybrandindex in myBrands) {
+    window.MY_BRANDS[myBrands[mybrandindex].id] = myBrands[mybrandindex];
+}
 </script>
 {{end}}

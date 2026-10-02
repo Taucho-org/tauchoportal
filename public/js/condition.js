@@ -1,5 +1,1064 @@
 /**
- * ConditionEditor - Reusable condition logic editor class
+ * DeviceActionHandler - Manages device group, template, and flexible parameter configuration
+ * Supports: static values, event extraction (via condition logic), and JSON editors for complex objects
+ * Uses modal dialog for template and parameter selection
+ */
+class DeviceActionHandler {
+    constructor(containerElement, options = {}) {
+        this.mainContainer = typeof containerElement === 'string' 
+            ? document.getElementById(containerElement) 
+            : containerElement;
+        
+        if (!this.mainContainer) {
+            throw new Error('containerElement is required and must exist in DOM');
+        }
+
+        this.modalElement = document.getElementById('deviceActionModal');
+        if (!this.modalElement) {
+            throw new Error('deviceActionModal element not found in DOM');
+        }
+
+        this.platform = options.platform || '';
+        this.eventFieldOptions = options.eventFieldOptions || [];
+        this.jsonTextarea = options.jsonTextarea;
+        this.conditionEditor = options.conditionEditor; // Reference to main condition editor for logic builder
+        
+        this.deviceGroups = [];
+        this.templates = {};
+        this.selectedGroupId = null;
+        this.selectedTemplateId = null;
+        this.selectedTemplate = null;
+        this.deviceIdentifyParameters = [];  // Parameters to exclude from user configuration
+        
+        // Parameter configuration: path -> {mode, value, evaluator}
+        // mode: 'static' | 'flexible' | 'json'
+        this.parameterConfigs = {};
+        
+        this.init();
+    }
+
+    async init() {
+        try {
+            this.deviceGroups = await this.fetchDeviceGroups();
+            this.renderGroupSelector();
+            this.attachGroupChangeListener();
+        } catch (error) {
+            console.error('Failed to initialize DeviceActionHandler:', error);
+        }
+    }
+
+    attachGroupChangeListener() {
+        const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
+        if (groupSelect) {
+            groupSelect.addEventListener('change', (e) => this.onGroupSelected(e.target.value));
+        }
+    }
+
+    renderGroupSelector() {
+        const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
+        if (!groupSelect) return;
+        
+        groupSelect.innerHTML = '<option value="">Select a device group...</option>';
+        this.deviceGroups.forEach(group => {
+            const option = document.createElement('option');
+            option.value = group.id || group.ID;
+            option.textContent = group.name || group.Name || 'Unnamed';
+            groupSelect.appendChild(option);
+        });
+        if (this.selectedGroupId) {
+            groupSelect.value = this.selectedGroupId;
+        }
+    }
+
+    async fetchDeviceGroups() {
+        try {
+            const response = await fetch('/api/device-groups', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Failed to fetch device groups');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching device groups:', error);
+            return [];
+        }
+    }
+
+    async fetchTemplatesByBrand(brand) {
+        if (this.templates[brand]) {
+            return this.templates[brand];
+        }
+        
+        try {
+            const response = await fetch(`/api/device-templates?brand=${encodeURIComponent(brand)}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Failed to fetch templates');
+            const templates = await response.json();
+            this.templates[brand] = templates || [];
+            return this.templates[brand];
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+            return [];
+        }
+    }
+
+    async fetchTemplateById(templateId) {
+        try {
+            const response = await fetch(`/api/device-templates/get?id=${encodeURIComponent(templateId)}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Failed to fetch template');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching template:', error);
+            return null;
+        }
+    }
+
+    async fetchGroupDetails(groupId) {
+        try {
+            const response = await fetch(`/api/device-groups/get?id=${encodeURIComponent(groupId)}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Failed to fetch group details');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching group details:', error);
+            return null;
+        }
+    }
+
+    renderGroupDevices(group) {
+        const container = this.mainContainer.querySelector('#deviceActionGroupDevices');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (!group) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const devices = group.devices || [];
+        const label = document.createElement('div');
+        label.className = 'group-devices-label';
+        label.textContent = `${container.dataset.label || 'Included devices'} (${devices.length})`;
+        container.appendChild(label);
+
+        if (devices.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'group-devices-empty';
+            empty.textContent = container.dataset.empty || 'No devices in this group';
+            container.appendChild(empty);
+        } else {
+            const list = document.createElement('ul');
+            devices.forEach(device => {
+                const item = document.createElement('li');
+                const name = document.createElement('strong');
+                name.textContent = device.name || device.id || 'Unnamed';
+                item.appendChild(name);
+                const details = [device.brand, device.product_name, device.room].filter(Boolean).join(' / ');
+                if (details) {
+                    item.appendChild(document.createTextNode(` — ${details}`));
+                }
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
+        container.style.display = 'block';
+    }
+
+    async showGroupDevices(groupId) {
+        if (!groupId) {
+            this.renderGroupDevices(null);
+            return null;
+        }
+        const group = await this.fetchGroupDetails(groupId);
+        // Ignore stale responses if the selection changed while fetching
+        if (groupId !== this.selectedGroupId) return group;
+        this.renderGroupDevices(group);
+        return group;
+    }
+
+    async onGroupSelected(groupId) {
+        this.selectedGroupId = groupId || null;
+        if (!groupId) {
+            this.renderGroupDevices(null);
+            return;
+        }
+        
+        this.selectedTemplateId = null;
+        this.parameterConfigs = {};
+        this.deviceIdentifyParameters = [];  // Reset for new group
+        
+        try {
+            // Fetch full group details including devices and brand
+            const group = await this.showGroupDevices(groupId);
+            if (groupId !== this.selectedGroupId) return;
+            if (group && group.devices && group.devices.length > 0) {
+                const brandName = group.devices[0].brand;
+                const templates = await this.fetchTemplatesByBrand(brandName);
+                this.renderTemplateSelector(templates);
+                this.openModal();
+            }
+        } catch (error) {
+            console.error('Failed to fetch group details:', error);
+        }
+    }
+
+    renderTemplateSelector(templates) {
+        const templateSelect = this.modalElement.querySelector('#modal_deviceActionTemplate');
+        if (!templateSelect) return;
+        
+        if (!templates || templates.length === 0) {
+            templateSelect.innerHTML = '<option value="">No templates available</option><option value="__custom__">Custom Template (JSON)</option>';
+            templateSelect.disabled = false;
+        } else {
+            templateSelect.disabled = false;
+            templateSelect.innerHTML = '<option value="">Select template...</option>';
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id || template.ID;
+                option.textContent = template.template_name || template.TemplateName || 'Unnamed';
+                templateSelect.appendChild(option);
+            });
+            
+            // Add custom template option at the end
+            const customOption = document.createElement('option');
+            customOption.value = '__custom__';
+            customOption.textContent = 'Custom Template (JSON)';
+            templateSelect.appendChild(customOption);
+            
+            // Attach change listener
+            templateSelect.addEventListener('change', (e) => this.onTemplateSelected(e.target.value));
+        }
+    }
+
+    async onTemplateSelected(templateId) {
+        if (!templateId) {
+            this.hideParameterForm();
+            this.hideCustomTemplateInput();
+            return;
+        }
+        
+        // Handle custom template
+        if (templateId === '__custom__') {
+            this.selectedTemplateId = '__custom__';
+            this.parameterConfigs = {};
+            this.selectedTemplate = null;
+            this.deviceIdentifyParameters = [];  // Reset for custom templates
+            this.showCustomTemplateInput();
+            return;
+        }
+        
+        // Handle regular template
+        this.hideCustomTemplateInput();
+        this.selectedTemplateId = templateId;
+        this.parameterConfigs = {};
+        
+        try {
+            const template = await this.fetchTemplateById(templateId);
+            
+            // Store device identify parameters for later validation exclusion
+            this.deviceIdentifyParameters = template.device_identify_parameters || [];
+            
+            // Assemble complete HTTP request from template response
+            this.selectedTemplate = {
+                ...template,
+                assembledBody: {
+                    method: template.http_method || 'POST',
+                    url: template.endpoint_url,
+                    headers: template.parameter_defaults?.headers || {},
+                    body: typeof template.body_template === 'string' 
+                        ? JSON.parse(template.body_template)
+                        : template.body_template
+                }
+            };
+            
+            this.renderParameterForm();
+        } catch (error) {
+            console.error('Failed to load template:', error);
+            this.selectedTemplate = null;
+        }
+    }
+
+    showCustomTemplateInput() {
+        const customContainer = this.modalElement.querySelector('#modal_customTemplateContainer');
+        const paramContainer = this.modalElement.querySelector('#modal_paramSectionContainer');
+        
+        if (customContainer) {
+            customContainer.style.display = 'block';
+            
+            const textarea = customContainer.querySelector('#modal_customTemplateJSON');
+            if (textarea) {
+                textarea.addEventListener('change', () => this.onCustomTemplateChange());
+                textarea.addEventListener('blur', () => this.onCustomTemplateChange());
+            }
+        }
+        
+        if (paramContainer) {
+            paramContainer.style.display = 'none';
+        }
+    }
+
+    hideCustomTemplateInput() {
+        const customContainer = this.modalElement.querySelector('#modal_customTemplateContainer');
+        if (customContainer) {
+            customContainer.style.display = 'none';
+        }
+    }
+
+    onCustomTemplateChange() {
+        const textarea = this.modalElement.querySelector('#modal_customTemplateJSON');
+        if (!textarea) return;
+        
+        try {
+            const template = JSON.parse(textarea.value);
+            // For custom templates, store the complete HTTP structure directly
+            this.selectedTemplate = { 
+                assembledBody: template,
+                http_method: template.method,
+                endpoint_url: template.url,
+                body_template: template.body
+            };
+            this.renderParameterForm();
+        } catch (e) {
+            // Invalid JSON - just hide params for now
+            const paramContainer = this.modalElement.querySelector('#modal_paramSectionContainer');
+            if (paramContainer) {
+                paramContainer.style.display = 'none';
+            }
+            console.warn('Invalid custom template JSON:', e);
+        }
+    }
+
+    renderParameterForm() {
+        const paramContainer = this.modalElement.querySelector('#modal_deviceActionParams');
+        const paramSection = this.modalElement.querySelector('#modal_paramSectionContainer');
+        
+        if (!paramContainer || !this.selectedTemplateId) {
+            this.hideParameterForm();
+            return;
+        }
+        
+        paramContainer.innerHTML = '';
+        
+        if (!this.selectedTemplate) {
+            this.hideParameterForm();
+            return;
+        }
+        
+        // Special handling for custom templates - show only one flexible parameter
+        if (this.selectedTemplateId === '__custom__') {
+            paramSection.style.display = 'block';
+            this.renderCustomTemplateParameter(paramContainer);
+            this.updateJsonFromForm();
+            return;
+        }
+        
+        // Get template body structure to understand available parameters
+        // Extract from the assembled body (which has the complete HTTP structure)
+        let templateBody = this.selectedTemplate.assembledBody?.body;
+        if (!templateBody) {
+            paramSection.style.display = 'none';
+            return;
+        }
+        
+        // Parse if it's a JSON string
+        if (typeof templateBody === 'string') {
+            try {
+                templateBody = JSON.parse(templateBody);
+            } catch (e) {
+                console.error('Could not parse template body:', e);
+                paramSection.style.display = 'none';
+                return;
+            }
+        }
+        
+        // Extract parameter paths only from body
+        const paramPaths = this.extractParameterPaths(templateBody);
+        
+        if (paramPaths.length === 0) {
+            paramSection.style.display = 'none';
+            return;
+        }
+        
+        paramSection.style.display = 'block';
+        
+        // Render each parameter
+        paramPaths.forEach(path => {
+            const div = document.createElement('div');
+            div.className = 'parameter-config-card';
+            div.setAttribute('data-param-path', path);
+            
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'param-header';
+            const headerTitle = document.createElement('strong');
+            headerTitle.textContent = path;
+            header.appendChild(headerTitle);
+            div.appendChild(header);
+            
+            // Create mode selection
+            const modesDiv = document.createElement('div');
+            modesDiv.className = 'param-modes';
+            
+            const config = this.parameterConfigs[path] || { mode: 'static', value: '', evaluator: null };
+            
+            // Static mode radio
+            const staticLabel = document.createElement('label');
+            const staticRadio = document.createElement('input');
+            staticRadio.type = 'radio';
+            staticRadio.name = `param_mode_${path}`;
+            staticRadio.value = 'static';
+            staticRadio.className = 'param-mode-radio';
+            staticRadio.checked = (config.mode === 'static');
+            staticLabel.appendChild(staticRadio);
+            staticLabel.appendChild(document.createTextNode('Static Value'));
+            modesDiv.appendChild(staticLabel);
+            
+            // Flexible mode radio
+            const flexibleLabel = document.createElement('label');
+            const flexibleRadio = document.createElement('input');
+            flexibleRadio.type = 'radio';
+            flexibleRadio.name = `param_mode_${path}`;
+            flexibleRadio.value = 'flexible';
+            flexibleRadio.className = 'param-mode-radio';
+            flexibleRadio.checked = (config.mode === 'flexible');
+            flexibleLabel.appendChild(flexibleRadio);
+            flexibleLabel.appendChild(document.createTextNode('Flexible (From Event)'));
+            modesDiv.appendChild(flexibleLabel);
+            
+            div.appendChild(modesDiv);
+            
+            // Create inputs container
+            const inputsDiv = document.createElement('div');
+            inputsDiv.className = 'param-inputs';
+            
+            const drawingAreaIdBase = `paramsinput_${path.replace(/\./g, '_')}`;
+
+            // Static input
+            const staticInput = document.createElement('input');
+            staticInput.id = drawingAreaIdBase + '_static';
+            staticInput.type = 'text';
+            staticInput.className = 'param-static-input';
+            staticInput.setAttribute('data-path', path);
+            staticInput.setAttribute('data-mode', 'static');
+            staticInput.placeholder = 'Enter static value';
+            staticInput.value = (config.mode === 'static') ? config.value : '';
+            staticInput.style.display = (config.mode === 'static') ? 'block' : 'none';
+            inputsDiv.appendChild(staticInput);
+            
+            // NOW initialize ConditionEditor for flexible input
+            // Create with unique IDs for drawing areas
+            const drawingArea = document.createElement('div');
+            drawingArea.id = drawingAreaIdBase + '_drawingArea';
+            drawingArea.style.border = '1px solid #ddd';
+            drawingArea.style.borderRadius = '6px';
+            drawingArea.style.backgroundColor = '#f9f9f9';
+            drawingArea.style.width = '60%';
+            drawingArea.style.display = (config.mode === 'flexible') ? 'block' : 'none';
+            drawingArea.setAttribute('data-param-path', path);
+            drawingArea.classList.add('paraminput_top');
+            inputsDiv.appendChild(drawingArea);
+            
+            // Flexible input - create textarea for ConditionEditor
+            const flexibleTextarea = document.createElement('textarea');
+            flexibleTextarea.id = drawingAreaIdBase + '_flexible';
+            flexibleTextarea.className = 'param-flexible-input condition-textarea';
+            flexibleTextarea.setAttribute('data-path', path);
+            flexibleTextarea.setAttribute('data-mode', 'flexible');
+            flexibleTextarea.style.display = (config.mode === 'flexible') ? 'block' : 'none';
+            flexibleTextarea.style.minHeight = '150px';
+            
+            // Initialize with evaluator or empty structure
+            if (config.mode === 'flexible' && config.evaluator) {
+                flexibleTextarea.value = JSON.stringify(config.evaluator, null, 2);
+            } else {
+                flexibleTextarea.value = JSON.stringify({ "Operator": "WHOLESENTENCE", "SubConditions": [], "Variables": [] }, null, 2);
+            }
+            inputsDiv.appendChild(flexibleTextarea);
+            
+            div.appendChild(inputsDiv);
+            paramContainer.appendChild(div);
+            
+            // Create ConditionEditor instance for this parameter
+            try {
+                const conditionEditor = new ConditionEditor(flexibleTextarea, {
+                    baseType: 'WHOLESENTENCE',
+                    drawingArea: drawingArea,
+                    logicDescriptionArea: null,
+                    platform: this.platform,
+                    eventType: '',
+                    eventFieldOptions: this.eventFieldOptions
+                });
+                
+                // Store reference
+                if (!this.parameterEditors) {
+                    this.parameterEditors = {};
+                }
+                this.parameterEditors[path] = conditionEditor;
+            } catch (e) {
+                console.error(`Failed to initialize ConditionEditor for parameter ${path}:`, e);
+            }
+            
+            // Attach event listeners for mode selection
+            this.attachParameterModeListeners(div, path);
+        });
+        
+        this.updateJsonFromForm();
+    }
+
+    hideParameterForm() {
+        const paramSection = this.modalElement.querySelector('#modal_paramSectionContainer');
+        if (paramSection) {
+            paramSection.style.display = 'none';
+        }
+    }
+
+    attachParameterModeListeners(containerDiv, paramPath) {
+        const radios = containerDiv.querySelectorAll('.param-mode-radio');
+        const staticInput = containerDiv.querySelector('[data-mode="static"]');
+        const flexibleTextarea = containerDiv.querySelector('[data-mode="flexible"]');
+        const drawingArea = containerDiv.querySelector('[data-param-path]');
+        
+        radios.forEach(radio => {
+            this.parameterConfigs[paramPath] = this.parameterConfigs[paramPath] || {};
+            this.parameterConfigs[paramPath].mode = radio.value;
+            radio.addEventListener('change', () => {
+                const selectedMode = radio.value;
+                this.parameterConfigs[paramPath] = this.parameterConfigs[paramPath] || {};
+                this.parameterConfigs[paramPath].mode = selectedMode;
+                
+                // Show/hide inputs based on mode
+                if (staticInput) {
+                    staticInput.style.display = (selectedMode === 'static') ? 'block' : 'none';
+                }
+                
+                if (flexibleTextarea) {
+                    flexibleTextarea.style.display = (selectedMode === 'flexible') ? 'block' : 'none';
+                }
+                
+                // Show/hide drawing area
+                if (drawingArea && drawingArea.classList.contains('param-inputs') === false) {
+                    // This is the drawing area div (not the inputs div)
+                    drawingArea.style.display = (selectedMode === 'flexible') ? 'block' : 'none';
+                    
+                    // Refresh condition editor if switching to flexible
+                    if (selectedMode === 'flexible' && this.parameterEditors && this.parameterEditors[paramPath]) {
+                        this.parameterEditors[paramPath].refresh();
+                    }
+                }
+                
+                this.updateJsonFromForm();
+            });
+        });
+        
+        // Attach change listener to static input
+        if (staticInput) {
+            staticInput.addEventListener('change', () => {
+                this.parameterConfigs[paramPath].value = staticInput.value;
+                this.updateJsonFromForm();
+            });
+        }
+        
+        // Flexible textarea changes are handled by ConditionEditor automatically via onChange
+        if (flexibleTextarea) {
+            flexibleTextarea.addEventListener('change', () => {
+                try {
+                    this.parameterConfigs[paramPath].evaluator = JSON.parse(flexibleTextarea.value);
+                } catch (e) {
+                    console.error('Invalid JSON in flexible parameter:', e);
+                }
+                this.updateJsonFromForm();
+            });
+        }
+    }
+
+    renderCustomTemplateParameter(paramContainer) {
+        // For custom templates, render a single flexible parameter
+        // User will select which field in the custom template to make flexible
+        
+        const customTemplateBody = this.selectedTemplate?.assembledBody?.body 
+            ? JSON.parse(JSON.stringify(this.selectedTemplate.assembledBody.body))
+            : (typeof this.selectedTemplate?.body_template === 'string'
+                ? JSON.parse(this.selectedTemplate.body_template)
+                : this.selectedTemplate?.body_template);
+        
+        if (!customTemplateBody) return;
+        
+        // Extract available paths from custom template body
+        const availablePaths = this.extractParameterPaths(customTemplateBody);
+        
+        if (availablePaths.length === 0) {
+            console.warn('Custom template has no configurable parameters');
+            return;
+        }
+        
+        // If only one path, use it directly. If multiple, show selector
+        let selectedPath = availablePaths[0];
+        
+        const div = document.createElement('div');
+        div.className = 'parameter-config-card';
+        
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'param-header';
+        const headerTitle = document.createElement('strong');
+        headerTitle.textContent = 'Template Flexible Parameter';
+        header.appendChild(headerTitle);
+        div.appendChild(header);
+        
+        // If multiple paths, show selector
+        if (availablePaths.length > 1) {
+            const pathSelectDiv = document.createElement('div');
+            pathSelectDiv.style.marginBottom = '0.75rem';
+            
+            const pathLabel = document.createElement('label');
+            pathLabel.textContent = 'Select field to extract from event: ';
+            pathSelectDiv.appendChild(pathLabel);
+            
+            const pathSelect = document.createElement('select');
+            pathSelect.id = 'customTemplate_paramPath';
+            availablePaths.forEach(path => {
+                const option = document.createElement('option');
+                option.value = path;
+                option.textContent = path;
+                pathSelect.appendChild(option);
+            });
+            
+            pathSelect.addEventListener('change', () => {
+                selectedPath = pathSelect.value;
+                // Reinitialize the flexible parameter config with new path
+                this.parameterConfigs[selectedPath] = {
+                    mode: 'flexible',
+                    value: '',
+                    evaluator: { "Operator": "WHOLESENTENCE", "SubConditions": [], "Variables": [] }
+                };
+                this.updateJsonFromForm();
+            });
+            
+            pathSelectDiv.appendChild(pathSelect);
+            div.appendChild(pathSelectDiv);
+        }
+        
+        // Custom template only supports flexible mode
+        const modesDiv = document.createElement('div');
+        modesDiv.className = 'param-modes';
+        const flexLabel = document.createElement('label');
+        const flexRadio = document.createElement('input');
+        flexRadio.type = 'radio';
+        flexRadio.name = `param_mode_custom`;
+        flexRadio.value = 'flexible';
+        flexRadio.className = 'param-mode-radio';
+        flexRadio.checked = true;
+        flexRadio.disabled = true; // Custom templates only support flexible
+        flexLabel.appendChild(flexRadio);
+        flexLabel.appendChild(document.createTextNode('Extract from Event'));
+        modesDiv.appendChild(flexLabel);
+        div.appendChild(modesDiv);
+        
+        // Create inputs container
+        const inputsDiv = document.createElement('div');
+        inputsDiv.className = 'param-inputs';
+        
+        // Flexible textarea for ConditionEditor
+        const flexibleTextarea = document.createElement('textarea');
+        flexibleTextarea.className = 'param-flexible-input condition-textarea';
+        flexibleTextarea.setAttribute('data-path', selectedPath);
+        flexibleTextarea.setAttribute('data-mode', 'flexible');
+        flexibleTextarea.style.minHeight = '150px';
+        flexibleTextarea.value = JSON.stringify({ "Operator": "WHOLESENTENCE", "SubConditions": [], "Variables": [] }, null, 2);
+        inputsDiv.appendChild(flexibleTextarea);
+        
+        div.appendChild(inputsDiv);
+        paramContainer.appendChild(div);
+        
+        // Initialize ConditionEditor
+        const drawingArea = document.createElement('div');
+        drawingArea.id = `flexibleParam_drawing_custom_${selectedPath.replace(/\./g, '_')}`;
+        drawingArea.style.border = '1px solid #ddd';
+        drawingArea.style.borderRadius = '6px';
+        drawingArea.style.padding = '0.75rem';
+        drawingArea.style.minHeight = '100px';
+        drawingArea.style.backgroundColor = '#f9f9f9';
+        drawingArea.style.marginTop = '0.5rem';
+        drawingArea.setAttribute('data-param-path', selectedPath);
+        div.appendChild(drawingArea);
+        
+        try {
+            const conditionEditor = new ConditionEditor(flexibleTextarea, {
+                baseType: 'WHOLESENTENCE',
+                drawingArea: drawingArea,
+                logicDescriptionArea: null,
+                platform: this.platform,
+                eventType: '',
+                eventFieldOptions: this.eventFieldOptions
+            });
+            
+            if (!this.parameterEditors) {
+                this.parameterEditors = {};
+            }
+            this.parameterEditors[selectedPath] = conditionEditor;
+            
+            // Initialize parameter config with actual path
+            if (!this.parameterConfigs[selectedPath]) {
+                this.parameterConfigs[selectedPath] = {
+                    mode: 'flexible',
+                    value: '',
+                    evaluator: { "Operator": "WHOLESENTENCE", "SubConditions": [], "Variables": [] }
+                };
+            }
+            
+            // Listen to changes
+            flexibleTextarea.addEventListener('change', () => {
+                try {
+                    this.parameterConfigs[selectedPath].evaluator = JSON.parse(flexibleTextarea.value);
+                } catch (e) {
+                    console.error('Invalid JSON in custom template parameter:', e);
+                }
+                this.updateJsonFromForm();
+            });
+        } catch (e) {
+            console.error('Failed to initialize ConditionEditor for custom template:', e);
+        }
+    }
+
+    extractParameterPaths(obj, prefix = '') {
+        const paths = [];
+        
+        if (obj === null || obj === undefined) return paths;
+        if (Array.isArray(obj)) return paths;
+        
+        if (typeof obj === 'object') {
+            for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    const path = prefix ? `${prefix}.${key}` : key;
+                    const value = obj[key];
+                    
+                    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                        // Recurse into objects
+                        paths.push(...this.extractParameterPaths(value, path));
+                    } else {
+                        // Leaf node - this is a configurable parameter
+                        paths.push(path);
+                    }
+                }
+            }
+        }
+        
+        return paths;
+    }
+
+    /**
+     * Validate parameter evaluator (flexible parameter extraction operator)
+     * Only extraction operators are allowed (PARAM, REGEX_EXTRACT, etc.)
+     * Comparison operators (AND, OR, GREATER_THAN, etc.) are not allowed
+     */
+    validateParameterEvaluator(evaluator) {
+        const EXTRACTION_OPERATORS = new Set([
+            'PARAM', 'REGEX_EXTRACT', 'SUBSTRING', 'FIRST', 'LAST',
+            'COLOR_PICKUP', 'PARSEINT', 'WHOLESENTENCE',
+            'ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE', 'MODULO', 'EXCHANGE'
+        ]);
+
+        if (!evaluator || !evaluator.Operator) {
+            return { valid: false, error: 'Operator is required' };
+        }
+
+        const operator = evaluator.Operator;
+
+        if (!EXTRACTION_OPERATORS.has(operator)) {
+            return { 
+                valid: false, 
+                error: `Operator '${operator}' is not valid for parameter extraction. Must be one of: ${Array.from(EXTRACTION_OPERATORS).join(', ')}`
+            };
+        }
+
+        // Validate variables count based on operator
+        const operatorVariableCount = {
+            'PARAM': 1, 'REGEX_EXTRACT': 1, 'SUBSTRING': 1, 'FIRST': 1, 'LAST': 1,
+            'COLOR_PICKUP': 1, 'PARSEINT': 1, 'WHOLESENTENCE': 1,
+            'ADD': 2, 'SUBTRACT': 2, 'MULTIPLY': 2, 'DIVIDE': 2, 'MODULO': 2, 'EXCHANGE': 2
+        };
+
+        const requiredCount = operatorVariableCount[operator];
+        const actualCount = (evaluator.Variables && evaluator.Variables.length) || 0;
+
+        if (actualCount !== requiredCount) {
+            return {
+                valid: false,
+                error: `Operator '${operator}' requires ${requiredCount} variable(s), got ${actualCount}`
+            };
+        }
+
+        return { valid: true };
+    }
+
+    /**
+     * Validate that template has required placeholders
+     */
+    validateTemplateHasRequiredPlaceholders(deviceActionBody) {
+        const bodyString = JSON.stringify(deviceActionBody);
+
+        if (!bodyString.includes('{device_id}')) {
+            return { valid: false, error: 'Template must include {device_id} placeholder' };
+        }
+
+        if (!bodyString.includes('{model_id}')) {
+            return { valid: false, error: 'Template must include {model_id} placeholder' };
+        }
+
+        return { valid: true };
+    }
+
+    /**
+     * Validate that parameter path exists in template body
+     */
+    validateParameterPathExists(path, templateBody) {
+        const paths = this.extractParameterPaths(templateBody);
+        if (!paths.includes(path)) {
+            return { valid: false, error: `Parameter path '${path}' not found in template body` };
+        }
+        return { valid: true };
+    }
+
+    updateJsonFromForm() {
+        if (!this.jsonTextarea) return;
+        
+        const params = {
+            device_group_id: this.selectedGroupId,
+            device_action_body: {},
+            device_action_param_name: null,
+            device_action_param_evaluator: null
+        };
+
+        let shouldSave = true;
+        
+        // Handle custom templates differently
+        if (this.selectedTemplateId === '__custom__') {
+            const customTemplateInput = this.modalElement?.querySelector('#modal_customTemplateJSON');
+            if (customTemplateInput && customTemplateInput.value.trim()) {
+                try {
+                    params.device_action_body = JSON.parse(customTemplateInput.value);
+                    
+                    // Validate custom template has required fields
+                    if (!params.device_action_body.method) {
+                        console.error('Custom template missing required field: method');
+                        shouldSave = false;
+                    }
+                    if (!params.device_action_body.url) {
+                        console.error('Custom template missing required field: url');
+                        shouldSave = false;
+                    }
+                    if (!params.device_action_body.body) {
+                        console.error('Custom template missing required field: body');
+                        shouldSave = false;
+                    }
+                    
+                    if (shouldSave) {
+                        // Validate placeholders
+                        const placeholderValidation = this.validateTemplateHasRequiredPlaceholders(params.device_action_body);
+                        if (!placeholderValidation.valid) {
+                            console.error('Custom template validation failed:', placeholderValidation.error);
+                            shouldSave = false;
+                        }
+                    }
+                    
+                    if (shouldSave) {
+                        // Find the flexible parameter (should be single path, not sentinel)
+                        for (const [path, config] of Object.entries(this.parameterConfigs)) {
+                            if (config && config.mode === 'flexible' && config.evaluator) {
+                                // Validate the evaluator
+                                const evalValidation = this.validateParameterEvaluator(config.evaluator);
+                                if (!evalValidation.valid) {
+                                    console.error('Flexible parameter validation failed:', evalValidation.error);
+                                    shouldSave = false;
+                                    break;
+                                }
+                                
+                                // Validate path exists in body
+                                const pathValidation = this.validateParameterPathExists(path, params.device_action_body.body);
+                                if (!pathValidation.valid) {
+                                    console.error('Parameter path validation failed:', pathValidation.error);
+                                    shouldSave = false;
+                                    break;
+                                }
+                                
+                                params.device_action_param_name = path;
+                                params.device_action_param_evaluator = config.evaluator;
+                                break; // Only use first flexible parameter
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Invalid custom template JSON:', e);
+                    shouldSave = false;
+                }
+            } else {
+                console.error('Custom template not entered');
+                shouldSave = false;
+            }
+        } else if (this.selectedTemplateId && this.selectedTemplate) {
+            // Handle regular templates - build complete HTTP structure
+            try {
+                // Assemble complete HTTP request
+                params.device_action_body = {
+                    method: this.selectedTemplate.http_method || 'POST',
+                    url: this.selectedTemplate.endpoint_url,
+                    headers: this.selectedTemplate.parameter_defaults?.headers || {},
+                    body: this.selectedTemplate.assembledBody?.body 
+                        ? JSON.parse(JSON.stringify(this.selectedTemplate.assembledBody.body))
+                        : (typeof this.selectedTemplate.body_template === 'string'
+                            ? JSON.parse(this.selectedTemplate.body_template)
+                            : this.selectedTemplate.body_template)
+                };
+
+                // Validate URL exists
+                if (!params.device_action_body.url) {
+                    console.error('Template missing required field: url');
+                    shouldSave = false;
+                }
+
+                // Validate headers is an object
+                if (shouldSave && (typeof params.device_action_body.headers !== 'object' || params.device_action_body.headers === null)) {
+                    params.device_action_body.headers = {};
+                }
+
+                // Validate body exists and is an object
+                if (!params.device_action_body.body || typeof params.device_action_body.body !== 'object') {
+                    console.error('Template missing or invalid body field');
+                    shouldSave = false;
+                }
+
+                if (shouldSave) {
+                    // Validate placeholders
+                    const placeholderValidation = this.validateTemplateHasRequiredPlaceholders(params.device_action_body);
+                    if (!placeholderValidation.valid) {
+                        console.error('Template validation failed:', placeholderValidation.error);
+                        shouldSave = false;
+                    }
+                }
+
+                if (shouldSave) {
+                    // Apply parameter configurations
+                    for (const [path, config] of Object.entries(this.parameterConfigs)) {
+                        if (config.mode === 'static') {
+                            // Static mode - set the value in body
+                            this.setNestedProperty(params.device_action_body.body, path, config.value);
+                        } else if (config.mode === 'flexible') {
+                            // Flexible mode - only the first flexible parameter is sent
+                            if (!params.device_action_param_name && config.evaluator) {
+                                // Skip validation if this path is a device_identify_parameter
+                                if (this.deviceIdentifyParameters?.includes(path)) {
+                                    console.warn(`Skipping validation for device identify parameter: ${path}`);
+                                    continue; // Skip device identify parameters
+                                }
+                                
+                                // Validate the evaluator
+                                const evalValidation = this.validateParameterEvaluator(config.evaluator);
+                                if (!evalValidation.valid) {
+                                    console.error('Flexible parameter validation failed:', evalValidation.error);
+                                    continue; // Skip this parameter, try next one
+                                }
+
+                                // Validate path exists in body
+                                const pathValidation = this.validateParameterPathExists(path, params.device_action_body.body);
+                                if (!pathValidation.valid) {
+                                    console.error('Parameter path validation failed:', pathValidation.error);
+                                    continue; // Skip this parameter, try next one
+                                }
+
+                                params.device_action_param_name = path;
+                                params.device_action_param_evaluator = config.evaluator;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error building device_action_body:', e);
+                shouldSave = false;
+            }
+        } else {
+            console.error('No template selected');
+            shouldSave = false;
+        }
+        
+        // Always update textarea with current params, whether valid or not
+        // This allows user to see what they configured and fix errors
+        this.jsonTextarea.value = JSON.stringify(params, null, 2);
+        
+        if (!shouldSave) {
+            console.warn('Validation warnings detected - check browser console for details');
+        }
+    }
+
+    loadFromJson() {
+        const jsonText = this.jsonTextarea?.value;
+        if (!jsonText) return;
+        
+        try {
+            const data = JSON.parse(jsonText);
+            this.selectedGroupId = data?.device_group_id;
+            this.parameterConfigs = {};
+            
+            // Update group selector
+            const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
+            if (groupSelect) {
+                groupSelect.value = this.selectedGroupId;
+            }
+            this.showGroupDevices(this.selectedGroupId);
+            
+            // TODO: Load template and reconstruct parameter configs from JSON
+            // This requires fetching the template and comparing device_action_body with template structure
+        } catch (e) {
+            console.error('Could not parse JSON:', e);
+        }
+    }
+
+    setNestedProperty(obj, path, value) {
+        const keys = path.split('.');
+        let current = obj;
+        
+        for (let i = 0; i < keys.length - 1; i++) {
+            const key = keys[i];
+            if (!(key in current) || typeof current[key] !== 'object') {
+                current[key] = {};
+            }
+            current = current[key];
+        }
+        
+        current[keys[keys.length - 1]] = value;
+    }
+
+    getNestedProperty(obj, path) {
+        return path.split('.').reduce((current, key) => current?.[key], obj);
+    }
+
+    openModal() {
+        if (this.modalElement) {
+            this.modalElement.style["display"] = 'block';
+        }
+    }
+
+    saveAndClose() {
+        this.updateJsonFromForm();
+        this.closeModal();
+    }
+
+    closeModal() {
+        if (this.modalElement) {
+            this.modalElement.style["display"] = 'none';
+        }
+    }
+}
+
+/**
+ * ConditionEditor class - Handles condition logic building, JSON rendering, and UI management
+ * 
  * Handles JSON editing, rendering, and synchronization across multiple textarea/form elements
  * 
  * Matches the behavior of the original jsonLoader and summarize functions,
@@ -7,21 +1066,34 @@
  */
 class ConditionEditor {
     constructor(conditionInputElement, options = {}) {
-        // Validation
+        // Validation - accept either ID string or DOM element
         if (!conditionInputElement) {
             throw new Error('conditionInputElement is required');
         }
         if (typeof conditionInputElement === 'string') {
             conditionInputElement = document.getElementById(conditionInputElement);
         }
-        if (!conditionInputElement) {
-            throw new Error('conditionInputElement not found in DOM');
+        if (!conditionInputElement || !(conditionInputElement instanceof HTMLElement)) {
+            throw new Error('conditionInputElement must be a valid DOM element or ID string');
         }
 
         this.conditionInput = conditionInputElement;
         this.baseType = options.baseType || 'OR';
-        this.drawingArea = options.drawingArea || document.getElementById('drawingArea');
-        this.logicDescriptionArea = options.logicDescriptionArea;
+        
+        // Handle drawingArea - can be ID string or DOM element
+        let drawingArea = options.drawingArea || document.getElementById('drawingArea');
+        if (typeof drawingArea === 'string') {
+            drawingArea = document.getElementById(drawingArea);
+        }
+        this.drawingArea = drawingArea;
+        
+        // Handle logicDescriptionArea - can be ID string or DOM element
+        let logicDescriptionArea = options.logicDescriptionArea;
+        if (typeof logicDescriptionArea === 'string') {
+            logicDescriptionArea = document.getElementById(logicDescriptionArea);
+        }
+        this.logicDescriptionArea = logicDescriptionArea;
+        
         this.platform = options.platform || '';
         this.eventType = options.eventType || '';
         this.eventFieldOptions = Array.isArray(options.eventFieldOptions) ? options.eventFieldOptions : [];
@@ -2463,9 +3535,103 @@ function updateTestEventParams() {
 /**
  * Runs a condition test
  */
-function runConditionTest() {
-    console.log('runConditionTest called');
-    // TODO: Implement condition testing with API call
+async function runConditionTest() {
+    const eventType = document.getElementById('testEventType').value;
+    
+    if (!eventType) {
+        alert('Please select an event type');
+        return;
+    }
+    
+    const data = getConditionData();
+    const conditionLogic = parseJSON(data.logic);
+    const deviceActionParams = parseJSON(data.params) || {};
+    
+    if (!conditionLogic) {
+        alert('Invalid condition logic JSON');
+        return;
+    }
+    
+    if (!window.createTestEventFromMetadata) {
+        alert('Test event metadata builder not available');
+        return;
+    }
+
+    let sampleEvent;
+    try {
+        const customParams = getTestEventParams();
+        const platform = conditionToolboxContext.platform || '{{.CurrentChannel.Platform}}';
+        sampleEvent = await window.createTestEventFromMetadata(
+            platform,
+            eventType,
+            customParams,
+            { watchTargetId: '{{.CurrentChannel.ID}}' }
+        );
+    } catch (error) {
+        alert('Failed to load event metadata: ' + error.message);
+        return;
+    }
+    
+    const testRequest = {
+        condition_logic: conditionLogic,
+        test_event: sampleEvent,
+        device_id: '{{.Condition.DeviceID}}' || '',
+        device_action: '{{.Condition.DeviceAction}}' || '',
+        device_action_params: deviceActionParams,
+        trigger_real_device: false
+    };
+    
+    // Show loading state
+    const resultsContainer = document.getElementById('testResultsContainer');
+    const resultsContent = document.getElementById('testResultsContent');
+    if (!resultsContainer || !resultsContent) {
+        alert('Test results container not found');
+        return;
+    }
+
+    resultsContent.innerHTML = '<div style="text-align: center;"><p>' + (window._i18nMsg?.['condition.testing'] || 'Testing...') + '</p></div>';
+    resultsContainer.style.display = 'block';
+    
+    // Call the test endpoint
+    fetch('/api/conditions/test-draft', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(testRequest)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Test failed: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(result => {
+        // Display results
+        let resultHTML = '<pre style="max-height: 300px; overflow-y: auto; background: #fff; padding: 0.5rem; border-radius: 3px; font-size: 0.85rem;">' + JSON.stringify(result, null, 2) + '</pre>';
+        resultHTML += '<div style="margin-top: 1rem; padding: 1rem; background: #fff; border-left: 4px solid ' + (result.matched ? '#28a745' : '#dc3545') + ';">';
+        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ Yes' : '✗ No') + '</span><br>';
+        if (result.matched) {
+            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ Yes' : '✗ No') + '</span><br>';
+            if (result.computed_values && result.computed_values.length > 0) {
+                resultHTML += '<strong>' + (window._i18nMsg?.['condition.details'] || 'Details') + ':</strong> <code>' + result.computed_values.join(', ') + '</code><br>';
+            }
+        }
+        if (result.execution_error) {
+            resultHTML += '<br><strong style="color:red;">' + (window._i18nMsg?.['condition.errors'] || 'Errors') + ':</strong> ' + result.execution_error + '<br>';
+        }
+        if (result.execution_result) {
+            resultHTML += '<br><strong style="color:green;">Success:</strong> ' + result.execution_result + '<br>';
+        }
+        resultHTML += '</div>';
+        
+        resultsContent.innerHTML = resultHTML;
+    })
+    .catch(error => {
+        console.error('Test error:', error);
+        resultsContent.innerHTML = '<div style="color:red; padding: 1rem; background: #f8d7da; border-radius: 3px;"><strong>' + (window._i18nMsg?.['condition.error'] || 'Error') + ':</strong> ' + error.message + '</div>';
+    });
 }
 
 /**

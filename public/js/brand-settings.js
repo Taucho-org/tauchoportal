@@ -331,7 +331,12 @@
 
     if (titleEl) titleEl.textContent = step.title;
     if (contentEl) contentEl.textContent = step.content;
-    if (progressEl) progressEl.textContent = `Step ${stepIndex + 1} of ${guide.steps.length}`;
+    if (progressEl) {
+      const progressTemplate = window._i18nMsg?.['brandSettings.wizard.progress'] || 'Step {0} of {1}';
+      progressEl.textContent = progressTemplate
+        .replace('{0}', stepIndex + 1)
+        .replace('{1}', guide.steps.length);
+    }
 
     if (backBtn) backBtn.style.display = stepIndex > 0 ? 'block' : 'none';
     
@@ -869,7 +874,7 @@
     } finally {
       if (testBtn) {
         testBtn.disabled = false;
-        testBtn.textContent = window._i18nMsg?.['brandSettings.modal.testCredentials'] || 'Test Credentials';
+        testBtn.textContent = window._i18nMsg?.['brandSettings.wizard.testCredentials'] || 'Test Credentials';
       }
     }
   }
@@ -921,7 +926,7 @@
       const saveBtn = document.querySelector('[data-wizard-action="save"]');
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.save'] || 'Save & Connect';
+        saveBtn.textContent = window._i18nMsg?.['brandSettings.wizard.saveConnect'] || 'Save & Connect';
       }
     }
   }
@@ -932,54 +937,91 @@
     if (!meta) return;
 
     try {
-      const emailInput = prompt(window._i18nMsg?.['brandSettings.sso.emailPrompt'] || 'Enter your email:');
-      if (!emailInput || !emailInput.trim()) {
+      // Step 1: Check if user exists in the brand's system
+      // This endpoint is handled by main.go which adds X-User-ID from session
+      // Key: If user exists in brand but not registered with us, backend auto-registers them
+      const checkUrl = `/auth/brand/${encodeURIComponent(meta.id)}/check-sso`;
+      const checkResponse = await fetch(checkUrl, {
+        method: 'GET',
+        credentials: 'include'
+      }).then(async r => {
+        if (!r.ok) {
+          let errorMessage = `HTTP ${r.status}`;
+          try {
+            const payload = await r.json();
+            errorMessage = payload.message || payload.error || errorMessage;
+          } catch (e) {
+            // Response wasn't JSON, use status code only
+          }
+          throw new Error(errorMessage);
+        }
+        return r.json();
+      });
+
+      // Case 1: User exists in brand (and we auto-registered them, so registered_with_us will be true)
+      if (checkResponse.exists_in_brand && checkResponse.registered_with_us) {
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        setTimeout(() => window.location.reload(), 1000);
         return;
       }
 
-      const button = event?.target;
-      if (button) {
-        button.disabled = true;
-        button.textContent = window._i18nMsg?.['brandSettings.modal.authenticating'] || 'Authenticating...';
-      }
-
-      const response = await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso`, {
-        email: emailInput.trim()
-      });
-
-      // Check if user exists or needs to register
-      if (response && response.user_exists === false) {
-        const registerConfirm = confirm(
-          window._i18nMsg?.['brandSettings.sso.registerConfirm'] || 
-          `User not found. Create new account for ${emailInput}?`
+      // Case 2: User doesn't exist in brand - ask to create account
+      if (!checkResponse.exists_in_brand) {
+        const shouldRegister = confirm(
+          window._i18nMsg?.['brandSettings.sso.createAccount'] || 
+          `Create a new ${getBrandName(meta.id)} account with your email?`
         );
-        if (registerConfirm) {
-          await apiRequest('POST', `/auth/brand/${encodeURIComponent(meta.id)}/sso-register`, {
-            email: emailInput.trim()
-          });
-          showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.registrationSuccess'] || 'Account created successfully!'}`);
+
+        if (!shouldRegister) {
+          return;
         }
-      } else if (response && response.success) {
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.loginSuccess'] || 'Logged in successfully!'}`);
+
+        // Register/Create the user
+        const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
+        const registerResponse = await fetch(registerUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: '{}',
+          credentials: 'include'
+        }).then(async r => {
+          if (!r.ok) {
+            let errorMessage = `HTTP ${r.status}`;
+            try {
+              const payload = await r.json();
+              errorMessage = payload.message || payload.error || errorMessage;
+            } catch (e) {
+              // Response wasn't JSON, use status code only
+            }
+            throw new Error(errorMessage);
+          }
+          return r.json();
+        });
+
+        if (!registerResponse.success) {
+          showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
+          return;
+        }
+
+        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        setTimeout(() => window.location.reload(), 1500);
       }
 
-      // Reload after success to reflect connection
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
     } catch (error) {
       showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = window._i18nMsg?.['brandSettings.sso.authenticate'] || 'Connect with SSO';
-      }
     }
   }
 
   async function handleBrandAction(brandId) {
     const meta = getBrandMeta(brandId);
     if (!meta) return;
+
+    // SSO brands never use a setup guide
+    if (meta.authentication_type === 'sso') {
+      openSSOModal(meta.id);
+      return;
+    }
 
     // Try to fetch and show setup wizard if available
     const guide = await fetchSetupGuide(brandId);
@@ -995,10 +1037,6 @@
     }
     if (meta.authentication_type === 'api-key' || meta.authentication_type === 'api_key') {
       openApiKeyModal(meta.id);
-      return;
-    }
-    if (meta.authentication_type === 'sso') {
-      openSSOModal(meta.id);
       return;
     }
     if (meta.authentication_type === 'local') {

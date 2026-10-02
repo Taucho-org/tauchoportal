@@ -22,6 +22,11 @@
     background: #f9fffa;
 }
 
+.brand-card.is-registered {
+    border-color: #b3e5fc;
+    background: #f8fbff;
+}
+
 .brand-card.is-unsupported {
     border-color: #ffd54f;
     background: #fffdf5;
@@ -100,6 +105,12 @@
     background: #e8f5e9;
     color: #2e7d32;
     border: 1px solid #a5d6a7;
+}
+
+.status-badge.registered {
+    background: #e1f5fe;
+    color: #0277bd;
+    border: 1px solid #b3e5fc;
 }
 
 .status-badge.disconnected {
