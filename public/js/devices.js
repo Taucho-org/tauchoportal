@@ -1,6 +1,3 @@
-// Load i18n translations
-const devicesI18n = JSON.parse(document.getElementById('devicesTranslations').textContent);
-
 // =============================================
 // Option B: Devices Enhanced Layout
 // =============================================
@@ -30,9 +27,317 @@ async function apiRequest(method, path, body) {
     const r = await fetch(API_BASE + path, opts);
     if (!r.ok) {
         const tx = await r.text();
-        throw new Error(tx || r.status);
+        const error = new Error(tx || r.status);
+        error.status = r.status;
+        throw error;
     }
     return r.status === 204 ? null : r.json();
+}
+
+let activeTestDeviceId = null;
+let activeTestDevice = null;
+let activeTestTemplates = [];
+let activeTestRequestId = 0;
+
+async function openDeviceTestModal(deviceId) {
+    const device = window.MY_DEVICES.find(item => item.id === deviceId);
+    if (!device) return;
+    if (!device.is_configured) {
+        alert(devicesI18n['completeSetupBeforeTest']);
+        return;
+    }
+
+    activeTestDeviceId = deviceId;
+    const requestId = ++activeTestRequestId;
+    activeTestDevice = null;
+    activeTestTemplates = [];
+    const modal = document.getElementById('deviceTestModal');
+    const select = document.getElementById('testTemplateSelect');
+    const placeholder = select.options[0];
+    select.replaceChildren(placeholder);
+    document.getElementById('testTemplateFields').replaceChildren();
+    document.getElementById('runDeviceTestButton').disabled = true;
+    select.disabled = true;
+    let hasTemplates = false;
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    try {
+        const deviceDetails = await apiRequest(
+            'GET',
+            `/devices/get?id=${encodeURIComponent(device.id)}`
+        );
+        if (activeTestRequestId !== requestId) return;
+        const detailIdentifiers = deviceDetails.device_identifier || {};
+        const legacyIdentifiers = deviceDetails.device_identification || {};
+        const listIdentifiers = device.device_identifier || {};
+        const deviceIdentifiers = Object.keys(detailIdentifiers).length
+            ? detailIdentifiers
+            : Object.keys(legacyIdentifiers).length
+                ? legacyIdentifiers
+                : listIdentifiers;
+        activeTestDevice = {
+            ...device,
+            ...deviceDetails,
+            device_identifier: deviceIdentifiers
+        };
+    } catch (error) {
+        if (activeTestRequestId !== requestId) return;
+        console.error(devicesI18n['failedLoadDetails'], error);
+        alert(devicesI18n['failedLoadDetails'] + ' ' + error.message);
+        closeDeviceTestModal();
+        return;
+    }
+
+    try {
+        const templates = await apiRequest(
+            'GET',
+            `/device-templates?product_id=${encodeURIComponent(device.product_id)}`
+        );
+        if (activeTestRequestId !== requestId) return;
+
+        if (!Array.isArray(templates) || templates.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = devicesI18n['noTemplatesAvailable'];
+            option.disabled = true;
+            select.append(option);
+            return;
+        }
+
+        activeTestTemplates = templates;
+        templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.template_name;
+            select.append(option);
+        });
+        hasTemplates = true;
+    } catch (error) {
+        if (activeTestRequestId !== requestId) return;
+        if (error.status === 404) {
+            const option = document.createElement('option');
+            option.textContent = devicesI18n['noTemplatesAvailable'];
+            option.disabled = true;
+            select.append(option);
+        } else {
+            console.error(devicesI18n['failedLoadTemplates'], error);
+            alert(devicesI18n['failedLoadTemplates'] + ' ' + error.message);
+        }
+    } finally {
+        if (activeTestRequestId === requestId) {
+            select.disabled = !hasTemplates;
+        }
+    }
+}
+
+function closeDeviceTestModal() {
+    document.getElementById('deviceTestModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    activeTestDeviceId = null;
+    activeTestDevice = null;
+    activeTestTemplates = [];
+    activeTestRequestId++;
+}
+
+function normalizeTestParameterName(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getAutomaticDeviceTestValue(device, parameterName) {
+    const normalizedName = normalizeTestParameterName(parameterName);
+    const isDeviceId = ['id', 'device', 'deviceid'].includes(normalizedName);
+    const isModelId = ['model', 'modelid'].includes(normalizedName);
+    if (!isDeviceId && !isModelId) return { handled: false };
+
+    const identifiers = device.device_identifier || {};
+    const candidates = isModelId
+        ? ['model', 'modelid', 'sku']
+        : ['deviceid', 'id', 'device', 'macaddress', 'ipaddress', 'serialnumber'];
+    for (const candidate of candidates) {
+        const match = Object.keys(identifiers).find(
+            key => normalizeTestParameterName(key) === candidate
+        );
+        if (match && identifiers[match] != null && identifiers[match] !== '') {
+            return { handled: true, value: identifiers[match] };
+        }
+    }
+
+    if (isModelId && (device.product_name || device.product_id)) {
+        return { handled: true, value: device.product_name || device.product_id };
+    }
+    return { handled: true, value: '' };
+}
+
+function getTestSelectOptions(uiField) {
+    const uiOptions = uiField?.options || [];
+
+    return uiOptions.map(option => {
+        if (option && typeof option === 'object' && !Array.isArray(option)) {
+            const value = option.value ?? option.id ?? option.key;
+            const label = option.label ?? option.name ?? value;
+            return {
+                value: value ?? '',
+                label: label ?? ''
+            };
+        }
+
+        const label = String(option);
+        return {
+            value: option,
+            label
+        };
+    });
+}
+
+function renderTestTemplateFields() {
+    const templateId = Number(document.getElementById('testTemplateSelect').value);
+    const template = activeTestTemplates.find(item => item.id === templateId);
+    const fieldsContainer = document.getElementById('testTemplateFields');
+    const runButton = document.getElementById('runDeviceTestButton');
+    fieldsContainer.replaceChildren();
+    runButton.disabled = !template;
+    if (!template) return;
+
+    const device = activeTestDevice;
+    if (!device) return;
+    const uiFields = new Map((template.ui_fields || []).map(field => [field.key || field.name, field]));
+    const parameterNames = [...new Set([
+        ...(template.required_parameters || []),
+        ...(template.optional_parameters || [])
+    ])];
+
+    parameterNames.forEach(name => {
+        const automaticValue = getAutomaticDeviceTestValue(device, name);
+        if (automaticValue.handled) return;
+
+        const uiField = uiFields.get(name);
+        const constraints = template.parameter_constraints?.[name];
+        const required = (template.required_parameters || []).includes(name);
+        const identifierValue = device?.device_identifier?.[name];
+        const defaultValue = template.parameter_defaults?.[name];
+        const initialValue = identifierValue ?? defaultValue ?? '';
+        const group = document.createElement('div');
+        group.className = 'form-group';
+
+        const label = document.createElement('label');
+        label.htmlFor = `testParam_${name}`;
+        label.textContent = uiField?.name || name;
+        group.append(label);
+
+        let input;
+        const fieldType = (uiField?.type || constraints?.type || 'text').toLowerCase();
+        if (Array.isArray(uiField?.options)) {
+            input = document.createElement('select');
+            const selectOptions = getTestSelectOptions(uiField);
+            selectOptions.forEach(({ value, label: optionLabel }) => {
+                const option = document.createElement('option');
+                option.value = String(value);
+                option.textContent = String(optionLabel);
+                option.dataset.valueType = typeof value;
+                input.append(option);
+            });
+            if (initialValue !== '') {
+                const initialOption = selectOptions.find(option =>
+                    String(option.value) === String(initialValue) ||
+                    String(option.label) === String(initialValue)
+                );
+                if (initialOption) input.value = String(initialOption.value);
+            }
+        } else {
+            input = document.createElement('input');
+            input.type = ['number', 'integer', 'float'].includes(fieldType)
+                ? 'number'
+                : ['range', 'slider'].includes(fieldType)
+                    ? 'range'
+                    : fieldType === 'checkbox' ? 'checkbox' : 'text';
+            if (input.type === 'checkbox') {
+                input.checked = initialValue === true || initialValue === 1 ||
+                    ['true', '1', 'on'].includes(String(initialValue).toLowerCase());
+            } else {
+                input.value = initialValue;
+                const min = uiField?.min ?? constraints?.min;
+                const max = uiField?.max ?? constraints?.max;
+                if (min !== undefined) input.min = min;
+                if (max !== undefined) input.max = max;
+            }
+        }
+
+        input.id = `testParam_${name}`;
+        input.dataset.parameter = name;
+        input.dataset.valueType = input.type;
+        input.required = required;
+        group.append(input);
+        fieldsContainer.append(group);
+    });
+}
+
+async function runDeviceTest() {
+    const device = activeTestDevice;
+    const templateId = Number(document.getElementById('testTemplateSelect').value);
+    const template = activeTestTemplates.find(item => item.id === templateId);
+    const form = document.getElementById('testTemplateFields');
+    const button = document.getElementById('runDeviceTestButton');
+    if (!device || !template) return;
+    const invalidInput = form.querySelector(':invalid');
+    if (invalidInput) {
+        invalidInput.reportValidity();
+        return;
+    }
+
+    const params = {};
+    const missingAutomaticValues = [];
+    [...new Set([
+        ...(template.required_parameters || []),
+        ...(template.optional_parameters || [])
+    ])].forEach(name => {
+        const automaticValue = getAutomaticDeviceTestValue(device, name);
+        if (!automaticValue.handled) return;
+        if (automaticValue.value === '') {
+            if ((template.required_parameters || []).includes(name)) {
+                missingAutomaticValues.push(name);
+            }
+            return;
+        }
+        params[name] = automaticValue.value;
+    });
+    if (missingAutomaticValues.length) {
+        alert(devicesI18n['testMissingDeviceValue'].replace('{0}', missingAutomaticValues.join(', ')));
+        return;
+    }
+
+    form.querySelectorAll('[data-parameter]').forEach(input => {
+        let value = input.type === 'checkbox'
+            ? input.checked
+            : input.type === 'number' || input.type === 'range'
+                ? input.value === '' ? '' : input.valueAsNumber
+                : input.value;
+        if (input.tagName === 'SELECT' && value !== '') {
+            const constraintType = template.parameter_constraints?.[input.dataset.parameter]?.type;
+            const valueType = constraintType || input.selectedOptions[0]?.dataset.valueType;
+            if (['integer', 'number', 'float'].includes(valueType)) {
+                value = Number(value);
+                if (valueType === 'integer') value = Math.trunc(value);
+            } else if (valueType === 'boolean') {
+                value = value === 'true';
+            }
+        }
+        if (value !== '') params[input.dataset.parameter] = value;
+    });
+
+    button.disabled = true;
+    try {
+        const response = await apiRequest('POST', `/devices/test?id=${encodeURIComponent(device.id)}`, {
+            template_id: template.id,
+            action: template.template_name || '',
+            params
+        });
+        alert(response?.message || devicesI18n['testCommandSent'].replace('{0}', device.name));
+        closeDeviceTestModal();
+    } catch (error) {
+        alert(devicesI18n['testFailed'] + error.message);
+    } finally {
+        if (activeTestDeviceId === device.id) button.disabled = false;
+    }
 }
 
 async function loadProductsForBrand(brandId) {
@@ -108,6 +413,7 @@ function openAddModal(groupId) {
     selectedProduct = null;
     pendingGroupId = typeof groupId === 'string' ? groupId : '';
     window.customActions = [];
+    document.getElementById('backToSelectionButton').style.display = '';
     showStep(1);
     document.getElementById('deviceModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
@@ -170,6 +476,7 @@ async function openEditModal(devId) {
         return;
     }
     
+    document.getElementById('backToSelectionButton').style.display = 'none';
     document.getElementById('devSaveBtn').textContent = devicesI18n['saveChanges'];
     showStep(2);
     document.getElementById('deviceModal').style.display = 'block';
@@ -261,7 +568,7 @@ function renderQuickConnectProducts(products) {
                 <div class="qc-product-name">${escapeJsString(product.name)}</div>
                 ${product.model ? `<div class="qc-product-model">${escapeJsString(product.model)}</div>` : ''}
             </div>
-            <button class="qc-add-btn" onclick="event.stopPropagation(); selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">${escapeJsString(devicesI18n['quickConnectIOwn'] || 'I Own This')}</button>
+            <button class="qc-add-btn" onclick="event.stopPropagation(); selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">${escapeJsString(devicesI18n['quickConnectIOwn'])}</button>
         </div>
     `).join('');
 }
@@ -418,7 +725,7 @@ function selectProduct(brandId, productId, productName, deviceName, credentials)
             devNameInput.value = deviceName;
         } else {
             devNameInput.value = '';
-            devNameInput.placeholder = 'e.g., ' + productName;
+            devNameInput.placeholder = devicesI18n['displayNameExample'].replace('{0}', productName);
         }
         
         // Fill credentials if they exist
@@ -476,7 +783,9 @@ function setStep2Brand(brand) {
     document.getElementById('step2BrandBadge').innerHTML =
         `<span class="brand-step-badge" style="background:${brandColor}18;border-color:${brandColor};color:${brandColor}">${brandIcon} ${brand.name}</span>`;
     const actionWord = editingId ? devicesI18n['editDevice'] : devicesI18n['configureDevice'];
-    document.getElementById('step2Title').textContent = actionWord + ' ' + brand.name + ' Device';
+    document.getElementById('step2Title').textContent = devicesI18n['brandDeviceTitle']
+        .replace('{0}', actionWord)
+        .replace('{1}', brand.name);
     document.getElementById('step2Desc').textContent = devicesI18n['fillDetailsDesc'];
     
     // Show catalog UI, hide custom UI
@@ -528,8 +837,8 @@ function renderCredFields(brandId) {
             const brandName = brand ? brand.name : (myBrand ? myBrand.name : brandId);
             const titleEl = document.getElementById('brandConnectedTitle');
             const descEl = document.getElementById('brandConnectedDesc');
-            if (titleEl) titleEl.textContent = `${brandName} is connected`;
-            if (descEl) descEl.textContent = `Using credentials from your Brand Settings. No additional brand credentials needed.`;
+            if (titleEl) titleEl.textContent = devicesI18n['brandConnectedTitle'].replace('{0}', brandName);
+            if (descEl) descEl.textContent = devicesI18n['brandConnectedDescription'];
             connectedNotice.style.display = 'flex';
         }
         return;
@@ -581,24 +890,24 @@ function renderCustomActionsList() {
     const html = window.customActions.map((action, idx) => `
         <div class="custom-action-card" style="border:1px solid #ddd; border-radius:6px; padding:1rem; margin-bottom:1rem; background:#f9f9f9">
             <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem">
-                <input type="text" placeholder="Action name (e.g., turn_on, set_brightness)" 
+                <input type="text" placeholder="${devicesI18n['customActionNamePlaceholder']}"
                         value="${action.action_name || ''}" 
                         onchange="customActions[${idx}].action_name = this.value"
                         style="flex:1">
-                <button type="button" class="btn btn-secondary" onclick="removeCustomAction(${idx})">Remove</button>
+                <button type="button" class="btn btn-secondary" onclick="removeCustomAction(${idx})">${devicesI18n['removeAction']}</button>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem">
-                <input type="text" placeholder="HTTP Method (GET, POST, PUT...)" 
+                <input type="text" placeholder="${devicesI18n['customActionMethodPlaceholder']}"
                         value="${action.http_method || 'POST'}" 
                         onchange="customActions[${idx}].http_method = this.value">
-                <input type="text" placeholder="URL (e.g., http://device.local/api/action)" 
+                <input type="text" placeholder="${devicesI18n['customActionURLPlaceholder']}"
                         value="${action.http_url || ''}" 
                         onchange="customActions[${idx}].http_url = this.value">
             </div>
-            <textarea placeholder="Headers (JSON format, optional). Example: {\"Content-Type\": \"application/json\"}" 
+            <textarea placeholder="${devicesI18n['customActionHeadersPlaceholder']}"
                         rows="2" style="width:100%; padding:0.5rem; margin-bottom:0.75rem; font-family:monospace; font-size:0.85rem"
                         onchange="customActions[${idx}].http_headers = this.value">${action.http_headers || ''}</textarea>
-            <textarea placeholder="Body template (JSON with {placeholders} for values). Example: {\"action\": \"{action_name}\", \"brightness\": {brightness}}" 
+            <textarea placeholder="${devicesI18n['customActionBodyPlaceholder']}"
                         rows="3" style="width:100%; padding:0.5rem; font-family:monospace; font-size:0.85rem"
                         onchange="customActions[${idx}].http_body_template = this.value">${action.http_body_template || ''}</textarea>
         </div>
@@ -718,7 +1027,7 @@ async function saveDevice(e) {
                 const productModelRequired = (brand && (brand.device_identification_required || [])).some(field => field.type === 'model');
                 
                 if (productModelRequired && !productModelValue) {
-                    alert(devicesI18n['productModelRequired'] || 'Product model is required');
+                    alert(devicesI18n['productModelRequired']);
                     btn.disabled = false;
                     return;
                 }
@@ -733,7 +1042,7 @@ async function saveDevice(e) {
                     const isRequired = input.dataset.required === 'true';
                     
                     if (isRequired && !value) {
-                        alert((input.previousElementSibling?.textContent || fieldType) + ' is required');
+                        alert(devicesI18n['requiredField'].replace('{0}', input.previousElementSibling?.textContent || fieldType));
                         btn.disabled = false;
                         return;
                     }
@@ -776,7 +1085,7 @@ async function saveDevice(e) {
 async function deleteDevice(devId) {
     const dev = window.MY_DEVICES.find(d => d.id === devId);
     if (!dev) return;
-    if (!confirm(`Remove "${dev.name}"?\n\nConditions using this device will lose their action.`)) return;
+    if (!confirm(devicesI18n['removeConfirm'].replace('{0}', dev.name))) return;
     try {
         await apiRequest('DELETE', `/devices?id=${devId}`);
         const previousGroupId = deviceGroupState.get(devId) || '';

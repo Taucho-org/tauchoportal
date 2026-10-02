@@ -667,7 +667,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Channels = pageData
 	}
 
-	// Fetch brand-settings page data if on /brand-settings page
+	// Fetch shared brand data for brand-settings and devices pages.
 	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
 		myBrandSettings := controller.MyBrandSettings{}
 		data.MyBrands = myBrandSettings.ListMyBrands()

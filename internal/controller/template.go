@@ -359,7 +359,6 @@ type DeviceForTemplate struct {
 	BrandColor       string            `json:"brand_color"`
 	BrandLogo        string            `json:"brand_logo"`
 	SupportedActions []string          `json:"supported_actions"`
-	Credentials      map[string]string `json:"credentials"`
 	DeviceIdentifier map[string]string `json:"device_identifier"`
 	DeviceGroupID    string            `json:"device_group_id"`
 	// GroupKey identifies which devices can be grouped together (same brand + same set of
@@ -489,33 +488,94 @@ type BrandForTemplate struct {
 	SortOrder                     int                            `json:"sort_order"`
 }
 
-// PrepareDevicesPageData prepares all data needed to render the devices page
-func PrepareDevicesPageData(brandList []CatalogBrand) []DeviceForTemplate {
-	devices := Devices{}.ListDevices()
-	var devicesForTemplate []DeviceForTemplate
+func credentialFieldsForTemplate(fields []BrandCredentialField) []CredentialField {
+	result := make([]CredentialField, 0, len(fields))
+	for _, field := range fields {
+		result = append(result, CredentialField{
+			Id:          field.Id,
+			Label:       field.Label,
+			Type:        field.Type,
+			Help:        field.Help,
+			Placeholder: field.Placeholder,
+		})
+	}
+	return result
+}
 
-	for _, dev := range devices {
-		deviceBrand := CatalogBrand{}
-		for _, brand := range brandList {
-			if brand.ID == dev.Brand {
-				deviceBrand = brand
-				break
-			}
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+// DevicesPageData contains all data needed to render the devices page
+type DevicesPageData struct {
+	Devices      []DeviceForTemplate
+	Brands       map[string]*BrandForTemplate
+	BrandsSorted []*BrandForTemplate
+	BrandIDs     []string
+}
+
+// PrepareDevicesPageData prepares all data needed to render the devices page
+func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
+	devices := Devices{}.ListDevices()
+	devicesForTemplate := make([]DeviceForTemplate, 0)
+
+	// Fetch all active brands from catalog
+	brandsMap := make(map[string]*BrandForTemplate)
+	brandsSorted := make([]*BrandForTemplate, 0)
+
+	// Build brands map for quick lookup and sorted slice
+	sort.Slice(brandList, func(i, j int) bool {
+		return brandList[i].SortOrder < brandList[j].SortOrder
+	})
+	for _, b := range brandList {
+		brandForTemplate := &BrandForTemplate{
+			ID:                            b.ID,
+			Name:                          b.Name,
+			LogoURL:                       stringValue(b.LogoURL),
+			BrandColor:                    stringValue(b.BrandColor),
+			AffiliateURL:                  stringValue(b.AffiliateURL),
+			Icon:                          stringValue(b.Icon),
+			CredentialFields:              credentialFieldsForTemplate(b.CredentialFields),
+			DocsUrl:                       stringValue(b.DocsURL),
+			DocsLabel:                     stringValue(b.DocsLabel),
+			SortOrder:                     b.SortOrder,
+			DeviceIdentificationRequireds: b.DeviceIdentificationRequireds,
 		}
+		brandsMap[b.ID] = brandForTemplate
+		brandsSorted = append(brandsSorted, brandForTemplate)
+	}
+
+	// Convert devices to template format
+	for _, dev := range devices {
+		brand := brandsMap[dev.Brand]
+		productName := dev.ProductName
+		if productName == "" {
+			productName = dev.ProductId
+		}
+
 		brandColor := "#888888"
 		brandLogo := ""
-		if deviceBrand.BrandColor != nil && *deviceBrand.BrandColor != "" {
-			brandColor = *deviceBrand.BrandColor
+		if brand != nil {
+			brandLogo = brand.LogoURL
+			if brand.BrandColor != "" {
+				brandColor = brand.BrandColor
+			}
 		}
-		if deviceBrand.LogoURL != nil {
-			brandLogo = *deviceBrand.LogoURL
+
+		// Use device identifiers directly as a map.
+		deviceIdentifier := dev.DeviceIdentifier
+		if deviceIdentifier == nil {
+			deviceIdentifier = make(map[string]string)
 		}
 		devicesForTemplate = append(devicesForTemplate, DeviceForTemplate{
 			ID:               dev.Id,
 			Name:             dev.Name,
 			Brand:            dev.Brand,
 			ProductID:        dev.ProductId,
-			ProductName:      dev.ProductName,
+			ProductName:      productName,
 			Room:             dev.Room,
 			Status:           dev.Status,
 			IsConfigured:     dev.IsConfigured,
@@ -539,7 +599,12 @@ func PrepareDevicesPageData(brandList []CatalogBrand) []DeviceForTemplate {
 		devicesForTemplate[i].Groupable = keyCount[devicesForTemplate[i].GroupKey] >= 2
 	}
 
-	return devicesForTemplate
+	return &DevicesPageData{
+		Devices:      devicesForTemplate,
+		Brands:       brandsMap,
+		BrandsSorted: brandsSorted,
+		BrandIDs:     getBrandIDsFromDevices(devicesForTemplate),
+	}
 }
 
 // Helper function to extract unique brand IDs from devices in order of appearance

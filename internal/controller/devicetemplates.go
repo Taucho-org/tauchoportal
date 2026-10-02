@@ -8,25 +8,13 @@ import (
 
 type DeviceTemplates struct{}
 
-type DeviceTemplateParameterDefaults struct {
-	PowerState string `json:"power_state"`
-	Brightness int    `json:"brightness"`
-}
-
-type DeviceTemplateParameterConstraint struct {
-	Min int `json:"min"`
-	Max int `json:"max"`
-}
-
-type DeviceTemplateParameterConstraints struct {
-	Brightness DeviceTemplateParameterConstraint `json:"brightness"`
-}
-
 type DeviceTemplateUIField struct {
-	Key  string `json:"key"`
-	Type string `json:"type"`
-	Min  int    `json:"min"`
-	Max  int    `json:"max"`
+	Name    string        `json:"name"`
+	Key     string        `json:"key"`
+	Options []interface{} `json:"options"`
+	Type    string        `json:"type"`
+	Min     int           `json:"min"`
+	Max     int           `json:"max"`
 }
 
 type DeviceTemplateExample struct {
@@ -40,28 +28,28 @@ type DeviceTemplateExamples struct {
 }
 
 type DeviceTemplate struct {
-	Id                        int                                `json:"id"`
-	BrandName                 string                             `json:"brand_name"`
-	TemplateName              string                             `json:"template_name"`
-	Category                  string                             `json:"category"`
-	Description               string                             `json:"description"`
-	HttpMethod                string                             `json:"http_method"`
-	DeviceIdentifyParameters  []string                           `json:"device_identify_parameters"`
-	OptionalParameters        []string                           `json:"optional_parameters"`
-	ParameterDefaults      DeviceTemplateParameterDefaults    `json:"parameter_defaults"`
-	ParameterConstraints   DeviceTemplateParameterConstraints `json:"parameter_constraints"`
-	UiFields               []DeviceTemplateUIField            `json:"ui_fields"`
-	RequiresAuthentication bool                               `json:"requires_authentication"`
-	LocalNetworkOnly       bool                               `json:"local_network_only"`
-	Notes                  string                             `json:"notes"`
-	EndpointUrl            *string                            `json:"endpoint_url"`
-	AuthenticationType     *string                            `json:"authentication_type"`
-	AuthHeader             *string                            `json:"auth_header"`
-	BodyTemplate           *string                            `json:"body_template"`
-	Examples               *DeviceTemplateExamples            `json:"examples"`
-	SupportsBatchCommands  *bool                              `json:"supports_batch_commands"`
-	CreatedAt              *string                            `json:"created_at"`
-	UpdatedAt              *string                            `json:"updated_at"`
+	Id                       int                     `json:"id"`
+	BrandName                string                  `json:"brand_name"`
+	TemplateName             string                  `json:"template_name"`
+	Category                 string                  `json:"category"`
+	Description              string                  `json:"description"`
+	HttpMethod               string                  `json:"http_method"`
+	DeviceIdentifyParameters []string                `json:"device_identify_parameters"`
+	OptionalParameters       []string                `json:"optional_parameters"`
+	ParameterDefaults        map[string]interface{}  `json:"parameter_defaults"`
+	ParameterConstraints     map[string]interface{}  `json:"parameter_constraints"`
+	UiFields                 []DeviceTemplateUIField `json:"ui_fields"`
+	RequiresAuthentication   bool                    `json:"requires_authentication"`
+	LocalNetworkOnly         bool                    `json:"local_network_only"`
+	Notes                    string                  `json:"notes"`
+	EndpointUrl              *string                 `json:"endpoint_url"`
+	AuthenticationType       *string                 `json:"authentication_type"`
+	AuthHeader               *string                 `json:"auth_header"`
+	BodyTemplate             *string                 `json:"body_template"`
+	Examples                 *DeviceTemplateExamples `json:"examples"`
+	SupportsBatchCommands    *bool                   `json:"supports_batch_commands"`
+	CreatedAt                *string                 `json:"created_at"`
+	UpdatedAt                *string                 `json:"updated_at"`
 }
 
 type ListTemplatesResponse []DeviceTemplate
