@@ -1243,8 +1243,13 @@ fieldset.item.param>div.icons{
 	width: 100%;
 	border: 1px solid orange;
 	height: 12em;
-	padding: 1em;
+	padding: 0px;
     background-color: white;
+}
+#sendingParameterArea > .form-section {
+    margin-top: 0px;
+    height: 100%;
+    overflow: auto;
 }
 #sendingParameterArea.hide{
     height: 0px;
