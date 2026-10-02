@@ -1810,6 +1810,8 @@
   "condition.deviceAction.noDevices": "此群組中沒有裝置",
   "condition.selectTemplate": "選擇範本...",
   "condition.templateJsonPlaceholder": "請輸入範本 JSON...",
+  "condition.deviceAction.configure": "設定動作",
+  "condition.deviceAction.topLevelHint": "範例：{\"command\": \"on\", \"brightness\": 50}。請使用參數物件，不要加入 method、url、headers 或 body 包裝。只有最上層欄位可以是動態值。",
   "condition.testEventParamsHint": "事件參數將顯示於此",
   "condition.success": "成功",
   "condition.error": "錯誤",

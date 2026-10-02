@@ -257,8 +257,8 @@ function renderTestTemplateFields() {
                 input.value = initialValue;
                 const min = uiField?.min ?? constraints?.min;
                 const max = uiField?.max ?? constraints?.max;
-                if (min !== undefined) input.min = min;
-                if (max !== undefined) input.max = max;
+                if (min != null) input.min = min;
+                if (max != null) input.max = max;
             }
         }
 
@@ -417,6 +417,11 @@ function openAddModal(groupId) {
     showStep(1);
     document.getElementById('deviceModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
+    
+    // Load discovered devices from all connected brands
+    setTimeout(() => {
+        loadDiscoveredDevicesInModal();
+    }, 100);
 }
 
 async function openEditModal(devId) {
@@ -622,11 +627,105 @@ function selectQuickConnectDevice(productId, productName, brandId) {
     }
 }
 
+// =============================================
+// Load Discovered Devices in Add Device Modal
+// =============================================
+async function loadDiscoveredDevicesInModal() {
+    const brands = document.querySelectorAll('[data-brand-id]');
+    
+    for (const brandEl of brands) {
+        const brandId = brandEl.getAttribute('data-brand-id');
+        if (!brandId) continue;
+        
+        try {
+            const response = await apiRequest('POST', `/devices/discover?brand=${encodeURIComponent(brandId)}`, {});
+            const discoveredDevices = response.discovered_devices || [];
+            
+            if (discoveredDevices.length > 0) {
+                renderDiscoveredDevices(brandId, discoveredDevices);
+            }
+        } catch (error) {
+            console.error('Failed to load discovered devices for brand ' + brandId + ':', error);
+        }
+    }
+}
+
+function renderDiscoveredDevices(brandId, devices) {
+    const section = document.querySelector(`.discovered-devices-section[data-brand-id="${brandId}"]`);
+    if (!section) return;
+    
+    if (!devices || devices.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    const html = devices.map(device => {
+        const statusClass = device.already_registered ? 'status-already-registered' : (device.online ? 'status-online' : 'status-offline');
+        const statusLabel = device.already_registered 
+            ? devicesI18n['discoverDeviceAlreadyRegistered']
+            : (device.online ? devicesI18n['discoverDeviceOnline'] : devicesI18n['discoverDeviceOffline']);
+        const isDisabled = device.already_registered ? 'disabled' : '';
+        
+        return `
+        <div class="product-item ${isDisabled}" onclick="selectDiscoveredDevice('${escapeJsString(brandId)}', '${escapeJsString(device.brand_device_id)}', '${escapeJsString(device.brand_device_name)}', '${escapeJsString(device.brand_device_type)}', ${device.online})"  ${isDisabled ? 'style="pointer-events: none; opacity: 0.6;"' : ''}>
+            <div class="product-info">
+                <h5 class="product-name">${escapeHtml(device.brand_device_name)}</h5>
+                <span class="product-actions">${escapeHtml(device.brand_device_type)}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="product-status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+    
+    section.innerHTML = html;
+    section.style.display = 'block';
+}
+
+function selectDiscoveredDevice(brandId, deviceId, deviceName, deviceType, online) {
+    if (!online) {
+        alert('This device is offline and cannot be imported at this time.');
+        return;
+    }
+    
+    // For discovered devices, we'll import them directly
+    importAndSelectDiscoveredDevice(brandId, deviceId, deviceName);
+}
+
+async function importAndSelectDiscoveredDevice(brandId, deviceId, deviceName) {
+    try {
+        const response = await apiRequest('POST', '/devices/import-from-brand', {
+            brand: brandId,
+            device_ids: [deviceId]
+        });
+
+        if (!response) throw new Error('No response from server');
+        
+        const imported = response.imported || [];
+        if (imported.length > 0) {
+            const device = imported[0];
+            selectProduct(brandId, device.product_id, device.name, device.name, {});
+        } else {
+            alert('Failed to import device');
+        }
+    } catch (error) {
+        alert('Failed to import device: ' + error.message);
+    }
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', e => {
     const qcModal = document.getElementById('quickConnectModal');
     if (qcModal && e.target === qcModal) {
         closeQuickConnectModal();
+    }
+});
+
+document.addEventListener('click', e => {
+    const ddModal = document.getElementById('discoverDevicesModal');
+    if (ddModal && e.target === ddModal) {
+        closeDiscoverModal();
     }
 });
 

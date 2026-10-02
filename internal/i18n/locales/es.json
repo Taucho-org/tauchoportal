@@ -1810,6 +1810,8 @@
   "condition.deviceAction.noDevices": "No hay dispositivos en este grupo",
   "condition.selectTemplate": "Selecciona una plantilla...",
   "condition.templateJsonPlaceholder": "Introduce el JSON de la plantilla...",
+  "condition.deviceAction.configure": "Configurar acción",
+  "condition.deviceAction.topLevelHint": "Ejemplo: {\"command\": \"on\", \"brightness\": 50}. Usa un objeto de parámetros sin method, url, headers ni un contenedor body. Solo los campos de primer nivel pueden ser dinámicos.",
   "condition.testEventParamsHint": "Los parámetros del evento aparecerán aquí",
   "condition.success": "Éxito",
   "condition.error": "Error",

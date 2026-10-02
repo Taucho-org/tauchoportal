@@ -352,6 +352,9 @@
                                 </div>
                                 {{end}}
                                 
+                                <!-- Discovered Devices Section (populated by JS) -->
+                                <div class="discovered-devices-section" data-brand-id="{{$brandId}}" style="display: none;"></div>
+                                
                                 <!-- Separator -->
                                 {{$hasOwned := false}}
                                 {{range $.Devices.Devices}}

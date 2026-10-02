@@ -263,7 +263,10 @@ func PrepareConditionsPageData(channelID string) *ConditionsPageData {
 	conditions := make([]ConditionForTemplate, 0)
 	for _, c := range condList {
 		condLogicJSON, _ := json.Marshal(c.ConditionLogic)
-		deviceActionParamsJSON, _ := json.Marshal(c.DeviceActionParams)
+		deviceActionParamsJSON, _ := json.Marshal(ConditionDeviceActionParams{
+			"device_group_id":    c.DeviceGroupId,
+			"device_action_body": c.DeviceActionBody,
+		})
 		conditions = append(conditions, ConditionForTemplate{
 			ID:                 c.Id,
 			Name:               c.Name,
@@ -685,7 +688,10 @@ func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Tr
 	condition := cond.GetCondition(conditionID)
 
 	condLogicJSON, _ := json.Marshal(condition.ConditionLogic)
-	deviceActionParamsJSON, _ := json.Marshal(condition.DeviceActionParams)
+	deviceActionParamsJSON, _ := json.Marshal(ConditionDeviceActionParams{
+		"device_group_id":    condition.DeviceGroupId,
+		"device_action_body": condition.DeviceActionBody,
+	})
 	condForTemplate := &ConditionForTemplate{
 		ID:                 condition.Id,
 		Name:               condition.Name,

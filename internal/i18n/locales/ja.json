@@ -1810,6 +1810,8 @@
   "condition.deviceAction.noDevices": "このグループにはデバイスがありません",
   "condition.selectTemplate": "テンプレートを選択…",
   "condition.templateJsonPlaceholder": "テンプレートJSONを入力…",
+  "condition.deviceAction.configure": "アクションを設定",
+  "condition.deviceAction.topLevelHint": "例: {\"command\": \"on\", \"brightness\": 50}。method、url、headers、bodyで囲まず、パラメーターのオブジェクトを入力してください。動的に設定できるのは最上位のフィールドのみです。",
   "condition.testEventParamsHint": "イベントパラメータがここに表示されます",
   "condition.success": "成功",
   "condition.error": "エラー",

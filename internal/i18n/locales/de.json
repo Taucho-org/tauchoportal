@@ -1810,6 +1810,8 @@
   "condition.deviceAction.noDevices": "Keine Geräte in dieser Gruppe",
   "condition.selectTemplate": "Vorlage auswählen...",
   "condition.templateJsonPlaceholder": "Vorlagen-JSON eingeben...",
+  "condition.deviceAction.configure": "Aktion konfigurieren",
+  "condition.deviceAction.topLevelHint": "Beispiel: {\"command\": \"on\", \"brightness\": 50}. Verwenden Sie ein Parameterobjekt ohne method, url, headers oder eine body-Hülle. Nur Felder auf oberster Ebene können dynamisch sein.",
   "condition.testEventParamsHint": "Ereignisparameter werden hier angezeigt",
   "condition.success": "Erfolg",
   "condition.error": "Fehler",

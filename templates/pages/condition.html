@@ -93,6 +93,7 @@
                 <select id="deviceActionGroup" class="form-control">
                     <option value="">{{.I18n.T "condition.loadingDeviceGroups"}}</option>
                 </select>
+                <button type="button" class="btn btn-secondary" onclick="deviceActionHandler.editConfiguration()">{{.I18n.T "condition.deviceAction.configure"}}</button>
                 <div id="deviceActionGroupDevices" class="group-devices-list" style="display:none;"
                      data-label="{{.I18n.T "condition.deviceAction.includedDevices"}}"
                      data-empty="{{.I18n.T "condition.deviceAction.noDevices"}}"></div>
@@ -132,7 +133,7 @@
                 <div class="form-section" id="modal_customTemplateContainer" style="display:none;">
                     <label for="modal_customTemplateJSON">{{.I18n.T "condition.deviceAction.customTemplateJson" "Template JSON"}}</label>
                     <textarea id="modal_customTemplateJSON" class="condition-textarea" style="width: 100%; height: 200px; font-family: monospace; border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;" placeholder="{{.I18n.T "condition.templateJsonPlaceholder"}}"></textarea>
-                    <small style="display: block; margin-top: 0.5rem; color: #666;">{{.I18n.T "condition.deviceAction.customTemplateHint" "Example: {\"command\": \"on\", \"brightness\": 50}"}}</small>
+                    <small style="display: block; margin-top: 0.5rem; color: #666;">{{.I18n.T "condition.deviceAction.topLevelHint"}}</small>
                 </div>
                 
                 <!-- Parameters Container -->
@@ -671,7 +672,13 @@ async function runConditionTest() {
     
     const data = getConditionData();
     const conditionLogic = parseJSON(data.logic);
-    const deviceActionParams = parseJSON(data.params) || {};
+    let deviceActionParams;
+    try {
+        deviceActionParams = deviceActionHandler.getActionParams();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
     
     if (!conditionLogic) {
         alert('Invalid condition logic JSON');
@@ -700,9 +707,7 @@ async function runConditionTest() {
     const testRequest = {
         condition_logic: conditionLogic,
         test_event: sampleEvent,
-        device_id: '{{.Condition.DeviceID}}' || '',
-        device_action: '{{.Condition.DeviceAction}}' || '',
-        device_action_params: deviceActionParams,
+        ...deviceActionParams,
         trigger_real_device: triggerRealDevice
     };
     
@@ -718,6 +723,7 @@ async function runConditionTest() {
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(testRequest)
     })
     .then(response => {
@@ -762,7 +768,13 @@ function submitCondition() {
     // Get the condition data
     const data = getConditionData();
     const conditionLogic = parseJSON(data.logic);
-    const deviceActionParams = parseJSON(data.params);
+    let deviceActionParams;
+    try {
+        deviceActionParams = deviceActionHandler.getActionParams();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
     
     if (!conditionLogic) {
         alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
@@ -774,78 +786,12 @@ function submitCondition() {
         return;
     }
     
-    // Extract device action components
-    let deviceActionBody = null;
-    let deviceActionParamName = null;
-    let deviceActionParamEvaluator = null;
-
-    if (deviceActionParams && typeof deviceActionParams === 'object') {
-        // Validate device action structure if present
-        if (deviceActionParams.device_action_body) {
-            deviceActionBody = deviceActionParams.device_action_body;
-            deviceActionParamName = deviceActionParams.device_action_param_name;
-            deviceActionParamEvaluator = deviceActionParams.device_action_param_evaluator;
-
-            // Validate required fields
-            if (!deviceActionBody.method || !deviceActionBody.url || !deviceActionBody.body) {
-                alert('Invalid device action template: missing method, url, or body');
-                return;
-            }
-
-            // Validate placeholders
-            const bodyStr = JSON.stringify(deviceActionBody.body);
-            if (!bodyStr.includes('{device_id}') || !bodyStr.includes('{model_id}')) {
-                alert('Template must contain {device_id} and {model_id} placeholders');
-                return;
-            }
-
-            // If flexible parameter is configured, validate it
-            if (deviceActionParamEvaluator) {
-                // Validate operator is in allowed list
-                const allowedOperators = ['PARAM', 'REGEX_EXTRACT', 'SUBSTRING', 'FIRST', 'LAST', 'COLOR_PICKUP', 
-                                         'PARSEINT', 'WHOLESENTENCE', 'ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE', 'MODULO', 'EXCHANGE'];
-                if (!allowedOperators.includes(deviceActionParamEvaluator.operator)) {
-                    alert('Invalid operator: ' + deviceActionParamEvaluator.operator);
-                    return;
-                }
-
-                // Validate parameter path exists
-                if (!deviceActionParamName) {
-                    alert('Flexible parameter configured but no parameter name specified');
-                    return;
-                }
-
-                // Validate path exists in body
-                const bodyObj = deviceActionBody.body;
-                const pathParts = deviceActionParamName.split('.');
-                let current = bodyObj;
-                for (const part of pathParts) {
-                    if (current === null || current === undefined || !(part in current)) {
-                        alert('Parameter path "' + deviceActionParamName + '" does not exist in template body');
-                        return;
-                    }
-                    current = current[part];
-                }
-            }
-
-            // Validate device_group_id if present
-            if (deviceActionParams.device_group_id) {
-                if (typeof deviceActionParams.device_group_id !== 'string' || !deviceActionParams.device_group_id.trim()) {
-                    alert('Invalid device group ID');
-                    return;
-                }
-            }
-        }
-    }
-    
     const conditionData = {
         name: conditionName,
         event_type: '{{.Condition.EventType}}',
         is_enabled: true,
         condition_logic: conditionLogic,
-        device_action_body: deviceActionBody,
-        device_action_param_name: deviceActionParamName,
-        device_action_param_evaluator: deviceActionParamEvaluator
+        ...deviceActionParams
     };
     
     // Determine if this is a create or update
@@ -884,7 +830,6 @@ function submitCondition() {
     })
     .then(result => {
         console.log('Condition saved:', result);
-        console.log('Device action params saved:', result.device_action_params);
         alert('Condition saved successfully!');
         // Redirect back to conditions list
         window.location.href = '/channels/' + encodeURIComponent(channelID) + '/conditions';
@@ -941,11 +886,6 @@ document.addEventListener('DOMContentLoaded', function() {
         jsonTextarea: sendingParamTextarea
     });
     
-    // Load existing data if available
-    if (sendingParamTextarea.value.trim()) {
-        deviceActionHandler.loadFromJson();
-    }
-    
     // Override test modal close buttons to use custom closeTestModal function
     const testModal = document.getElementById('testConditionModal');
     if (testModal) {
@@ -971,7 +911,7 @@ function refreshRequest() {
         const sendingParamTextarea = document.getElementById('sendingparamjson');
         if (sendingParamTextarea.value.trim()) {
             try {
-                deviceActionHandler.setJSON(sendingParamTextarea.value);
+                deviceActionHandler.loadFromJson();
             } catch (e) {
                 console.warn('Could not sync JSON to form:', e);
             }
