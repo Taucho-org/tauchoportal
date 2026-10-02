@@ -582,8 +582,7 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 			BrandColor:       brandColor,
 			BrandLogo:        brandLogo,
 			SupportedActions: dev.SupportedActions,
-			Credentials:      dev.Credentials,
-			DeviceIdentifier: dev.DeviceIdentifier,
+			DeviceIdentifier: deviceIdentifier,
 			DeviceGroupID:    dev.DeviceGroupId,
 			GroupKey:         DeviceGroupKey(dev.Brand, dev.SupportedActions),
 		})

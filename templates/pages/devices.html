@@ -140,7 +140,7 @@
 
         <!-- Standalone devices (single-device groups and legacy ungrouped devices) with Catalog Injections -->
         <div class="devices-list" id="devicesList">
-            {{if eq (len .Devices) 0}}
+            {{if eq (len .Devices.Devices) 0}}
             <p class="no-devices-msg">{{.I18n.T "devices.noDevices"}}</p>
             {{else}}
             {{if eq (len .StandaloneDevices) 0}}
@@ -592,7 +592,7 @@
 {{define "scripts"}}
 <script src="/js/devices.js"></script>
 <script id="mydevices" type="application/json">
-{{toJSON .Devices}}
+{{toJSON .Devices.Devices}}
 </script>
 <script id="mybrands" type="application/json">
 {{toJSON .MyBrands}}
@@ -601,9 +601,7 @@
 {{toJSON .DeviceGroups}}
 </script>
 <script>
-const allBrands = JSON.parse(document.getElementById('allbrands').textContent);
 const myDevices = JSON.parse(document.getElementById('mydevices').textContent);
-const myBrands = JSON.parse(document.getElementById('mybrands').textContent);
 const myDeviceGroups = JSON.parse(document.getElementById('mydevicegroups').textContent);
 window.BRANDS = allBrands || [];
 window.MY_DEVICES = myDevices || [];
