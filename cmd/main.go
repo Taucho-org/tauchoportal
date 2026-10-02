@@ -40,7 +40,7 @@ type PageData struct {
 	EventTypes              []string
 	ChannelDetail           *controller.ChannelDetailForTemplate
 	ChannelDetailConditions []controller.ConditionDetailForTemplate
-	Devices                 []controller.DeviceForTemplate
+	Devices                 *controller.DevicesPageData
 	DeviceGroups            []controller.DeviceGroupForTemplate
 	UngroupedDevices        []controller.DeviceForTemplate
 	MultiDeviceGroups       []controller.DeviceGroupForTemplate
@@ -678,8 +678,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Devices = controller.PrepareDevicesPageData(data.Brands)
 
 		if cfg.Name == "devices" {
-			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(data.Devices)
-			data.MultiDeviceGroups, data.StandaloneDevices = controller.SplitDevicesForDisplay(data.Devices, data.DeviceGroups)
+			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(data.Devices.Devices)
+			data.MultiDeviceGroups, data.StandaloneDevices = controller.SplitDevicesForDisplay(data.Devices.Devices, data.DeviceGroups)
 		}
 	}
 
