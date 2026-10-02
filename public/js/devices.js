@@ -17,6 +17,10 @@ function escapeJsString(str) {
     return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 }
 
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
 async function apiRequest(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
     if (body) {
@@ -60,11 +64,49 @@ function filterByBrand(brandId, btn) {
 // =============================================
 let selectedBrand = null;
 let editingId = null;
+// Group to pre-select in the device form (e.g. when adding a device from a group section)
+let pendingGroupId = '';
 
-function openAddModal() {
+// Devices can be grouped only with devices of the same brand having exactly the same supported actions.
+// Must stay in sync with controller.DeviceGroupKey (internal/controller/template.go).
+function deviceGroupKey(brand, supportedActions) {
+    if (!brand || brand === 'custom' || !Array.isArray(supportedActions)) return '';
+    const actions = Array.from(new Set(supportedActions.filter(a => a))).sort();
+    return actions.length ? `${brand}|${actions.join(',')}` : '';
+}
+
+// Restricts the device form's group options to compatible groups. When the device's actions are not
+// known yet (a new device), only the brand is matched; compatibility is re-checked after saving.
+function filterDeviceFormGroups(brand, groupKey) {
+    const sel = document.getElementById('devGroup');
+    const wrapper = document.getElementById('devGroupFormGroup');
+    if (!sel) return;
+    let visibleCount = 0;
+    Array.from(sel.options).forEach(opt => {
+        if (!opt.value) return;
+        const optKey = opt.dataset.groupKey || '';
+        const ok = !!optKey && brand && brand !== 'custom' &&
+            (groupKey ? optKey === groupKey : optKey.startsWith(brand + '|'));
+        opt.hidden = !ok;
+        opt.disabled = !ok;
+        if (ok) visibleCount++;
+    });
+    if (wrapper) wrapper.style.display = visibleCount > 0 ? '' : 'none';
+}
+
+// The device form only offers visible (multi-device) compatible groups; anything else means "standalone"
+function setDeviceFormGroup(groupId) {
+    const sel = document.getElementById('devGroup');
+    if (!sel) return;
+    const exists = Array.from(sel.options).some(o => o.value === groupId && !o.disabled);
+    sel.value = exists ? groupId : '';
+}
+
+function openAddModal(groupId) {
     editingId = null;
     selectedBrand = null;
     selectedProduct = null;
+    pendingGroupId = typeof groupId === 'string' ? groupId : '';
     window.customActions = [];
     showStep(1);
     document.getElementById('deviceModal').style.display = 'block';
@@ -99,6 +141,8 @@ async function openEditModal(devId) {
         // Use credentials from MY_DEVICES (pre-loaded from server)
         document.getElementById('devName').value = dev.name;
         document.getElementById('devRoom').value = dev.room || '';
+        filterDeviceFormGroups(dev.brand, dev.group_key || deviceGroupKey(dev.brand, dev.supported_actions));
+        setDeviceFormGroup(dev.device_group_id || '');
         
         const creds = dev.credentials || {};
         const brand = BRANDS.find(b => b.id === dev.brand);
@@ -243,6 +287,10 @@ function selectQuickConnectDevice(productId, productName, brandId) {
     selectedProduct = productId;
     selectedProductName = productName;
     
+    // Capture the product's actions before closing (closing clears the product list)
+    const qcProduct = quickConnectProducts.find(p => p.id === productId);
+    const qcGroupKey = deviceGroupKey(brandId, qcProduct && qcProduct.supported_actions);
+
     // Close quick connect modal and open the device configuration form
     closeQuickConnectModal();
     
@@ -256,6 +304,9 @@ function selectQuickConnectDevice(productId, productName, brandId) {
         syncBrandRequiredFields(brandId);
         document.getElementById('devName').value = '';
         document.getElementById('devRoom').value = '';
+        pendingGroupId = '';
+        filterDeviceFormGroups(brandId, qcGroupKey);
+        setDeviceFormGroup('');
         document.getElementById('devSaveBtn').textContent = devicesI18n['addDeviceButton'];
         editingId = null;
         showStep(2);
@@ -401,6 +452,8 @@ function selectProduct(brandId, productId, productName, deviceName, credentials)
             });
         }
     }
+    filterDeviceFormGroups(brandId, '');
+    setDeviceFormGroup(pendingGroupId);
     document.getElementById('devSaveBtn').textContent = devicesI18n['addDeviceButton'];
     showStep(2);
 }
@@ -573,6 +626,26 @@ function removeCustomAction(idx) {
 // =============================================
 // CRUD
 // =============================================
+// Creates or updates the device and returns { id, device_group_id } of the saved device
+async function persistDevice(deviceBody) {
+    if (editingId) {
+        const updated = await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody) || {};
+        const existing = getDeviceById(editingId) || {};
+        const actions = updated.supported_actions || existing.supported_actions;
+        return {
+            id: editingId,
+            device_group_id: deviceGroupState.get(editingId) || '',
+            group_key: deviceGroupKey(existing.brand || deviceBody.brand, actions)
+        };
+    }
+    const created = await apiRequest('POST', '/devices', deviceBody) || {};
+    return {
+        id: created.id || created.ID || null,
+        device_group_id: created.device_group_id || '',
+        group_key: deviceGroupKey(created.brand || deviceBody.brand, created.supported_actions)
+    };
+}
+
 async function saveDevice(e) {
     e.preventDefault();
     const btn = document.getElementById('devSaveBtn');
@@ -580,6 +653,9 @@ async function saveDevice(e) {
     try {
         const name = document.getElementById('devName').value;
         const room = document.getElementById('devRoom').value || null;
+        const groupSelect = document.getElementById('devGroup');
+        const targetGroupId = groupSelect ? groupSelect.value : '';
+        let savedDevice = null;
         
         // Handle custom devices
         if (selectedBrand === 'custom') {
@@ -619,11 +695,7 @@ async function saveDevice(e) {
                 room: room,
                 credentials: {}
             };
-            if (editingId) {
-                await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
-            } else {
-                await apiRequest('POST', '/devices', deviceBody);
-            }
+            savedDevice = await persistDevice(deviceBody);
         } 
         // Handle catalog devices
         else {
@@ -680,13 +752,17 @@ async function saveDevice(e) {
                 credentials: creds,
                 device_identifier: deviceIdentifier
             };
-            if (editingId) {
-                await apiRequest('PATCH', `/devices/update?id=${editingId}`, deviceBody);
-            } else {
-                await apiRequest('POST', '/devices', deviceBody);
-            }
+            savedDevice = await persistDevice(deviceBody);
         }
         
+        if (savedDevice && savedDevice.id) {
+            try {
+                await syncDeviceGroupAfterSave(savedDevice, name, targetGroupId);
+            } catch (groupErr) {
+                alert(devicesI18n['failedAssignGroup'] + groupErr.message);
+            }
+        }
+
         closeModal();
         // Reload page to get fresh device list from server
         window.location.reload();
@@ -703,6 +779,13 @@ async function deleteDevice(devId) {
     if (!confirm(`Remove "${dev.name}"?\n\nConditions using this device will lose their action.`)) return;
     try {
         await apiRequest('DELETE', `/devices?id=${devId}`);
+        const previousGroupId = deviceGroupState.get(devId) || '';
+        deviceGroupState.delete(devId);
+        try {
+            await tidyGroupAfterLeave(previousGroupId);
+        } catch (groupErr) {
+            console.warn('Failed to clean up device group', groupErr);
+        }
         // Reload page to get fresh device list from server
         window.location.reload();
     } catch (e) {
@@ -740,3 +823,331 @@ async function testDevice(devId) {
         alert(devicesI18n['testFailed'] + e.message);
     }
 }
+// =============================================
+// Device Groups
+// =============================================
+// Grouping is the default data model: every device owns an implicit single-device group, which the UI
+// presents as a plain device. The "group" concept only becomes visible once a group has 2+ devices.
+const deviceGroupState = new Map((window.MY_DEVICES || []).map(d => [d.id, d.device_group_id || '']));
+const deviceKeyState = new Map((window.MY_DEVICES || []).map(d => [d.id, d.group_key || deviceGroupKey(d.brand, d.supported_actions)]));
+let editingGroupId = null;
+let groupingFromDeviceId = null;
+// Compatibility key that every member of the group being edited/created must share
+let groupModalKey = '';
+
+function getGroupById(groupId) {
+    return (window.DEVICE_GROUPS || []).find(g => g.id === groupId) || null;
+}
+
+function getDeviceById(deviceId) {
+    return (window.MY_DEVICES || []).find(d => d.id === deviceId) || null;
+}
+
+function groupMembers(groupId) {
+    if (!groupId) return [];
+    return Array.from(deviceGroupState).filter(([, g]) => g === groupId).map(([id]) => id);
+}
+
+function isVisibleGroup(groupId) {
+    return groupMembers(groupId).length >= 2;
+}
+
+// A group's compatibility key is that of its first member (same rule as the server-side render)
+function groupKeyOf(groupId) {
+    const first = groupMembers(groupId)[0];
+    return first ? (deviceKeyState.get(first) || '') : '';
+}
+
+function brandName(brandId) {
+    const brand = (typeof BRANDS !== 'undefined' ? BRANDS : []).find(b => b.id === brandId);
+    return brand ? brand.name : brandId;
+}
+
+async function createDeviceGroup(name, option) {
+    const created = await apiRequest('POST', '/device-groups', { name, option: option || 'sequential' });
+    const id = created && (created.id || created.ID);
+    if (!id) throw new Error('missing group id in response');
+    return id;
+}
+
+async function assignDeviceToGroup(deviceId, groupId) {
+    await apiRequest('POST', `/device-groups/assign?device_id=${encodeURIComponent(deviceId)}&group_id=${encodeURIComponent(groupId)}`);
+    deviceGroupState.set(deviceId, groupId);
+}
+
+// Gives a device its own implicit single-device group (named after the device)
+async function giveDeviceOwnGroup(deviceId, deviceName) {
+    const groupId = await createDeviceGroup(deviceName || deviceId, 'sequential');
+    try {
+        await assignDeviceToGroup(deviceId, groupId);
+    } catch (e) {
+        await apiRequest('DELETE', `/device-groups?id=${encodeURIComponent(groupId)}`).catch(() => {});
+        throw e;
+    }
+    return groupId;
+}
+
+// After devices leave a group: delete it when empty, or rename it after its last device when it
+// collapses back to an implicit single-device group.
+async function tidyGroupAfterLeave(groupId) {
+    if (!groupId) return;
+    const members = groupMembers(groupId);
+    if (members.length === 0) {
+        await apiRequest('DELETE', `/device-groups?id=${encodeURIComponent(groupId)}`);
+    } else if (members.length === 1) {
+        const last = getDeviceById(members[0]);
+        if (last) await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(groupId)}`, { name: last.name });
+    }
+}
+
+// Keeps group membership consistent after a device is created or edited.
+// targetGroupId is a visible group chosen in the form, or '' for a standalone device.
+async function syncDeviceGroupAfterSave(savedDevice, deviceName, targetGroupId) {
+    const deviceId = savedDevice.id;
+    const previousGroupId = savedDevice.device_group_id || '';
+    deviceGroupState.set(deviceId, previousGroupId);
+    deviceKeyState.set(deviceId, savedDevice.group_key || '');
+
+    if (targetGroupId && targetGroupId !== previousGroupId &&
+        (!savedDevice.group_key || savedDevice.group_key !== groupKeyOf(targetGroupId))) {
+        const group = getGroupById(targetGroupId);
+        alert(devicesI18n['groupIncompatibleOnSave'].replace('{0}', group ? group.name : ''));
+        targetGroupId = '';
+    }
+
+    if (targetGroupId) {
+        if (targetGroupId !== previousGroupId) {
+            await assignDeviceToGroup(deviceId, targetGroupId);
+            await tidyGroupAfterLeave(previousGroupId);
+        }
+        return;
+    }
+
+    if (previousGroupId && groupMembers(previousGroupId).length === 1) {
+        const group = getGroupById(previousGroupId);
+        if (group && group.name !== deviceName) {
+            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(previousGroupId)}`, { name: deviceName });
+        }
+        return;
+    }
+
+    // New device, legacy device without a group, or a device leaving a visible group
+    await giveDeviceOwnGroup(deviceId, deviceName);
+    await tidyGroupAfterLeave(previousGroupId);
+}
+
+async function removeFromGroup(deviceId) {
+    const dev = getDeviceById(deviceId);
+    const groupId = deviceGroupState.get(deviceId) || '';
+    const group = getGroupById(groupId);
+    if (!dev || !group) return;
+    if (!confirm(devicesI18n['removeFromGroupConfirm'].replace('{0}', dev.name).replace('{1}', group.name))) return;
+    try {
+        await giveDeviceOwnGroup(deviceId, dev.name);
+        await tidyGroupAfterLeave(groupId);
+        window.location.reload();
+    } catch (e) {
+        alert(devicesI18n['failedAssignGroup'] + e.message);
+    }
+}
+
+async function ungroupGroup(groupId) {
+    const group = getGroupById(groupId);
+    if (!group) return;
+    if (!confirm(devicesI18n['ungroupConfirm'].replace('{0}', group.name))) return;
+    try {
+        for (const deviceId of groupMembers(groupId)) {
+            const dev = getDeviceById(deviceId);
+            await giveDeviceOwnGroup(deviceId, dev ? dev.name : deviceId);
+        }
+        await apiRequest('DELETE', `/device-groups?id=${encodeURIComponent(groupId)}`);
+        window.location.reload();
+    } catch (e) {
+        alert(devicesI18n['failedUngroup'] + e.message);
+        window.location.reload();
+    }
+}
+
+// groupId: manage an existing visible group. initialDeviceId: start grouping from this standalone device.
+function openGroupModal(groupId, initialDeviceId) {
+    const group = groupId && isVisibleGroup(groupId) ? getGroupById(groupId) : null;
+    editingGroupId = group ? group.id : null;
+    groupingFromDeviceId = group ? null : (initialDeviceId || null);
+    groupModalKey = group ? groupKeyOf(group.id) : (deviceKeyState.get(groupingFromDeviceId) || '');
+
+    document.getElementById('groupForm').reset();
+    document.getElementById('groupModalTitle').textContent = group ? devicesI18n['editGroupTitle'] : devicesI18n['groupDevicesTitle'];
+    document.getElementById('groupSaveBtn').textContent = group ? devicesI18n['saveChanges'] : devicesI18n['createGroup'];
+    document.getElementById('groupUngroupBtn').style.display = group ? '' : 'none';
+    document.getElementById('groupName').value = group ? group.name : '';
+
+    const option = group && group.option === 'queue' ? 'queue' : 'sequential';
+    const radio = document.querySelector(`input[name="groupOption"][value="${option}"]`);
+    if (radio) radio.checked = true;
+
+    document.getElementById('groupDeviceSearch').value = '';
+    renderGroupDeviceList(editingGroupId, groupingFromDeviceId);
+
+    document.getElementById('groupModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    document.getElementById('groupName').focus();
+}
+
+function closeGroupModal() {
+    const modal = document.getElementById('groupModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    editingGroupId = null;
+    groupingFromDeviceId = null;
+    groupModalKey = '';
+}
+
+function renderGroupDeviceList(groupId, initialDeviceId) {
+    const container = document.getElementById('groupDeviceList');
+    const devices = window.MY_DEVICES || [];
+    if (devices.length === 0) {
+        container.innerHTML = `<p class="group-device-empty">${escapeHtml(devicesI18n['groupNoDevices'])}</p>`;
+        updateGroupSelectedCount();
+        return;
+    }
+
+    const candidates = devices.filter(dev => {
+        const isMember = groupId && (deviceGroupState.get(dev.id) || '') === groupId;
+        return isMember || (groupModalKey && deviceKeyState.get(dev.id) === groupModalKey);
+    });
+
+    const compatNote = document.getElementById('groupCompatNote');
+    if (compatNote) {
+        const [keyBrand, keyActions] = groupModalKey.split('|');
+        compatNote.innerHTML = groupModalKey
+            ? `${escapeHtml(devicesI18n['groupCompatibleFilter'].replace('{0}', brandName(keyBrand)))}
+               <span class="group-compat-actions">${(keyActions || '').split(',').map(a => `<span class="action-chip">${escapeHtml(a)}</span>`).join('')}</span>`
+            : '';
+    }
+
+    if (candidates.length < 2 && !groupId) {
+        container.innerHTML = `<p class="group-device-empty">${escapeHtml(devicesI18n['groupNoCompatibleDevices'])}</p>`;
+        updateGroupSelectedCount();
+        return;
+    }
+
+    container.innerHTML = candidates.map(dev => {
+        const currentGroupId = deviceGroupState.get(dev.id) || '';
+        const checked = (groupId && currentGroupId === groupId) || dev.id === initialDeviceId;
+        const incompatible = deviceKeyState.get(dev.id) !== groupModalKey || !groupModalKey;
+        // Only mention groups the user can actually see (2+ devices)
+        const otherGroup = currentGroupId && currentGroupId !== groupId && isVisibleGroup(currentGroupId)
+            ? getGroupById(currentGroupId) : null;
+        const color = dev.brand_color || '#888888';
+        const note = otherGroup
+            ? `<span class="group-device-note">${escapeHtml(devicesI18n['groupCurrentlyIn'].replace('{0}', otherGroup.name))}</span>`
+            : '';
+        return `
+        <label class="group-device-row" data-search="${escapeHtml(((dev.name || '') + ' ' + (dev.product_name || '') + ' ' + (dev.room || '')).toLowerCase())}">
+            <input type="checkbox" value="${escapeHtml(dev.id)}" ${checked ? 'checked' : ''} onchange="updateGroupSelectedCount()">
+            <span class="group-device-color" style="background:${escapeHtml(color)}"></span>
+            <span class="group-device-info">
+                <span class="group-device-name">${escapeHtml(dev.name)}</span>
+                <span class="group-device-meta">${escapeHtml(dev.product_name || dev.product_id || '')}${dev.room ? ' · 🏠 ' + escapeHtml(dev.room) : ''}</span>
+            </span>
+            ${incompatible ? `<span class="group-device-note incompatible">${escapeHtml(devicesI18n['groupIncompatibleMember'])}</span>` : note}
+        </label>`;
+    }).join('');
+    updateGroupSelectedCount();
+}
+
+function filterGroupDeviceList(term) {
+    const q = (term || '').trim().toLowerCase();
+    document.querySelectorAll('#groupDeviceList .group-device-row').forEach(row => {
+        row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+    });
+}
+
+function updateGroupSelectedCount() {
+    const count = document.querySelectorAll('#groupDeviceList input[type="checkbox"]:checked').length;
+    const el = document.getElementById('groupSelectedCount');
+    if (el) el.textContent = `(${devicesI18n['groupSelectedCount'].replace('{0}', count)})`;
+}
+
+async function saveGroup(e) {
+    e.preventDefault();
+    const btn = document.getElementById('groupSaveBtn');
+    const name = document.getElementById('groupName').value.trim();
+    if (!name) {
+        alert(devicesI18n['groupNameRequired']);
+        return;
+    }
+    const optionEl = document.querySelector('input[name="groupOption"]:checked');
+    const option = optionEl ? optionEl.value : 'sequential';
+
+    const selectedIds = new Set(
+        Array.from(document.querySelectorAll('#groupDeviceList input[type="checkbox"]:checked')).map(cb => cb.value)
+    );
+    if (selectedIds.size < 2) {
+        alert(devicesI18n['groupMinDevices']);
+        return;
+    }
+    const incompatible = Array.from(selectedIds).filter(id => !groupModalKey || deviceKeyState.get(id) !== groupModalKey);
+    if (incompatible.length) {
+        const names = incompatible.map(id => (getDeviceById(id) || {}).name || id).join(', ');
+        alert(devicesI18n['groupIncompatibleSelected'].replace('{0}', names));
+        return;
+    }
+
+    btn.disabled = true;
+    try {
+        let anchorGroupId = editingGroupId;
+        if (!anchorGroupId && groupingFromDeviceId && selectedIds.has(groupingFromDeviceId)) {
+            // Reuse the starting device's implicit group so conditions already targeting it keep working
+            const ownGroupId = deviceGroupState.get(groupingFromDeviceId) || '';
+            if (ownGroupId && groupMembers(ownGroupId).length === 1) anchorGroupId = ownGroupId;
+        }
+        if (anchorGroupId) {
+            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(anchorGroupId)}`, { name, option });
+        } else {
+            anchorGroupId = await createDeviceGroup(name, option);
+        }
+
+        const leftGroups = new Set();
+        const failures = [];
+        for (const dev of window.MY_DEVICES || []) {
+            const currentGroupId = deviceGroupState.get(dev.id) || '';
+            try {
+                if (selectedIds.has(dev.id) && currentGroupId !== anchorGroupId) {
+                    await assignDeviceToGroup(dev.id, anchorGroupId);
+                    if (currentGroupId) leftGroups.add(currentGroupId);
+                } else if (!selectedIds.has(dev.id) && currentGroupId === anchorGroupId) {
+                    await giveDeviceOwnGroup(dev.id, dev.name);
+                }
+            } catch (err) {
+                failures.push(`${dev.name}: ${err.message}`);
+            }
+        }
+        for (const groupId of leftGroups) {
+            try {
+                await tidyGroupAfterLeave(groupId);
+            } catch (err) {
+                console.warn('Failed to clean up device group', groupId, err);
+            }
+        }
+        if (failures.length) {
+            alert(devicesI18n['failedAssignGroup'] + '\n' + failures.join('\n'));
+        }
+
+        closeGroupModal();
+        window.location.reload();
+    } catch (err) {
+        alert(devicesI18n['failedSaveGroup'] + err.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('click', e => {
+    const modal = document.getElementById('groupModal');
+    if (modal && e.target === modal) {
+        closeGroupModal();
+    }
+});

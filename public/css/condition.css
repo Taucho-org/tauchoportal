@@ -1299,6 +1299,35 @@ fieldset.item.param>div.icons{
     display: none;
 }
 
+.group-devices-list {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: #fff;
+    border: 1px solid #e0e7ff;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.group-devices-list .group-devices-label {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.group-devices-list ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.group-devices-list li {
+    padding: 0.15rem 0;
+}
+
+.group-devices-list .group-devices-empty {
+    color: #666;
+}
+
 #deviceActionModal .param-inputs {
     display: flex;
     flex-direction: row;

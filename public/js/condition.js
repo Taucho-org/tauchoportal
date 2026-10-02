@@ -65,6 +65,9 @@ class DeviceActionHandler {
             option.textContent = group.name || group.Name || 'Unnamed';
             groupSelect.appendChild(option);
         });
+        if (this.selectedGroupId) {
+            groupSelect.value = this.selectedGroupId;
+        }
     }
 
     async fetchDeviceGroups() {
@@ -129,17 +132,72 @@ class DeviceActionHandler {
         }
     }
 
+    renderGroupDevices(group) {
+        const container = this.mainContainer.querySelector('#deviceActionGroupDevices');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (!group) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const devices = group.devices || [];
+        const label = document.createElement('div');
+        label.className = 'group-devices-label';
+        label.textContent = `${container.dataset.label || 'Included devices'} (${devices.length})`;
+        container.appendChild(label);
+
+        if (devices.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'group-devices-empty';
+            empty.textContent = container.dataset.empty || 'No devices in this group';
+            container.appendChild(empty);
+        } else {
+            const list = document.createElement('ul');
+            devices.forEach(device => {
+                const item = document.createElement('li');
+                const name = document.createElement('strong');
+                name.textContent = device.name || device.id || 'Unnamed';
+                item.appendChild(name);
+                const details = [device.brand, device.product_name, device.room].filter(Boolean).join(' / ');
+                if (details) {
+                    item.appendChild(document.createTextNode(` — ${details}`));
+                }
+                list.appendChild(item);
+            });
+            container.appendChild(list);
+        }
+        container.style.display = 'block';
+    }
+
+    async showGroupDevices(groupId) {
+        if (!groupId) {
+            this.renderGroupDevices(null);
+            return null;
+        }
+        const group = await this.fetchGroupDetails(groupId);
+        // Ignore stale responses if the selection changed while fetching
+        if (groupId !== this.selectedGroupId) return group;
+        this.renderGroupDevices(group);
+        return group;
+    }
+
     async onGroupSelected(groupId) {
-        if (!groupId) return;
+        this.selectedGroupId = groupId || null;
+        if (!groupId) {
+            this.renderGroupDevices(null);
+            return;
+        }
         
-        this.selectedGroupId = groupId;
         this.selectedTemplateId = null;
         this.parameterConfigs = {};
         this.deviceIdentifyParameters = [];  // Reset for new group
         
         try {
             // Fetch full group details including devices and brand
-            const group = await this.fetchGroupDetails(groupId);
+            const group = await this.showGroupDevices(groupId);
+            if (groupId !== this.selectedGroupId) return;
             if (group && group.devices && group.devices.length > 0) {
                 const brandName = group.devices[0].brand;
                 const templates = await this.fetchTemplatesByBrand(brandName);
@@ -944,7 +1002,7 @@ class DeviceActionHandler {
         
         try {
             const data = JSON.parse(jsonText);
-            this.selectedGroupId = data.device_group_id;
+            this.selectedGroupId = data?.device_group_id;
             this.parameterConfigs = {};
             
             // Update group selector
@@ -952,6 +1010,7 @@ class DeviceActionHandler {
             if (groupSelect) {
                 groupSelect.value = this.selectedGroupId;
             }
+            this.showGroupDevices(this.selectedGroupId);
             
             // TODO: Load template and reconstruct parameter configs from JSON
             // This requires fetching the template and comparing device_action_body with template structure
@@ -3571,7 +3630,7 @@ async function runConditionTest() {
     })
     .catch(error => {
         console.error('Test error:', error);
-        resultsContent.innerHTML = '<div style="color:red; padding: 1rem; background: #f8d7da; border-radius: 3px;"><strong>Error:</strong> ' + error.message + '</div>';
+        resultsContent.innerHTML = '<div style="color:red; padding: 1rem; background: #f8d7da; border-radius: 3px;"><strong>' + (window._i18nMsg?.['condition.error'] || 'Error') + ':</strong> ' + error.message + '</div>';
     });
 }
 

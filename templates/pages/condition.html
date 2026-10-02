@@ -91,13 +91,16 @@
             <div class="form-section">
                 <label for="deviceActionGroup">{{.I18n.T "condition.deviceAction.selectGroup" "Select Device Group"}}</label>
                 <select id="deviceActionGroup" class="form-control">
-                    <option value="">Loading device groups...</option>
+                    <option value="">{{.I18n.T "condition.loadingDeviceGroups"}}</option>
                 </select>
+                <div id="deviceActionGroupDevices" class="group-devices-list" style="display:none;"
+                     data-label="{{.I18n.T "condition.deviceAction.includedDevices"}}"
+                     data-empty="{{.I18n.T "condition.deviceAction.noDevices"}}"></div>
             </div>
         </div>
         
         <!-- JSON Editor Toggle and Advanced Options -->
-        <div id="sendingParamJsonArea"><div class="jsontab"><img src="/image/jsonareaedge.png" width="43" height="27"><a onclick="if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParamJsonArea').classList.remove('active');}else {document.getElementById('sendingParamJsonArea').classList.add('active')};if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParameterArea').classList.add('hide')}else {document.getElementById('sendingParameterArea').classList.remove('hide')};return false">{{.I18n.T "condition.sendingParams.jsonEditor" "JSON (Advanced)"}}</a></div>
+        <div id="sendingParamJsonArea" style="display:none"><div class="jsontab"><img src="/image/jsonareaedge.png" width="43" height="27"><a onclick="if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParamJsonArea').classList.remove('active');}else {document.getElementById('sendingParamJsonArea').classList.add('active')};if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParameterArea').classList.add('hide')}else {document.getElementById('sendingParameterArea').classList.remove('hide')};return false">{{.I18n.T "condition.sendingParams.jsonEditor" "JSON (Advanced)"}}</a></div>
             <div id="sendingParameterJsonWrapper"><textarea id="sendingparamjson" onchange="refreshRequest()">{{.Condition.DeviceActionParams}}</textarea></div>
         </div>
     </div>
@@ -120,7 +123,7 @@
                 <div class="form-section">
                     <label for="modal_deviceActionTemplate">{{.I18n.T "condition.deviceAction.selectTemplate" "Select Action Template"}}</label>
                     <select id="modal_deviceActionTemplate" class="form-control">
-                        <option value="">Select template...</option>
+                        <option value="">{{.I18n.T "condition.selectTemplate"}}</option>
                         <option value="__custom__">{{.I18n.T "condition.deviceAction.customTemplate" "Custom Template (JSON)"}}</option>
                     </select>
                 </div>
@@ -128,7 +131,7 @@
                 <!-- Custom Template JSON Input -->
                 <div class="form-section" id="modal_customTemplateContainer" style="display:none;">
                     <label for="modal_customTemplateJSON">{{.I18n.T "condition.deviceAction.customTemplateJson" "Template JSON"}}</label>
-                    <textarea id="modal_customTemplateJSON" class="condition-textarea" style="width: 100%; height: 200px; font-family: monospace; border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;" placeholder="Enter template JSON here..."></textarea>
+                    <textarea id="modal_customTemplateJSON" class="condition-textarea" style="width: 100%; height: 200px; font-family: monospace; border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem;" placeholder="{{.I18n.T "condition.templateJsonPlaceholder"}}"></textarea>
                     <small style="display: block; margin-top: 0.5rem; color: #666;">{{.I18n.T "condition.deviceAction.customTemplateHint" "Example: {\"command\": \"on\", \"brightness\": 50}"}}</small>
                 </div>
                 
@@ -457,27 +460,27 @@
         <div class="modal-content modal-large">
             <div class="modal-header">
                 <span class="close" onclick="closeTestModal()">×</span>
-                <h2>Test Condition</h2>
-                <p>Test your condition against a sample event to verify it works correctly</p>
+                <h2>{{.I18n.T "channelLayout.testConditionTitle"}}</h2>
+                <p>{{.I18n.T "channelLayout.testConditionSubtitle"}}</p>
             </div>
             <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
                 <div>
-                    <label for="testEventType" style="display:block; font-weight:600; margin-bottom:0.5rem;">Event Type:</label>
+                    <label for="testEventType" style="display:block; font-weight:600; margin-bottom:0.5rem;">{{.I18n.T "channelLayout.testEventType"}}:</label>
                     <select id="testEventType" onchange="updateTestEventParams()" style="width:100%; padding:0.75rem; border:1px solid #ced4da; border-radius:6px;">
-                        <option value="">Select an event type...</option>
+                        <option value="">{{.I18n.T "channelLayout.testEventTypeSelect"}}</option>
                     </select>
                 </div>
                 <div id="testEventParamsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9;">
-                    <p style="color:#666; font-size:0.9rem;">Event parameters will appear here</p>
+                    <p style="color:#666; font-size:0.9rem;">{{.I18n.T "condition.testEventParamsHint"}}</p>
                 </div>
                 <div id="testResultsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9; display:none;">
-                    <div style="font-weight:600; margin-bottom:0.75rem;">Test Results:</div>
+                    <div style="font-weight:600; margin-bottom:0.75rem;">{{.I18n.T "channelLayout.testResults"}}</div>
                     <div id="testResultsContent" style="font-family:monospace; white-space:pre-wrap; font-size:0.9rem;"></div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeTestModal()">{{.I18n.T "condition.button.close"}}</button>
-                <button type="button" class="btn btn-primary" onclick="runConditionTest()">Test Condition</button>
+                <button type="button" class="btn btn-primary" onclick="runConditionTest()">{{.I18n.T "channelLayout.testButton"}}</button>
             </div>
         </div>
     </div>
@@ -738,7 +741,7 @@ async function runConditionTest() {
             resultHTML += '<br><strong style="color:red;">' + (window._i18nMsg?.['condition.errors'] || 'Errors') + ':</strong> ' + result.execution_error + '<br>';
         }
         if (result.execution_result) {
-            resultHTML += '<br><strong style="color:green;">Success:</strong> ' + result.execution_result + '<br>';
+            resultHTML += '<br><strong style="color:green;">' + (window._i18nMsg?.['condition.success'] || 'Success') + ':</strong> ' + result.execution_result + '<br>';
         }
         resultHTML += '</div>';
         
@@ -746,7 +749,7 @@ async function runConditionTest() {
     })
     .catch(error => {
         console.error('Test error:', error);
-        resultsContent.innerHTML = '<div style="color:red; padding: 1rem; background: #f8d7da; border-radius: 3px;"><strong>Error:</strong> ' + error.message + '</div>';
+        resultsContent.innerHTML = '<div style="color:red; padding: 1rem; background: #f8d7da; border-radius: 3px;"><strong>' + (window._i18nMsg?.['condition.error'] || 'Error') + ':</strong> ' + error.message + '</div>';
     });
 }
 

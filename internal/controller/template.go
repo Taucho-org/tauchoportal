@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html"
 	"sort"
+	"strings"
 	"time"
 
 	"tauchoportal/internal/i18n"
@@ -360,6 +361,117 @@ type DeviceForTemplate struct {
 	SupportedActions []string          `json:"supported_actions"`
 	Credentials      map[string]string `json:"credentials"`
 	DeviceIdentifier map[string]string `json:"device_identifier"`
+	DeviceGroupID    string            `json:"device_group_id"`
+	// GroupKey identifies which devices can be grouped together (same brand + same set of
+	// supported actions). Empty means the device cannot be grouped (custom or unknown actions).
+	GroupKey string `json:"group_key"`
+	// Groupable is true when at least one other device shares this device's GroupKey
+	Groupable bool `json:"groupable"`
+}
+
+// DeviceGroupKey returns the grouping compatibility key for a device: devices are groupable only
+// when they share the same brand and exactly the same set of supported actions, so that one action
+// can be sent to every device in the group. Must stay in sync with deviceGroupKey() in devices.js.
+func DeviceGroupKey(brand string, supportedActions []string) string {
+	if brand == "" || brand == "custom" || len(supportedActions) == 0 {
+		return ""
+	}
+	seen := make(map[string]bool, len(supportedActions))
+	actions := make([]string, 0, len(supportedActions))
+	for _, a := range supportedActions {
+		if a != "" && !seen[a] {
+			seen[a] = true
+			actions = append(actions, a)
+		}
+	}
+	if len(actions) == 0 {
+		return ""
+	}
+	sort.Strings(actions)
+	return brand + "|" + strings.Join(actions, ",")
+}
+
+// DeviceGroupForTemplate represents a device group with its member devices for template rendering
+type DeviceGroupForTemplate struct {
+	ID      string              `json:"id"`
+	Name    string              `json:"name"`
+	Option  string              `json:"option"` // "sequential" | "queue"
+	Devices []DeviceForTemplate `json:"devices"`
+	// GroupKey is the compatibility key of the group's devices (taken from its first device)
+	GroupKey string `json:"group_key"`
+	// CanAddMore is true when compatible devices exist outside this group
+	CanAddMore bool `json:"can_add_more"`
+}
+
+// PrepareDeviceGroupsPageData fetches the user's device groups and distributes devices into them.
+// A device whose device_group_id does not match any existing group (e.g. the group was deleted)
+// is treated as ungrouped, and its DeviceGroupID is cleared in the passed slice.
+func PrepareDeviceGroupsPageData(devices []DeviceForTemplate) ([]DeviceGroupForTemplate, []DeviceForTemplate) {
+	groups := DeviceGroups{}.ListDeviceGroups()
+
+	groupsForTemplate := make([]DeviceGroupForTemplate, 0, len(groups))
+	indexByID := make(map[string]int, len(groups))
+	for _, g := range groups {
+		if g.Id == "" {
+			continue
+		}
+		indexByID[g.Id] = len(groupsForTemplate)
+		groupsForTemplate = append(groupsForTemplate, DeviceGroupForTemplate{
+			ID:      g.Id,
+			Name:    g.Name,
+			Option:  g.Option,
+			Devices: []DeviceForTemplate{},
+		})
+	}
+
+	ungrouped := []DeviceForTemplate{}
+	for i := range devices {
+		if idx, ok := indexByID[devices[i].DeviceGroupID]; ok && devices[i].DeviceGroupID != "" {
+			groupsForTemplate[idx].Devices = append(groupsForTemplate[idx].Devices, devices[i])
+			continue
+		}
+		devices[i].DeviceGroupID = ""
+		ungrouped = append(ungrouped, devices[i])
+	}
+
+	return groupsForTemplate, ungrouped
+}
+
+// SplitDevicesForDisplay implements the "grouping by default" display rule: every device normally
+// owns an implicit single-device group, which is presented as a plain device. Only groups with two or
+// more devices are shown as groups. Standalone devices keep the original device order.
+func SplitDevicesForDisplay(devices []DeviceForTemplate, groups []DeviceGroupForTemplate) ([]DeviceGroupForTemplate, []DeviceForTemplate) {
+	keyCount := map[string]int{}
+	for _, d := range devices {
+		if d.GroupKey != "" {
+			keyCount[d.GroupKey]++
+		}
+	}
+
+	multiGroups := []DeviceGroupForTemplate{}
+	multiGroupIDs := map[string]bool{}
+	for _, g := range groups {
+		if len(g.Devices) >= 2 {
+			g.GroupKey = g.Devices[0].GroupKey
+			inGroup := 0
+			for _, d := range g.Devices {
+				if d.GroupKey == g.GroupKey {
+					inGroup++
+				}
+			}
+			g.CanAddMore = g.GroupKey != "" && keyCount[g.GroupKey] > inGroup
+			multiGroups = append(multiGroups, g)
+			multiGroupIDs[g.ID] = true
+		}
+	}
+
+	standalone := []DeviceForTemplate{}
+	for _, d := range devices {
+		if d.DeviceGroupID == "" || !multiGroupIDs[d.DeviceGroupID] {
+			standalone = append(standalone, d)
+		}
+	}
+	return multiGroups, standalone
 }
 
 // BrandForTemplate represents a device brand for template rendering
@@ -412,7 +524,19 @@ func PrepareDevicesPageData(brandList []CatalogBrand) []DeviceForTemplate {
 			SupportedActions: dev.SupportedActions,
 			Credentials:      dev.Credentials,
 			DeviceIdentifier: dev.DeviceIdentifier,
+			DeviceGroupID:    dev.DeviceGroupId,
+			GroupKey:         DeviceGroupKey(dev.Brand, dev.SupportedActions),
 		})
+	}
+
+	keyCount := map[string]int{}
+	for _, d := range devicesForTemplate {
+		if d.GroupKey != "" {
+			keyCount[d.GroupKey]++
+		}
+	}
+	for i := range devicesForTemplate {
+		devicesForTemplate[i].Groupable = keyCount[devicesForTemplate[i].GroupKey] >= 2
 	}
 
 	return devicesForTemplate

@@ -41,6 +41,10 @@ type PageData struct {
 	ChannelDetail           *controller.ChannelDetailForTemplate
 	ChannelDetailConditions []controller.ConditionDetailForTemplate
 	Devices                 []controller.DeviceForTemplate
+	DeviceGroups            []controller.DeviceGroupForTemplate
+	UngroupedDevices        []controller.DeviceForTemplate
+	MultiDeviceGroups       []controller.DeviceGroupForTemplate
+	StandaloneDevices       []controller.DeviceForTemplate
 	Channels                *controller.ChannelsPageData
 	Dashboard               *controller.DashboardPageData
 	MyBrands                []controller.MyConnectedBrand
@@ -672,6 +676,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Brands = brandList.ListAll()
 
 		data.Devices = controller.PrepareDevicesPageData(data.Brands)
+
+		if cfg.Name == "devices" {
+			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(data.Devices)
+			data.MultiDeviceGroups, data.StandaloneDevices = controller.SplitDevicesForDisplay(data.Devices, data.DeviceGroups)
+		}
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "page", data); err != nil {

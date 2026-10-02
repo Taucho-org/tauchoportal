@@ -331,7 +331,12 @@
 
     if (titleEl) titleEl.textContent = step.title;
     if (contentEl) contentEl.textContent = step.content;
-    if (progressEl) progressEl.textContent = `Step ${stepIndex + 1} of ${guide.steps.length}`;
+    if (progressEl) {
+      const progressTemplate = window._i18nMsg?.['brandSettings.wizard.progress'] || 'Step {0} of {1}';
+      progressEl.textContent = progressTemplate
+        .replace('{0}', stepIndex + 1)
+        .replace('{1}', guide.steps.length);
+    }
 
     if (backBtn) backBtn.style.display = stepIndex > 0 ? 'block' : 'none';
     
@@ -869,7 +874,7 @@
     } finally {
       if (testBtn) {
         testBtn.disabled = false;
-        testBtn.textContent = window._i18nMsg?.['brandSettings.modal.testCredentials'] || 'Test Credentials';
+        testBtn.textContent = window._i18nMsg?.['brandSettings.wizard.testCredentials'] || 'Test Credentials';
       }
     }
   }
@@ -921,7 +926,7 @@
       const saveBtn = document.querySelector('[data-wizard-action="save"]');
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = window._i18nMsg?.['brandSettings.modal.save'] || 'Save & Connect';
+        saveBtn.textContent = window._i18nMsg?.['brandSettings.wizard.saveConnect'] || 'Save & Connect';
       }
     }
   }
@@ -1012,6 +1017,12 @@
     const meta = getBrandMeta(brandId);
     if (!meta) return;
 
+    // SSO brands never use a setup guide
+    if (meta.authentication_type === 'sso') {
+      openSSOModal(meta.id);
+      return;
+    }
+
     // Try to fetch and show setup wizard if available
     const guide = await fetchSetupGuide(brandId);
     if (guide && guide.steps && guide.steps.length > 0) {
@@ -1026,10 +1037,6 @@
     }
     if (meta.authentication_type === 'api-key' || meta.authentication_type === 'api_key') {
       openApiKeyModal(meta.id);
-      return;
-    }
-    if (meta.authentication_type === 'sso') {
-      openSSOModal(meta.id);
       return;
     }
     if (meta.authentication_type === 'local') {

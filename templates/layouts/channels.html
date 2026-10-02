@@ -55,7 +55,7 @@
                     <span class="acc-plat-icon {{field $platform "id"}}">{{ platformIcon (field $platform "id") }}</span>
                     <span class="acc-plat-name">{{ $name }}</span>
                     {{if $connected}}
-                    <span class="acc-connected-dot" title="Connected"></span>
+                    <span class="acc-connected-dot" title="{{$.I18n.T "brandSettings.connected"}}"></span>
                     {{end}}
                     <span class="acc-chevron" id="acc-chev-{{field $platform "id"}}">›</span>
                 </div>
