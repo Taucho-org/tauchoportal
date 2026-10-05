@@ -177,7 +177,7 @@ Result: `color` is static (#FFFF00), `brightness` and `durationSeconds` are dyna
 
 ### Portal Client Contract
 
-The condition page sends `device_group_id` and `device_action_body` as **top-level
+The condition page sends `template_id`, `device_group_id` and `device_action_body` as **top-level
 request fields**, for both create/update and draft tests. `device_action_body`
 is the parameter object itself, **not** an HTTP envelope containing `method`,
 `url`, `headers`, and `body`. For preset templates, the portal uses the parsed
@@ -187,6 +187,7 @@ parameter-only format.
 ```json
 {
   "device_group_id": "selected-group-id",
+  "template_id": "7",
   "device_action_body": {
     "color": "#FFFF00",
     "brightness": {
@@ -206,8 +207,27 @@ such as `"50"` to keep it a string rather than a number. Nested objects are
 edited as static JSON, not flattened into dynamic dot paths. Evaluation inside
 nested objects is not supported by this refactor.
 
-The page reloads `device_group_id` and `device_action_body` from the saved
+`template_id` is the preset template ID encoded as a string, or `null` for a custom action.
+Condition responses may encode the ID as a JSON number or a quoted numeric
+string (for example, `"188"`); the portal normalizes both to a string.
+Save and draft test requests send a string ID. Device test requests also send
+string template IDs, including the `"0"` sentinel for action-only tests.
+Create/update persist this field so reopening the dialog selects the saved
+template while retaining the saved parameter values and evaluators. Conditions
+without a template ID continue to open as custom actions. An unavailable saved
+template prompts the user to select a replacement instead of silently switching
+to Custom.
+
+The page reloads `template_id`, `device_group_id` and `device_action_body` from the saved
 condition, and draft test results include the backend's `resolved_action_body`.
+For single-device groups, the condition selector displays the device name and
+hides the included-device list. Multi-device and empty groups retain their group
+names and device-list display. This is presentation-only; selection and requests
+still use the same device group IDs.
+Switching groups retains the edited preset action only if the same template ID
+is available for the new group's brand. Otherwise the template selection,
+parameter controls, and action payload are cleared; custom actions are not
+carried across groups. Stale template-loading responses cannot restore old UI.
 The legacy `device_action_params` wrapper and the removed single-parameter
 fields are not sent by the condition editor. Legacy conditions are not
 automatically converted.

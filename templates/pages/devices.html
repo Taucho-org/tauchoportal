@@ -593,7 +593,6 @@
 </div>
 {{end}}
 {{define "scripts"}}
-<script src="/js/devices.js"></script>
 <script id="mydevices" type="application/json">
 {{toJSON .Devices.Devices}}
 </script>
@@ -614,4 +613,6 @@ for (const mybrandindex in myBrands) {
     window.MY_BRANDS[myBrands[mybrandindex].id] = myBrands[mybrandindex];
 }
 </script>
+{{/* devices.js initializes group membership and capability maps from these globals. */}}
+<script src="/js/devices.js"></script>
 {{end}}

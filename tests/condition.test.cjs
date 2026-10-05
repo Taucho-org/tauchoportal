@@ -44,7 +44,8 @@ test('preset and custom actions embed every evaluator without an HTTP envelope',
             durationSeconds: { mode: 'flexible', evaluator: { Operator: 'PARAM', Variables: ['duration'] } }
         };
         const params = plain(instance.buildActionParams());
-        assert.deepEqual(Object.keys(params).sort(), ['device_action_body', 'device_group_id']);
+        assert.deepEqual(Object.keys(params).sort(), ['device_action_body', 'device_group_id', 'template_id']);
+        assert.equal(params.template_id, custom ? null : '1');
         assert.deepEqual(params.device_action_body.brightness, evaluator);
         assert.deepEqual(params.device_action_body.durationSeconds, { Operator: 'PARAM', Variables: ['duration'] });
         assert.equal(params.device_action_body.color, '#FFFF00');
@@ -149,7 +150,7 @@ test('static JSON values retain types and top-level object fields are not flatte
 
 test('saved group and per-field logic reload and can be edited again', () => {
     const instance = handler();
-    const saved = { device_group_id: 'group-1', device_action_body: { brightness: evaluator, enabled: false } };
+    const saved = { device_group_id: 'group-1', template_id: null, device_action_body: { brightness: evaluator, enabled: false } };
     instance.jsonTextarea.value = JSON.stringify(saved);
     instance.mainContainer = { querySelector: () => ({ value: '' }) };
     instance.showGroupDevices = () => {};
@@ -159,6 +160,50 @@ test('saved group and per-field logic reload and can be edited again', () => {
     assert.deepEqual(plain(instance.getActionParams()), saved);
     instance.deviceGroups = [];
     assert.throws(() => instance.getActionParams(), /device group is unavailable/);
+});
+
+test('saved preset reopens with its ID and values, not template defaults', async () => {
+    const instance = handler();
+    const saved = { device_group_id: 'group-1', template_id: '7', device_action_body: { brightness: evaluator, enabled: false } };
+    instance.jsonTextarea.value = JSON.stringify(saved);
+    instance.mainContainer = { querySelector: () => ({ value: '' }) };
+    const select = { value: '' };
+    const custom = { value: '{}' };
+    instance.modalElement.querySelector = selector => selector === '#modal_deviceActionTemplate' ? select : custom;
+    instance.showGroupDevices = async () => ({ devices: [{ brand: 'brand' }] });
+    instance.fetchTemplatesByBrand = async () => [];
+    instance.fetchTemplateById = async id => {
+        assert.equal(id, '7');
+        return { id: 7, device_identify_parameters: [], body_template: '{"brightness":50,"enabled":true}' };
+    };
+    instance.renderTemplateSelector = templates => { assert.equal(templates[0].id, 7); };
+    instance.showCustomTemplateInput = () => { assert.fail('preset must not display custom JSON'); };
+    instance.hideCustomTemplateInput = () => {};
+    instance.renderParameterForm = () => {};
+    await instance.editConfiguration();
+    assert.equal(select.value, '7');
+    assert.equal(instance.selectedTemplateId, '7');
+    assert.deepEqual(plain(instance.getActionParams()), saved);
+});
+
+test('missing saved templates require replacement and invalid IDs are rejected', async () => {
+    const instance = handler();
+    instance.jsonTextarea.value = JSON.stringify({ device_group_id: 'group-1', template_id: 7, device_action_body: { enabled: false } });
+    instance.mainContainer = { querySelector: () => ({ value: '' }) };
+    instance.showGroupDevices = async () => null;
+    instance.fetchTemplateById = async () => null;
+    instance.renderTemplateSelector = () => {};
+    instance.hideCustomTemplateInput = () => {};
+    instance.hideParameterForm = () => {};
+    await instance.editConfiguration();
+    assert.equal(instance.selectedTemplateId, null);
+    assert.throws(() => instance.getActionParams(), /select an action template/);
+    for (const value of ['', 0, -1, false, 'abc', 1.5]) {
+        assert.throws(() => instance.parseTemplateId(value), /Invalid action template ID/);
+    }
+    assert.equal(instance.parseTemplateId(null), null);
+    assert.equal(instance.parseTemplateId(188), '188');
+    assert.equal(instance.parseTemplateId('999999999999999999999999999'), '999999999999999999999999999');
 });
 
 test('attaching mode controls does not switch untouched static values to flexible', () => {
@@ -195,6 +240,118 @@ test('custom template selection works even if the group has no preset templates'
     assert.equal(selected, '__custom__');
 });
 
+test('single-device groups display device names without changing selection IDs', async () => {
+    const instance = handler();
+    const options = [];
+    const select = { value: '', appendChild: option => options.push(option) };
+    instance.mainContainer = { querySelector: () => select };
+    instance.deviceGroups = [{ id: 'group-1', name: 'Single group' }, { id: 'group-2', name: 'Multiple group' }, { id: 'empty', name: 'Empty group' }];
+    context.document = { createElement: () => ({}) };
+    context.fetch = async () => ({
+        ok: true,
+        json: async () => [
+            { id: 'device-1', name: 'Desk light', device_group_id: 'group-1' },
+            { id: 'device-2', name: 'Lamp A', device_group_id: 'group-2' },
+            { id: 'device-3', name: 'Lamp B', device_group_id: 'group-2' }
+        ]
+    });
+    await instance.loadGroupDeviceNames();
+    assert.equal(options[0].textContent, 'Desk light');
+    assert.equal(options[0].value, 'group-1');
+    assert.equal(options[1].textContent, 'Multiple group');
+    assert.equal(options[2].textContent, 'Empty group');
+    assert.equal(select.value, 'group-1');
+    delete context.fetch;
+    delete context.document;
+});
+
+function switchingHandler() {
+    const instance = handler();
+    const controls = new Map();
+    for (const id of ['#modal_deviceActionParams', '#modal_customTemplateJSON', '#modal_deviceActionTemplate']) {
+        controls.set(id, { value: 'old', innerHTML: 'old' });
+    }
+    instance.modalElement.querySelector = selector => controls.get(selector);
+    instance.hideParameterForm = () => { instance.parametersHidden = true; };
+    instance.hideCustomTemplateInput = () => { instance.customHidden = true; };
+    instance.renderTemplateSelector = () => {};
+    instance.renderParameterForm = () => { instance.updateJsonFromForm(); };
+    instance.showGroupDevices = async () => ({ devices: [{ brand: 'brand' }] });
+    instance.renderGroupDevices = () => {};
+    return instance;
+}
+
+test('switching groups retains edits only when the same preset is available', async () => {
+    for (const compatible of [true, false]) {
+        const instance = switchingHandler();
+        instance.parameterConfigs.brightness = { mode: 'flexible', evaluator };
+        instance.fetchTemplatesByBrand = async () => [{ id: compatible ? 1 : 2 }];
+        await instance.onGroupSelected('group-2');
+        assert.equal(instance.selectedGroupId, 'group-2');
+        assert.equal(instance.modalElement.querySelector('#modal_customTemplateJSON').value, '');
+        assert.equal(instance.modalElement.querySelector('#modal_deviceActionParams').innerHTML, '');
+        const params = JSON.parse(instance.jsonTextarea.value);
+        assert.equal(params.device_group_id, 'group-2');
+        if (compatible) {
+            assert.equal(instance.selectedTemplateId, '1');
+            assert.deepEqual(params.device_action_body.brightness, evaluator);
+        } else {
+            assert.equal(instance.selectedTemplateId, null);
+            assert.equal(params.device_action_body, null);
+            assert.equal(instance.parametersHidden, true);
+        }
+    }
+});
+
+test('switching groups discards custom actions and clearing selection clears stale payloads', async () => {
+    const instance = switchingHandler();
+    instance.selectedTemplateId = '__custom__';
+    instance.modalElement.querySelector('#modal_customTemplateJSON').value = '{"brightness":11}';
+    instance.fetchTemplatesByBrand = async () => [{ id: 1 }];
+    await instance.onGroupSelected('group-2');
+    assert.equal(instance.selectedTemplateId, null);
+    await instance.onGroupSelected('');
+    assert.equal(JSON.parse(instance.jsonTextarea.value).device_group_id, null);
+    assert.equal(instance.modalElement.style.display, 'none');
+});
+
+test('late template and brand responses cannot restore a previous group action', async () => {
+    const instance = switchingHandler();
+    let finishTemplate;
+    instance.fetchTemplateById = () => new Promise(resolve => { finishTemplate = resolve; });
+    const pendingTemplate = instance.onTemplateSelected('1');
+    await instance.onGroupSelected('');
+    finishTemplate({ id: 1, body_template: '{"brightness":50}' });
+    await pendingTemplate;
+    assert.equal(instance.selectedTemplate, null);
+
+    let finishBrand;
+    instance.fetchTemplatesByBrand = () => new Promise(resolve => { finishBrand = resolve; });
+    const pendingGroup = instance.onGroupSelected('group-2');
+    await new Promise(resolve => setImmediate(resolve));
+    await instance.onGroupSelected('');
+    finishBrand([{ id: 1 }]);
+    await pendingGroup;
+    assert.equal(instance.selectedGroupId, null);
+    assert.equal(instance.modalElement.style.display, 'none');
+});
+
+test('included devices are hidden only for single-device groups', () => {
+    const instance = handler();
+    const container = { style: {}, dataset: {}, appendChild() {} };
+    instance.mainContainer = { querySelector: () => container };
+    context.document = { createElement: () => ({ appendChild() {} }), createTextNode: value => value };
+    instance.renderGroupDevices({ devices: [{ name: 'Desk light' }] });
+    assert.equal(container.style.display, 'none');
+    instance.renderGroupDevices({ devices: [{ name: 'Lamp A' }, { name: 'Lamp B' }] });
+    assert.equal(container.style.display, 'block');
+    instance.renderGroupDevices({ devices: [] });
+    assert.equal(container.style.display, 'block');
+    instance.renderGroupDevices(null);
+    assert.equal(container.style.display, 'none');
+    delete context.document;
+});
+
 test('all supported locales have the new configuration label and parameter-only hint', () => {
     for (const locale of ['en', 'ja', 'de', 'fr', 'es', 'zh', 'ko']) {
         const strings = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'internal', 'i18n', 'locales', locale + '.json'), 'utf8'));
@@ -223,7 +380,7 @@ test('page Save and Test send the same current top-level action configuration', 
         submitConditionButton: { textContent: 'Save' }
     };
     const sent = [];
-    const params = { device_group_id: 'group-1', device_action_body: { brightness: evaluator, enabled: false } };
+    const params = { device_group_id: 'group-1', template_id: '1', device_action_body: { brightness: evaluator, enabled: false } };
     const page = vm.createContext({
         console: { log() {}, error() {} },
         alert() {},
@@ -233,6 +390,37 @@ test('page Save and Test send the same current top-level action configuration', 
         fetch: async (url, options) => {
             sent.push({ url, method: options.method, body: JSON.parse(options.body) });
             return { ok: true, json: async () => ({ matched: true, resolved_action_body: { brightness: 'hello' } }) };
+        }
+    });
+
+    test('both device test flows send string template IDs with numeric or string catalog IDs', async () => {
+        const devicesSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'devices.js'), 'utf8');
+        const runSource = devicesSource.slice(devicesSource.indexOf('async function runDeviceTest'), devicesSource.indexOf('async function loadProductsForBrand'));
+        const legacySource = devicesSource.slice(devicesSource.indexOf('async function testDevice(devId)'), devicesSource.indexOf('// =============================================\n// Device Groups'));
+        for (const id of [188, '188']) {
+            const sent = [];
+            const device = { id: 'device-1', name: 'Device', is_configured: true, supported_actions: ['on'] };
+            const elements = {
+                testTemplateSelect: { value: '188' },
+                testTemplateFields: { querySelector: () => null, querySelectorAll: () => [] },
+                runDeviceTestButton: {}
+            };
+            const deviceContext = vm.createContext({
+                activeTestDevice: device,
+                activeTestDeviceId: device.id,
+                activeTestTemplates: [{ id, template_name: 'on' }],
+                window: { MY_DEVICES: [device] },
+                devicesI18n: { testCommandSent: 'Sent to {0}' },
+                document: { getElementById: name => elements[name] },
+                alert() {},
+                closeDeviceTestModal() {},
+                apiRequest: async (method, url, body) => { sent.push(body); return { message: 'Sent' }; }
+            });
+            vm.runInContext(runSource + '\n' + legacySource, deviceContext);
+            await vm.runInContext('runDeviceTest()', deviceContext);
+            await vm.runInContext("testDevice('device-1')", deviceContext);
+            assert.equal(sent[0].template_id, '188');
+            assert.equal(sent[1].template_id, '0');
         }
     });
     vm.runInContext(inline, page);
@@ -246,6 +434,7 @@ test('page Save and Test send the same current top-level action configuration', 
     for (const request of sent) {
         assert.deepEqual(request.body.device_action_body, params.device_action_body);
         assert.equal(request.body.device_group_id, 'group-1');
+        assert.equal(request.body.template_id, '1');
         for (const obsolete of ['device_action_params', 'device_action_param_name', 'device_action_param_evaluator', 'device_id']) {
             assert.equal(Object.hasOwn(request.body, obsolete), false);
         }

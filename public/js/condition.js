@@ -45,6 +45,7 @@ class DeviceActionHandler {
             if (this.jsonTextarea?.value.trim()) {
                 this.loadFromJson();
             }
+            await this.loadGroupDeviceNames();
         } catch (error) {
             console.error('Failed to initialize DeviceActionHandler:', error);
         }
@@ -65,12 +66,26 @@ class DeviceActionHandler {
         this.deviceGroups.forEach(group => {
             const option = document.createElement('option');
             option.value = group.id || group.ID;
-            option.textContent = group.name || group.Name || 'Unnamed';
+            option.textContent = group.devices?.length === 1
+                ? (group.devices[0].name || group.devices[0].id || 'Unnamed')
+                : (group.name || group.Name || 'Unnamed');
             groupSelect.appendChild(option);
         });
         if (this.selectedGroupId) {
             groupSelect.value = this.selectedGroupId;
         }
+    }
+
+    async loadGroupDeviceNames() {
+        const response = await fetch('/api/devices', { method: 'GET', credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to fetch devices for group labels');
+        const devices = await response.json();
+        if (!Array.isArray(devices)) throw new Error('Invalid devices response for group labels');
+        this.deviceGroups.forEach(group => {
+            const groupId = group.id || group.ID;
+            group.devices = devices.filter(device => device.device_group_id === groupId);
+        });
+        this.renderGroupSelector();
     }
 
     async fetchDeviceGroups() {
@@ -146,6 +161,10 @@ class DeviceActionHandler {
         }
 
         const devices = group.devices || [];
+        if (devices.length === 1) {
+            container.style.display = 'none';
+            return;
+        }
         const label = document.createElement('div');
         label.className = 'group-devices-label';
         label.textContent = `${container.dataset.label || 'Included devices'} (${devices.length})`;
@@ -187,31 +206,67 @@ class DeviceActionHandler {
     }
 
     async onGroupSelected(groupId) {
+        let previousAction = null;
+        if (this.selectedTemplateId && this.selectedTemplate) {
+            try {
+                previousAction = this.buildActionParams();
+            } catch (error) {
+                console.warn('Cannot retain incomplete device action:', error);
+            }
+        }
+        const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
         this.selectedGroupId = groupId || null;
+        this.resetActionConfiguration();
+        this.closeModal();
+        if (this.jsonTextarea) {
+            this.jsonTextarea.value = JSON.stringify({ device_group_id: this.selectedGroupId, template_id: null, device_action_body: null });
+        }
         if (!groupId) {
             this.renderGroupDevices(null);
-            if (this.jsonTextarea) this.jsonTextarea.value = JSON.stringify({ device_group_id: null, device_action_body: null });
             return;
         }
-        
-        this.selectedTemplateId = null;
-        this.selectedTemplate = null;
-        this.parameterConfigs = {};
-        this.deviceIdentifyParameters = [];  // Reset for new group
         
         try {
             // Fetch full group details including devices and brand
             const group = await this.showGroupDevices(groupId);
-            if (groupId !== this.selectedGroupId) return;
+            if (selectionVersion !== this.selectionVersion) return;
             if (group && group.devices && group.devices.length > 0) {
                 const brandName = group.devices[0].brand;
                 const templates = await this.fetchTemplatesByBrand(brandName);
+                if (selectionVersion !== this.selectionVersion) return;
                 this.renderTemplateSelector(templates);
+                const matchingTemplate = previousAction?.template_id != null
+                    ? templates.find(template => String(template.id || template.ID) === previousAction.template_id)
+                    : null;
+                if (matchingTemplate) {
+                    this.selectedTemplateId = previousAction.template_id;
+                    this.selectedTemplate = { ...matchingTemplate, actionBody: previousAction.device_action_body };
+                    this.deviceIdentifyParameters = matchingTemplate.device_identify_parameters || [];
+                    this.modalElement.querySelector('#modal_deviceActionTemplate').value = this.selectedTemplateId;
+                    this.renderParameterForm();
+                }
                 this.openModal();
             }
         } catch (error) {
             console.error('Failed to fetch group details:', error);
         }
+    }
+
+    resetActionConfiguration() {
+        this.selectedTemplateId = null;
+        this.selectedTemplate = null;
+        this.parameterConfigs = {};
+        this.parameterEditors = {};
+        this.deviceIdentifyParameters = [];
+        this.configurationError = null;
+        this.hideParameterForm();
+        this.hideCustomTemplateInput();
+        const parameters = this.modalElement.querySelector('#modal_deviceActionParams');
+        if (parameters) parameters.innerHTML = '';
+        const customInput = this.modalElement.querySelector('#modal_customTemplateJSON');
+        if (customInput) customInput.value = '';
+        const selector = this.modalElement.querySelector('#modal_deviceActionTemplate');
+        if (selector) selector.value = '';
     }
 
     renderTemplateSelector(templates) {
@@ -242,6 +297,9 @@ class DeviceActionHandler {
     }
 
     async onTemplateSelected(templateId) {
+        const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
+        this.hideParameterForm();
+        this.parameterEditors = {};
         if (!templateId) {
             this.selectedTemplateId = null;
             this.selectedTemplate = null;
@@ -267,11 +325,14 @@ class DeviceActionHandler {
         // Handle regular template
         this.hideCustomTemplateInput();
         this.selectedTemplateId = templateId;
+        this.selectedTemplate = null;
         this.parameterConfigs = {};
         this.parameterEditors = {};
         
         try {
             const template = await this.fetchTemplateById(templateId);
+            if (selectionVersion !== this.selectionVersion) return;
+            if (!template) throw new Error('Selected action template is unavailable');
             
             // Store device identify parameters for later validation exclusion
             this.deviceIdentifyParameters = template.device_identify_parameters || [];
@@ -285,6 +346,7 @@ class DeviceActionHandler {
             
             this.renderParameterForm();
         } catch (error) {
+            if (selectionVersion !== this.selectionVersion) return;
             console.error('Failed to load template:', error);
             this.selectedTemplate = null;
         }
@@ -660,7 +722,21 @@ class DeviceActionHandler {
                 : config.value;
         }
         this.validateActionBody(body);
-        return { device_group_id: this.selectedGroupId, device_action_body: body };
+        return {
+            device_group_id: this.selectedGroupId,
+            device_action_body: body,
+            template_id: this.selectedTemplateId === '__custom__' ? null : this.parseTemplateId(this.selectedTemplateId)
+        };
+    }
+
+    parseTemplateId(value) {
+        if (value == null) return null;
+        if (typeof value === 'number' && (!Number.isSafeInteger(value) || value <= 0)) {
+            throw new Error('Invalid action template ID');
+        }
+        const id = String(value);
+        if (!/^[0-9]*[1-9][0-9]*$/.test(id)) throw new Error('Invalid action template ID');
+        return id;
     }
 
     updateJsonFromForm() {
@@ -688,7 +764,11 @@ class DeviceActionHandler {
             throw new Error('The selected device group is unavailable. Please select an existing group.');
         }
         this.validateActionBody(params.device_action_body);
-        return { device_group_id: params.device_group_id, device_action_body: params.device_action_body };
+        return {
+            device_group_id: params.device_group_id,
+            device_action_body: params.device_action_body,
+            template_id: this.parseTemplateId(params.template_id)
+        };
     }
 
     loadFromJson() {
@@ -701,7 +781,8 @@ class DeviceActionHandler {
             this.parameterConfigs = {};
             this.parameterEditors = {};
             this.deviceIdentifyParameters = [];
-            this.selectedTemplateId = data?.device_action_body ? '__custom__' : null;
+            const templateId = this.parseTemplateId(data?.template_id);
+            this.selectedTemplateId = templateId != null ? String(templateId) : (data?.device_action_body ? '__custom__' : null);
             this.selectedTemplate = data?.device_action_body ? { actionBody: data.device_action_body } : null;
             const customInput = this.modalElement.querySelector('#modal_customTemplateJSON');
             if (customInput) customInput.value = JSON.stringify(data?.device_action_body || {}, null, 2);
@@ -720,16 +801,42 @@ class DeviceActionHandler {
     }
 
     async editConfiguration() {
+        const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
         this.loadFromJson();
         if (!this.selectedGroupId) {
             alert('Please select a device group');
             return;
         }
         const group = await this.showGroupDevices(this.selectedGroupId);
+        if (selectionVersion !== this.selectionVersion) return;
         const templates = group?.devices?.length ? await this.fetchTemplatesByBrand(group.devices[0].brand) : [];
-        this.renderTemplateSelector(templates);
+        if (selectionVersion !== this.selectionVersion) return;
+        if (this.selectedTemplateId && this.selectedTemplateId !== '__custom__') {
+            const template = await this.fetchTemplateById(this.selectedTemplateId);
+            if (selectionVersion !== this.selectionVersion) return;
+            if (!template) {
+                alert('The saved action template is unavailable. Please select an action template again.');
+                this.selectedTemplateId = null;
+                this.selectedTemplate = null;
+                this.renderTemplateSelector(templates);
+                this.hideCustomTemplateInput();
+                this.hideParameterForm();
+                this.openModal();
+                return;
+            }
+            this.deviceIdentifyParameters = template.device_identify_parameters || [];
+            this.selectedTemplate = { ...template, actionBody: this.selectedTemplate.actionBody };
+            this.renderTemplateSelector(templates.some(item => String(item.id || item.ID) === this.selectedTemplateId)
+                ? templates : [...templates, template]);
+        } else {
+            this.renderTemplateSelector(templates);
+        }
         this.modalElement.querySelector('#modal_deviceActionTemplate').value = this.selectedTemplateId || '';
-        this.showCustomTemplateInput();
+        if (this.selectedTemplateId === '__custom__') {
+            this.showCustomTemplateInput();
+        } else {
+            this.hideCustomTemplateInput();
+        }
         this.renderParameterForm();
         this.openModal();
     }

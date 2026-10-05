@@ -190,8 +190,8 @@ function getTestSelectOptions(uiField) {
 }
 
 function renderTestTemplateFields() {
-    const templateId = Number(document.getElementById('testTemplateSelect').value);
-    const template = activeTestTemplates.find(item => item.id === templateId);
+    const templateId = document.getElementById('testTemplateSelect').value;
+    const template = activeTestTemplates.find(item => String(item.id) === templateId);
     const fieldsContainer = document.getElementById('testTemplateFields');
     const runButton = document.getElementById('runDeviceTestButton');
     fieldsContainer.replaceChildren();
@@ -273,8 +273,8 @@ function renderTestTemplateFields() {
 
 async function runDeviceTest() {
     const device = activeTestDevice;
-    const templateId = Number(document.getElementById('testTemplateSelect').value);
-    const template = activeTestTemplates.find(item => item.id === templateId);
+    const templateId = document.getElementById('testTemplateSelect').value;
+    const template = activeTestTemplates.find(item => String(item.id) === templateId);
     const form = document.getElementById('testTemplateFields');
     const button = document.getElementById('runDeviceTestButton');
     if (!device || !template) return;
@@ -327,7 +327,7 @@ async function runDeviceTest() {
     button.disabled = true;
     try {
         const response = await apiRequest('POST', `/devices/test?id=${encodeURIComponent(device.id)}`, {
-            template_id: template.id,
+            template_id: String(template.id),
             action: template.template_name || '',
             params
         });
@@ -1219,7 +1219,7 @@ async function testDevice(devId) {
         // Test with the first available action
         const testAction = actions[0];
         const testRequest = {
-            template_id: 0,
+            template_id: '0',
             action: testAction,
             params: { brightness: 50 }
         };

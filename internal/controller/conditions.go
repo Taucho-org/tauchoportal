@@ -1,8 +1,11 @@
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 )
 
 type Conditions struct{}
@@ -48,6 +51,7 @@ type ConditionTestDeviceActionParams struct {
 }
 
 type Condition struct {
+	TemplateId         *string                     `json:"template_id"`
 	Id                 string                      `json:"id"`
 	WatchId            string                      `json:"watch_id"`
 	Name               string                      `json:"name"`
@@ -65,12 +69,36 @@ type Condition struct {
 	UpdatedAt          string                      `json:"updated_at"`
 }
 
+var conditionTemplateIDPattern = regexp.MustCompile(`^[0-9]*[1-9][0-9]*$`)
+
+func (c *Condition) UnmarshalJSON(data []byte) error {
+	type conditionAlias Condition
+	var condition conditionAlias
+	response := struct {
+		*conditionAlias
+		TemplateId *json.Number `json:"template_id"`
+	}{conditionAlias: &condition}
+	if err := json.Unmarshal(data, &response); err != nil {
+		return fmt.Errorf("decode condition: %w", err)
+	}
+	if response.TemplateId != nil {
+		id := response.TemplateId.String()
+		if !conditionTemplateIDPattern.MatchString(id) {
+			return fmt.Errorf("invalid condition template_id: %q", response.TemplateId.String())
+		}
+		condition.TemplateId = &id
+	}
+	*c = Condition(condition)
+	return nil
+}
+
 type ListConditionsResponse []Condition
 type GetConditionResponse = Condition
 type CreateConditionResponse = Condition
 type UpdateConditionResponse = Condition
 
 type CreateConditionRequest struct {
+	TemplateId         *string                     `json:"template_id"`
 	WatchId            string                      `json:"watch_id"`
 	Name               string                      `json:"name"`
 	EventType          string                      `json:"event_type"`
@@ -85,6 +113,7 @@ type CreateConditionRequest struct {
 }
 
 type UpdateConditionRequest struct {
+	TemplateId         *string                     `json:"template_id"`
 	Name               string                      `json:"name"`
 	EventType          string                      `json:"event_type"`
 	Filter             string                      `json:"filter"`
@@ -128,6 +157,7 @@ type ConditionTestEvent struct {
 }
 
 type TestDraftConditionLogicRequest struct {
+	TemplateId         *string                     `json:"template_id"`
 	ConditionLogic     ConditionLogic              `json:"condition_logic"`
 	TestEvent          ConditionTestEvent          `json:"test_event"`
 	DeviceId           string                      `json:"device_id"`
