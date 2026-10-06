@@ -1271,8 +1271,10 @@ function brandName(brandId) {
     return brand ? brand.name : brandId;
 }
 
-async function createDeviceGroup(name, option) {
-    const created = await apiRequest('POST', '/device-groups', { name, option: option || 'sequential' });
+async function createDeviceGroup(name, deviceTargeting = 'ALL', concurrencyMode = 'exclusive') {
+    const created = await apiRequest('POST', '/device-groups', {
+        name, device_targeting: deviceTargeting, concurrency_mode: concurrencyMode
+    });
     const id = created && (created.id || created.ID);
     if (!id) throw new Error('missing group id in response');
     return id;
@@ -1285,7 +1287,7 @@ async function assignDeviceToGroup(deviceId, groupId) {
 
 // Gives a device its own implicit single-device group (named after the device)
 async function giveDeviceOwnGroup(deviceId, deviceName) {
-    const groupId = await createDeviceGroup(deviceName || deviceId, 'sequential');
+    const groupId = await createDeviceGroup(deviceName || deviceId);
     try {
         await assignDeviceToGroup(deviceId, groupId);
     } catch (e) {
@@ -1349,7 +1351,7 @@ async function removeFromGroup(deviceId) {
     const groupId = deviceGroupState.get(deviceId) || '';
     const group = getGroupById(groupId);
     if (!dev || !group) return;
-    if (!confirm(devicesI18n['removeFromGroupConfirm'].replace('{0}', dev.name).replace('{1}', group.name))) return;
+    if (!confirm(devicesI18n['removeFromGroupConfirm'].replace(/\{([01])\}/g, (_, index) => index === '0' ? dev.name : group.name))) return;
     try {
         await giveDeviceOwnGroup(deviceId, dev.name);
         await tidyGroupAfterLeave(groupId);
@@ -1362,7 +1364,7 @@ async function removeFromGroup(deviceId) {
 async function ungroupGroup(groupId) {
     const group = getGroupById(groupId);
     if (!group) return;
-    if (!confirm(devicesI18n['ungroupConfirm'].replace('{0}', group.name))) return;
+    if (!confirm(devicesI18n['ungroupConfirm'].replace(/\{0\}/g, () => group.name))) return;
     try {
         for (const deviceId of groupMembers(groupId)) {
             const dev = getDeviceById(deviceId);
@@ -1389,9 +1391,14 @@ function openGroupModal(groupId, initialDeviceId) {
     document.getElementById('groupUngroupBtn').style.display = group ? '' : 'none';
     document.getElementById('groupName').value = group ? group.name : '';
 
-    const option = group && group.option === 'queue' ? 'queue' : 'sequential';
-    const radio = document.querySelector(`input[name="groupOption"][value="${option}"]`);
-    if (radio) radio.checked = true;
+    const deviceTargeting = group ? group.device_targeting : 'ALL';
+    const concurrencyMode = group ? group.concurrency_mode : 'exclusive';
+    document.querySelectorAll('input[name="groupDeviceTargeting"]').forEach(radio => {
+        radio.checked = radio.value === deviceTargeting;
+    });
+    document.querySelectorAll('input[name="groupConcurrencyMode"]').forEach(radio => {
+        radio.checked = radio.value === concurrencyMode;
+    });
 
     document.getElementById('groupDeviceSearch').value = '';
     renderGroupDeviceList(editingGroupId, groupingFromDeviceId);
@@ -1487,8 +1494,13 @@ async function saveGroup(e) {
         alert(devicesI18n['groupNameRequired']);
         return;
     }
-    const optionEl = document.querySelector('input[name="groupOption"]:checked');
-    const option = optionEl ? optionEl.value : 'sequential';
+    const deviceTargeting = document.querySelector('input[name="groupDeviceTargeting"]:checked')?.value;
+    const concurrencyMode = document.querySelector('input[name="groupConcurrencyMode"]:checked')?.value;
+    if (!['ALL', 'ROUND_ROBIN', 'USER_AFFINITY'].includes(deviceTargeting) ||
+        !['exclusive', 'queued'].includes(concurrencyMode)) {
+        alert(devicesI18n['groupModesRequired']);
+        return;
+    }
 
     const selectedIds = new Set(
         Array.from(document.querySelectorAll('#groupDeviceList input[type="checkbox"]:checked')).map(cb => cb.value)
@@ -1513,9 +1525,11 @@ async function saveGroup(e) {
             if (ownGroupId && groupMembers(ownGroupId).length === 1) anchorGroupId = ownGroupId;
         }
         if (anchorGroupId) {
-            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(anchorGroupId)}`, { name, option });
+            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(anchorGroupId)}`, {
+                name, device_targeting: deviceTargeting, concurrency_mode: concurrencyMode
+            });
         } else {
-            anchorGroupId = await createDeviceGroup(name, option);
+            anchorGroupId = await createDeviceGroup(name, deviceTargeting, concurrencyMode);
         }
 
         const leftGroups = new Set();

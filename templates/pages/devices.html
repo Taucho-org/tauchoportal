@@ -108,10 +108,17 @@
                 <div class="device-group-header">
                     <div class="device-group-title">
                         <h3>📦 {{$group.Name}}</h3>
-                        {{if eq $group.Option "queue"}}
-                        <span class="group-option-badge queue" title="{{$.I18n.T "devices.groupOptionQueueDesc"}}">🎟️ {{$.I18n.T "devices.groupOptionQueue"}}</span>
-                        {{else}}
-                        <span class="group-option-badge sequential" title="{{$.I18n.T "devices.groupOptionSequentialDesc"}}">🎉 {{$.I18n.T "devices.groupOptionSequential"}}</span>
+                        {{if eq $group.DeviceTargeting "ALL"}}
+                        <span class="group-option-badge targeting" title="{{$.I18n.T "devices.groupTargetingAllDesc"}}">{{$.I18n.T "devices.groupTargetingAll"}}</span>
+                        {{else if eq $group.DeviceTargeting "ROUND_ROBIN"}}
+                        <span class="group-option-badge targeting" title="{{$.I18n.T "devices.groupTargetingRoundRobinDesc"}}">{{$.I18n.T "devices.groupTargetingRoundRobin"}}</span>
+                        {{else if eq $group.DeviceTargeting "USER_AFFINITY"}}
+                        <span class="group-option-badge targeting" title="{{$.I18n.T "devices.groupTargetingUserAffinityDesc"}}">{{$.I18n.T "devices.groupTargetingUserAffinity"}}</span>
+                        {{end}}
+                        {{if eq $group.ConcurrencyMode "queued"}}
+                        <span class="group-option-badge queued" title="{{$.I18n.T "devices.groupConcurrencyQueuedDesc"}}">{{$.I18n.T "devices.groupConcurrencyQueued"}}</span>
+                        {{else if eq $group.ConcurrencyMode "exclusive"}}
+                        <span class="group-option-badge exclusive" title="{{$.I18n.T "devices.groupConcurrencyExclusiveDesc"}}">{{$.I18n.T "devices.groupConcurrencyExclusive"}}</span>
                         {{end}}
                         <span class="group-count">{{replace ($.I18n.T "devices.groupDeviceCount") "{0}" (tostring (len $group.Devices))}}</span>
                     </div>
@@ -553,21 +560,48 @@
                     <input type="text" id="groupName" required maxlength="100" placeholder="{{.I18n.T "devices.groupNamePlaceholder"}}">
                 </div>
 
-                <div class="form-group">
-                    <label>{{.I18n.T "devices.groupOption"}}</label>
+                <div class="form-group targeting">
+                    <label>{{.I18n.T "devices.groupDeviceTargeting"}}</label>
                     <div class="group-option-cards">
                         <label class="group-option-card">
-                            <input type="radio" name="groupOption" value="sequential" checked>
+                            <input type="radio" name="groupDeviceTargeting" value="ALL" required checked>
                             <span class="group-option-card-body">
-                                <strong>🎉 {{.I18n.T "devices.groupOptionSequential"}}</strong>
-                                <small>{{.I18n.T "devices.groupOptionSequentialDesc"}}</small>
+                                <strong>{{.I18n.T "devices.groupTargetingAll"}}</strong>
+                                <small>{{.I18n.T "devices.groupTargetingAllDesc"}}</small>
                             </span>
                         </label>
                         <label class="group-option-card">
-                            <input type="radio" name="groupOption" value="queue">
+                            <input type="radio" name="groupDeviceTargeting" value="ROUND_ROBIN" required>
                             <span class="group-option-card-body">
-                                <strong>🎟️ {{.I18n.T "devices.groupOptionQueue"}}</strong>
-                                <small>{{.I18n.T "devices.groupOptionQueueDesc"}}</small>
+                                <strong>{{.I18n.T "devices.groupTargetingRoundRobin"}}</strong>
+                                <small>{{.I18n.T "devices.groupTargetingRoundRobinDesc"}}</small>
+                            </span>
+                        </label>
+                        <label class="group-option-card">
+                            <input type="radio" name="groupDeviceTargeting" value="USER_AFFINITY" required>
+                            <span class="group-option-card-body">
+                                <strong>{{.I18n.T "devices.groupTargetingUserAffinity"}}</strong>
+                                <small>{{.I18n.T "devices.groupTargetingUserAffinityDesc"}}</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>{{.I18n.T "devices.groupConcurrencyMode"}}</label>
+                    <div class="group-option-cards">
+                        <label class="group-option-card">
+                            <input type="radio" name="groupConcurrencyMode" value="exclusive" required checked>
+                            <span class="group-option-card-body">
+                                <strong>{{.I18n.T "devices.groupConcurrencyExclusive"}}</strong>
+                                <small>{{.I18n.T "devices.groupConcurrencyExclusiveDesc"}}</small>
+                            </span>
+                        </label>
+                        <label class="group-option-card">
+                            <input type="radio" name="groupConcurrencyMode" value="queued" required>
+                            <span class="group-option-card-body">
+                                <strong>{{.I18n.T "devices.groupConcurrencyQueued"}}</strong>
+                                <small>{{.I18n.T "devices.groupConcurrencyQueuedDesc"}}</small>
                             </span>
                         </label>
                     </div>

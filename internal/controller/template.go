@@ -396,10 +396,11 @@ func DeviceGroupKey(brand string, supportedActions []string) string {
 
 // DeviceGroupForTemplate represents a device group with its member devices for template rendering
 type DeviceGroupForTemplate struct {
-	ID      string              `json:"id"`
-	Name    string              `json:"name"`
-	Option  string              `json:"option"` // "sequential" | "queue"
-	Devices []DeviceForTemplate `json:"devices"`
+	ID              string              `json:"id"`
+	Name            string              `json:"name"`
+	DeviceTargeting string              `json:"device_targeting"` // "ALL" | "ROUND_ROBIN" | "USER_AFFINITY"
+	ConcurrencyMode string              `json:"concurrency_mode"` // "exclusive" | "queued"
+	Devices         []DeviceForTemplate `json:"devices"`
 	// GroupKey is the compatibility key of the group's devices (taken from its first device)
 	GroupKey string `json:"group_key"`
 	// CanAddMore is true when compatible devices exist outside this group
@@ -420,10 +421,11 @@ func PrepareDeviceGroupsPageData(devices []DeviceForTemplate) ([]DeviceGroupForT
 		}
 		indexByID[g.Id] = len(groupsForTemplate)
 		groupsForTemplate = append(groupsForTemplate, DeviceGroupForTemplate{
-			ID:      g.Id,
-			Name:    g.Name,
-			Option:  g.Option,
-			Devices: []DeviceForTemplate{},
+			ID:              g.Id,
+			Name:            g.Name,
+			DeviceTargeting: g.DeviceTargeting,
+			ConcurrencyMode: g.ConcurrencyMode,
+			Devices:         []DeviceForTemplate{},
 		})
 	}
 
