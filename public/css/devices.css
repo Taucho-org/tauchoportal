@@ -761,6 +761,32 @@ body {
     flex-shrink: 0;
 }
 
+/* Badge showing device status (online/offline/already-registered) */
+.product-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.status-online {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
+.status-offline {
+    background: #f5f5f5;
+    color: #757575;
+}
+
+.status-already-registered {
+    background: #fff3cd;
+    color: #856404;
+}
+
 /* Divider between owned and catalog sections */
 .section-divider {
     padding: 0.75rem 1rem 0.5rem 1rem;
@@ -1194,14 +1220,19 @@ body {
     cursor: help;
 }
 
-.group-option-badge.sequential {
+.group-option-badge.exclusive {
     background: #fef3c7;
     color: #92400e;
 }
 
-.group-option-badge.queue {
+.group-option-badge.queued {
     background: #e0e7ff;
     color: #3730a3;
+}
+
+.group-option-badge.targeting {
+    background: #dcfce7;
+    color: #166534;
 }
 
 .group-count {
@@ -1296,6 +1327,10 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
+}
+
+.targeting .group-option-cards {
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 .form-group .group-option-card {
@@ -1424,4 +1459,111 @@ body {
         grid-template-columns: 1fr;
     }
 
+}
+
+/* =============================================
+   Discover Devices Modal Styles
+   ============================================= */
+#ddDeviceList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.dd-device-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dd-device-row:hover:not(.disabled) {
+    border-color: #0969da;
+    background: #f6f9fc;
+    box-shadow: 0 2px 6px rgba(9, 105, 218, 0.1);
+}
+
+.dd-device-row.selected {
+    border-color: #28a745;
+    background: #f0fdf4;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.1);
+}
+
+.dd-device-row.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f9f9f9;
+}
+
+.dd-device-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.dd-device-checkbox input {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: #28a745;
+}
+
+.dd-device-checkbox input:disabled {
+    cursor: not-allowed;
+}
+
+.dd-device-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.dd-device-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+
+.dd-device-type {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.dd-device-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dd-device-status.status-online {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.dd-device-status.status-offline {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.dd-device-status.status-already-registered {
+    background: #fef3c7;
+    color: #92400e;
 }

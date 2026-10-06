@@ -48,7 +48,7 @@ type DeleteDeviceResponse struct {
 }
 
 type TestDeviceRequest struct {
-	TemplateId int                    `json:"template_id"`
+	TemplateId string                 `json:"template_id"`
 	Action     string                 `json:"action,omitempty"`
 	Params     map[string]interface{} `json:"params"`
 }

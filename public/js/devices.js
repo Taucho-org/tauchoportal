@@ -190,8 +190,8 @@ function getTestSelectOptions(uiField) {
 }
 
 function renderTestTemplateFields() {
-    const templateId = Number(document.getElementById('testTemplateSelect').value);
-    const template = activeTestTemplates.find(item => item.id === templateId);
+    const templateId = document.getElementById('testTemplateSelect').value;
+    const template = activeTestTemplates.find(item => String(item.id) === templateId);
     const fieldsContainer = document.getElementById('testTemplateFields');
     const runButton = document.getElementById('runDeviceTestButton');
     fieldsContainer.replaceChildren();
@@ -257,8 +257,8 @@ function renderTestTemplateFields() {
                 input.value = initialValue;
                 const min = uiField?.min ?? constraints?.min;
                 const max = uiField?.max ?? constraints?.max;
-                if (min !== undefined) input.min = min;
-                if (max !== undefined) input.max = max;
+                if (min != null) input.min = min;
+                if (max != null) input.max = max;
             }
         }
 
@@ -273,8 +273,8 @@ function renderTestTemplateFields() {
 
 async function runDeviceTest() {
     const device = activeTestDevice;
-    const templateId = Number(document.getElementById('testTemplateSelect').value);
-    const template = activeTestTemplates.find(item => item.id === templateId);
+    const templateId = document.getElementById('testTemplateSelect').value;
+    const template = activeTestTemplates.find(item => String(item.id) === templateId);
     const form = document.getElementById('testTemplateFields');
     const button = document.getElementById('runDeviceTestButton');
     if (!device || !template) return;
@@ -327,7 +327,7 @@ async function runDeviceTest() {
     button.disabled = true;
     try {
         const response = await apiRequest('POST', `/devices/test?id=${encodeURIComponent(device.id)}`, {
-            template_id: template.id,
+            template_id: String(template.id),
             action: template.template_name || '',
             params
         });
@@ -417,6 +417,11 @@ function openAddModal(groupId) {
     showStep(1);
     document.getElementById('deviceModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
+    
+    // Load discovered devices from all connected brands
+    setTimeout(() => {
+        loadDiscoveredDevicesInModal();
+    }, 100);
 }
 
 async function openEditModal(devId) {
@@ -622,11 +627,105 @@ function selectQuickConnectDevice(productId, productName, brandId) {
     }
 }
 
+// =============================================
+// Load Discovered Devices in Add Device Modal
+// =============================================
+async function loadDiscoveredDevicesInModal() {
+    const brands = document.querySelectorAll('[data-brand-id]');
+    
+    for (const brandEl of brands) {
+        const brandId = brandEl.getAttribute('data-brand-id');
+        if (!brandId) continue;
+        
+        try {
+            const response = await apiRequest('POST', `/devices/discover?brand=${encodeURIComponent(brandId)}`, {});
+            const discoveredDevices = response.discovered_devices || [];
+            
+            if (discoveredDevices.length > 0) {
+                renderDiscoveredDevices(brandId, discoveredDevices);
+            }
+        } catch (error) {
+            console.error('Failed to load discovered devices for brand ' + brandId + ':', error);
+        }
+    }
+}
+
+function renderDiscoveredDevices(brandId, devices) {
+    const section = document.querySelector(`.discovered-devices-section[data-brand-id="${brandId}"]`);
+    if (!section) return;
+    
+    if (!devices || devices.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    const html = devices.map(device => {
+        const statusClass = device.already_registered ? 'status-already-registered' : (device.online ? 'status-online' : 'status-offline');
+        const statusLabel = device.already_registered 
+            ? devicesI18n['discoverDeviceAlreadyRegistered']
+            : (device.online ? devicesI18n['discoverDeviceOnline'] : devicesI18n['discoverDeviceOffline']);
+        const isDisabled = device.already_registered ? 'disabled' : '';
+        
+        return `
+        <div class="product-item ${isDisabled}" onclick="selectDiscoveredDevice('${escapeJsString(brandId)}', '${escapeJsString(device.brand_device_id)}', '${escapeJsString(device.brand_device_name)}', '${escapeJsString(device.brand_device_type)}', ${device.online})"  ${isDisabled ? 'style="pointer-events: none; opacity: 0.6;"' : ''}>
+            <div class="product-info">
+                <h5 class="product-name">${escapeHtml(device.brand_device_name)}</h5>
+                <span class="product-actions">${escapeHtml(device.brand_device_type)}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="product-status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+    
+    section.innerHTML = html;
+    section.style.display = 'block';
+}
+
+function selectDiscoveredDevice(brandId, deviceId, deviceName, deviceType, online) {
+    if (!online) {
+        alert('This device is offline and cannot be imported at this time.');
+        return;
+    }
+    
+    // For discovered devices, we'll import them directly
+    importAndSelectDiscoveredDevice(brandId, deviceId, deviceName);
+}
+
+async function importAndSelectDiscoveredDevice(brandId, deviceId, deviceName) {
+    try {
+        const response = await apiRequest('POST', '/devices/import-from-brand', {
+            brand: brandId,
+            device_ids: [deviceId]
+        });
+
+        if (!response) throw new Error('No response from server');
+        
+        const imported = response.imported || [];
+        if (imported.length > 0) {
+            const device = imported[0];
+            selectProduct(brandId, device.product_id, device.name, device.name, {});
+        } else {
+            alert('Failed to import device');
+        }
+    } catch (error) {
+        alert('Failed to import device: ' + error.message);
+    }
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', e => {
     const qcModal = document.getElementById('quickConnectModal');
     if (qcModal && e.target === qcModal) {
         closeQuickConnectModal();
+    }
+});
+
+document.addEventListener('click', e => {
+    const ddModal = document.getElementById('discoverDevicesModal');
+    if (ddModal && e.target === ddModal) {
+        closeDiscoverModal();
     }
 });
 
@@ -1120,7 +1219,7 @@ async function testDevice(devId) {
         // Test with the first available action
         const testAction = actions[0];
         const testRequest = {
-            template_id: 0,
+            template_id: '0',
             action: testAction,
             params: { brightness: 50 }
         };
@@ -1172,8 +1271,10 @@ function brandName(brandId) {
     return brand ? brand.name : brandId;
 }
 
-async function createDeviceGroup(name, option) {
-    const created = await apiRequest('POST', '/device-groups', { name, option: option || 'sequential' });
+async function createDeviceGroup(name, deviceTargeting = 'ALL', concurrencyMode = 'exclusive') {
+    const created = await apiRequest('POST', '/device-groups', {
+        name, device_targeting: deviceTargeting, concurrency_mode: concurrencyMode
+    });
     const id = created && (created.id || created.ID);
     if (!id) throw new Error('missing group id in response');
     return id;
@@ -1186,7 +1287,7 @@ async function assignDeviceToGroup(deviceId, groupId) {
 
 // Gives a device its own implicit single-device group (named after the device)
 async function giveDeviceOwnGroup(deviceId, deviceName) {
-    const groupId = await createDeviceGroup(deviceName || deviceId, 'sequential');
+    const groupId = await createDeviceGroup(deviceName || deviceId);
     try {
         await assignDeviceToGroup(deviceId, groupId);
     } catch (e) {
@@ -1250,7 +1351,7 @@ async function removeFromGroup(deviceId) {
     const groupId = deviceGroupState.get(deviceId) || '';
     const group = getGroupById(groupId);
     if (!dev || !group) return;
-    if (!confirm(devicesI18n['removeFromGroupConfirm'].replace('{0}', dev.name).replace('{1}', group.name))) return;
+    if (!confirm(devicesI18n['removeFromGroupConfirm'].replace(/\{([01])\}/g, (_, index) => index === '0' ? dev.name : group.name))) return;
     try {
         await giveDeviceOwnGroup(deviceId, dev.name);
         await tidyGroupAfterLeave(groupId);
@@ -1263,7 +1364,7 @@ async function removeFromGroup(deviceId) {
 async function ungroupGroup(groupId) {
     const group = getGroupById(groupId);
     if (!group) return;
-    if (!confirm(devicesI18n['ungroupConfirm'].replace('{0}', group.name))) return;
+    if (!confirm(devicesI18n['ungroupConfirm'].replace(/\{0\}/g, () => group.name))) return;
     try {
         for (const deviceId of groupMembers(groupId)) {
             const dev = getDeviceById(deviceId);
@@ -1290,9 +1391,14 @@ function openGroupModal(groupId, initialDeviceId) {
     document.getElementById('groupUngroupBtn').style.display = group ? '' : 'none';
     document.getElementById('groupName').value = group ? group.name : '';
 
-    const option = group && group.option === 'queue' ? 'queue' : 'sequential';
-    const radio = document.querySelector(`input[name="groupOption"][value="${option}"]`);
-    if (radio) radio.checked = true;
+    const deviceTargeting = group ? group.device_targeting : 'ALL';
+    const concurrencyMode = group ? group.concurrency_mode : 'exclusive';
+    document.querySelectorAll('input[name="groupDeviceTargeting"]').forEach(radio => {
+        radio.checked = radio.value === deviceTargeting;
+    });
+    document.querySelectorAll('input[name="groupConcurrencyMode"]').forEach(radio => {
+        radio.checked = radio.value === concurrencyMode;
+    });
 
     document.getElementById('groupDeviceSearch').value = '';
     renderGroupDeviceList(editingGroupId, groupingFromDeviceId);
@@ -1388,8 +1494,13 @@ async function saveGroup(e) {
         alert(devicesI18n['groupNameRequired']);
         return;
     }
-    const optionEl = document.querySelector('input[name="groupOption"]:checked');
-    const option = optionEl ? optionEl.value : 'sequential';
+    const deviceTargeting = document.querySelector('input[name="groupDeviceTargeting"]:checked')?.value;
+    const concurrencyMode = document.querySelector('input[name="groupConcurrencyMode"]:checked')?.value;
+    if (!['ALL', 'ROUND_ROBIN', 'USER_AFFINITY'].includes(deviceTargeting) ||
+        !['exclusive', 'queued'].includes(concurrencyMode)) {
+        alert(devicesI18n['groupModesRequired']);
+        return;
+    }
 
     const selectedIds = new Set(
         Array.from(document.querySelectorAll('#groupDeviceList input[type="checkbox"]:checked')).map(cb => cb.value)
@@ -1414,9 +1525,11 @@ async function saveGroup(e) {
             if (ownGroupId && groupMembers(ownGroupId).length === 1) anchorGroupId = ownGroupId;
         }
         if (anchorGroupId) {
-            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(anchorGroupId)}`, { name, option });
+            await apiRequest('PATCH', `/device-groups/update?id=${encodeURIComponent(anchorGroupId)}`, {
+                name, device_targeting: deviceTargeting, concurrency_mode: concurrencyMode
+            });
         } else {
-            anchorGroupId = await createDeviceGroup(name, option);
+            anchorGroupId = await createDeviceGroup(name, deviceTargeting, concurrencyMode);
         }
 
         const leftGroups = new Set();
