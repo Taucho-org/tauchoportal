@@ -330,10 +330,10 @@
     const saveBtn = document.querySelector('[data-wizard-action="save"]');
 
     if (titleEl) titleEl.textContent = step.title;
-    if (contentEl) contentEl.textContent = step.content;
+    if (contentEl) contentEl.innerHTML = step.content;
     if (progressEl) {
       const progressTemplate = window._i18nMsg?.['brandSettings.wizard.progress'] || 'Step {0} of {1}';
-      progressEl.textContent = progressTemplate
+      progressEl.innerHTML = progressTemplate
         .replace('{0}', stepIndex + 1)
         .replace('{1}', guide.steps.length);
     }
