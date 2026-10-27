@@ -16,6 +16,7 @@ type Brand struct {
 	BrandColor                    string                         `json:"brand_color"`
 	AffiliateUrl                  string                         `json:"affiliate_url"`
 	AffiliateCommissionPercent    float64                        `json:"affiliate_commission_percent"`
+	AuthenticationType            string                         `json:"authentication_type"`
 	RequiresBrandCredentials      bool                           `json:"requires_brand_credentials"`
 	SortOrder                     int                            `json:"sort_order"`
 	IsActive                      bool                           `json:"is_active"`

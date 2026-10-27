@@ -18,6 +18,18 @@ function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
+function localizedDeviceType(type) {
+    const normalized = String(type || '').trim().toLowerCase().replace(/[ _-]+/g, '');
+    const keyByType = {
+        light: 'light', bulb: 'light', lamp: 'light',
+        plug: 'plug', outlet: 'plug', socket: 'plug',
+        switch: 'switch', sensor: 'sensor', camera: 'camera',
+        appliance: 'appliance', fan: 'fan', thermostat: 'thermostat', speaker: 'speaker'
+    };
+    const key = keyByType[normalized];
+    return key ? (devicesI18n[`types.${key}`] || type) : type;
+}
+
 async function apiRequest(method, path, body) {
     const opts = { method, credentials: 'include', headers: {} };
     if (body) {
@@ -42,7 +54,7 @@ let activeTestRequestId = 0;
 async function openDeviceTestModal(deviceId) {
     const device = window.MY_DEVICES.find(item => item.id === deviceId);
     if (!device) return;
-    if (!device.is_configured) {
+    if (!device.is_configured && device.brand !== 'taucho') {
         alert(devicesI18n['completeSetupBeforeTest']);
         return;
     }
@@ -266,6 +278,15 @@ function renderTestTemplateFields() {
         input.dataset.parameter = name;
         input.dataset.valueType = input.type;
         input.required = required;
+        input.addEventListener('input', () => {
+            input.setCustomValidity('');
+            if (!input.validity.valid) input.setCustomValidity(devicesI18n['invalidTestParameter']);
+        });
+        input.addEventListener('invalid', () => {
+            input.setCustomValidity(input.validity.valueMissing
+                ? devicesI18n['requiredTestParameter']
+                : devicesI18n['invalidTestParameter']);
+        });
         group.append(input);
         fieldsContainer.append(group);
     });
@@ -500,7 +521,8 @@ function closeModal() {
 // Quick Connect Modal (for owned devices)
 // =============================================
 let quickConnectBrandId = null;
-let quickConnectProducts = [];
+let quickConnectSearchTimeout = null;
+let quickConnectRequestId = 0;
 
 function openQuickConnectModal(brandId) {
     quickConnectBrandId = brandId;
@@ -511,11 +533,12 @@ function openQuickConnectModal(brandId) {
     const subtitleMsg = devicesI18n['quickConnectSubtitle'];
     document.getElementById('qcSubtitle').textContent = subtitleMsg.replace('{brand}', brand.name);
     
+    document.getElementById('qcSearchBox').value = '';
     showQuickConnectLoading(true);
     document.getElementById('quickConnectModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
     
-    loadQuickConnectProducts(brandId);
+    loadQuickConnectProducts(brandId, '', ++quickConnectRequestId);
 }
 
 function closeQuickConnectModal() {
@@ -524,15 +547,17 @@ function closeQuickConnectModal() {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
     }
+    clearTimeout(quickConnectSearchTimeout);
+    quickConnectRequestId++;
     quickConnectBrandId = null;
-    quickConnectProducts = [];
 }
 
-async function loadQuickConnectProducts(brandId) {
+async function loadQuickConnectProducts(brandId, searchTerm, requestId) {
     try {
         const params = new URLSearchParams({
             brand_id: brandId,
             active_only: 'true',
+            search: searchTerm,
             limit: 500,
             offset: 0,
             sort_by: 'name'
@@ -540,33 +565,29 @@ async function loadQuickConnectProducts(brandId) {
         const response = await fetch(`/api/catalog/products?${params}`, { credentials: 'include' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        
-        quickConnectProducts = data.products || [];
-        renderQuickConnectProducts(quickConnectProducts);
+        if (requestId !== quickConnectRequestId) return;
+
         showQuickConnectLoading(false);
+        renderQuickConnectProducts(data.products || []);
     } catch (error) {
+        if (requestId !== quickConnectRequestId) return;
         console.error(devicesI18n['failedLoadProducts'] + ' ' + error);
+        document.getElementById('qcProductList').innerHTML = '';
         showQuickConnectLoading(false);
         document.getElementById('qcEmpty').style.display = 'block';
     }
 }
 
 function renderQuickConnectProducts(products) {
-    const searchTerm = document.getElementById('qcSearchBox')?.value.toLowerCase() || '';
-    const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) || 
-        (p.model && p.model.toLowerCase().includes(searchTerm))
-    );
-
     const listDiv = document.getElementById('qcProductList');
-    if (!filtered || filtered.length === 0) {
+    if (!products || products.length === 0) {
         listDiv.innerHTML = '';
         document.getElementById('qcEmpty').style.display = 'block';
         return;
     }
 
     document.getElementById('qcEmpty').style.display = 'none';
-    listDiv.innerHTML = filtered.map(product => `
+    listDiv.innerHTML = products.map(product => `
         <div class="qc-product-card" onclick="selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">
             ${product.image_url ? `<img src="${product.image_url}" alt="${escapeJsString(product.name)}" class="qc-product-image" onerror="this.style.display='none'">` : '<div class="qc-product-image-placeholder">📱</div>'}
             <div class="qc-product-info">
@@ -588,7 +609,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBox = document.getElementById('qcSearchBox');
     if (searchBox) {
         searchBox.addEventListener('input', () => {
-            renderQuickConnectProducts(quickConnectProducts);
+            clearTimeout(quickConnectSearchTimeout);
+            const requestId = ++quickConnectRequestId;
+            const searchTerm = searchBox.value.trim();
+            const brandId = quickConnectBrandId;
+            if (!brandId) return;
+            showQuickConnectLoading(true);
+            quickConnectSearchTimeout = setTimeout(() => {
+                loadQuickConnectProducts(brandId, searchTerm, requestId);
+            }, 250);
         });
     }
 });
@@ -670,7 +699,7 @@ function renderDiscoveredDevices(brandId, devices) {
         <div class="product-item ${isDisabled}" onclick="selectDiscoveredDevice('${escapeJsString(brandId)}', '${escapeJsString(device.brand_device_id)}', '${escapeJsString(device.brand_device_name)}', '${escapeJsString(device.brand_device_type)}', ${device.online})"  ${isDisabled ? 'style="pointer-events: none; opacity: 0.6;"' : ''}>
             <div class="product-info">
                 <h5 class="product-name">${escapeHtml(device.brand_device_name)}</h5>
-                <span class="product-actions">${escapeHtml(device.brand_device_type)}</span>
+                <span class="product-actions">${escapeHtml(localizedDeviceType(device.brand_device_type))}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span class="product-status-badge ${statusClass}">${statusLabel}</span>
@@ -685,7 +714,7 @@ function renderDiscoveredDevices(brandId, devices) {
 
 function selectDiscoveredDevice(brandId, deviceId, deviceName, deviceType, online) {
     if (!online) {
-        alert('This device is offline and cannot be imported at this time.');
+        alert(devicesI18n['discoverDeviceOfflineCannotImport']);
         return;
     }
     
@@ -707,10 +736,10 @@ async function importAndSelectDiscoveredDevice(brandId, deviceId, deviceName) {
             const device = imported[0];
             selectProduct(brandId, device.product_id, device.name, device.name, {});
         } else {
-            alert('Failed to import device');
+            alert(devicesI18n['failedImportDevice']);
         }
     } catch (error) {
-        alert('Failed to import device: ' + error.message);
+        alert(devicesI18n['failedImportDevice'] + ' ' + error.message);
     }
 }
 
@@ -929,6 +958,14 @@ function renderCredFields(brandId) {
     const connectedNotice = document.getElementById('brandCredentialsConnected');
     const myBrand = window.MY_BRANDS ? window.MY_BRANDS[brandId] : null;
     const isConnected = !!(myBrand && myBrand.is_connected);
+
+    if (brandId === 'taucho') {
+        if (credFieldset) credFieldset.style.display = 'none';
+        if (connectedNotice) connectedNotice.style.display = 'none';
+        document.getElementById('credFields').replaceChildren();
+        document.getElementById('credDocsLink').replaceChildren();
+        return;
+    }
 
     if (isConnected) {
         if (credFieldset) credFieldset.style.display = 'none';
@@ -1157,9 +1194,11 @@ async function saveDevice(e) {
                 brand: selectedBrand,
                 product_id: document.getElementById('devProduct').value,
                 room: room,
-                credentials: creds,
                 device_identifier: deviceIdentifier
             };
+            if (selectedBrand !== 'taucho') {
+                deviceBody.credentials = creds;
+            }
             savedDevice = await persistDevice(deviceBody);
         }
         
@@ -1212,7 +1251,7 @@ async function testDevice(devId) {
         const actions = dev.supported_actions || [];
         
         if (!actions.length) {
-            alert(devicesI18n['failedLoadActions'] || 'No actions available for this device');
+            alert(devicesI18n['failedLoadActions']);
             return;
         }
         

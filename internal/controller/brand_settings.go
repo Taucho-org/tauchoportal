@@ -7,6 +7,8 @@ import (
 // MyBrandSettings handles user's connected brands from /auth/brands endpoint
 type MyBrandSettings struct{}
 
+const BuiltInBrandID = "taucho"
+
 // MyConnectedBrand represents a brand with connection status from the /auth/brands API
 type MyConnectedBrand struct {
 	ID                       string                 `json:"id"`
@@ -39,18 +41,18 @@ type MyBrandsListResponse struct {
 	Brands []MyConnectedBrand `json:"brands"`
 }
 
-// ListMyBrands fetches all connected brands with status from API
+// ListMyBrands fetches all brands with their connection status from the API.
 func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 	var response MyBrandsListResponse
 	apiRequest(&response, http.MethodGet, "/auth/brands")
-	
-	// Set IsRegistered based on Status field
+
+	// Preserve the full brand list. The settings page needs unconnected brands
+	// too, so derive registration state without filtering API results.
 	for i := range response.Brands {
-		if response.Brands[i].Status != nil && *response.Brands[i].Status == "registered" {
-			response.Brands[i].IsRegistered = true
-		}
+		brand := &response.Brands[i]
+		brand.IsRegistered = brand.Status != nil && (*brand.Status == "registered" || *brand.Status == "connected")
 	}
-	
+
 	return response.Brands
 }
 

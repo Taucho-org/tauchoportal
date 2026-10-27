@@ -18,6 +18,7 @@
             <div id="brandSettingsMsg" class="status-msg" style="display:none;"></div>
             <div id="brandsGrid" class="brands">
                 {{range .MyBrands}}
+                {{if eq .ID "taucho"}}{{continue}}{{end}}
                 {{$statusClass := ""}}
                 {{if .IsConnected}}{{$statusClass = "is-connected"}}{{else if .IsRegistered}}{{$statusClass = "is-registered"}}{{end}}
                 <article class="brand-card {{$statusClass}}">

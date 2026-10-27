@@ -73,7 +73,7 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
   <!-- Pagination -->
   <div id="switchbotPagination" class="pagination-controls" style="display: none;">
     <button type="button" onclick="previousSwitchbotPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
-    <div class="pageInfo">Page 1 of 1</div>
+    <div class="pageInfo">{{replace (replace (.I18n.T "catalog.pageInfo") "{page}" "1") "{total}" "1"}}</div>
     <button type="button" onclick="nextSwitchbotPage()" disabled>{{.I18n.T "catalog.next"}}</button>
   </div>
 
@@ -171,12 +171,12 @@ function renderSwitchbotProducts(products) {
           <div class="product-actions">
             ${(product.supported_actions || []).map(action => {
               const actionLabel = {
-                'turn_on': 'Power',
-                'turn_off': 'Power',
-                'set_brightness': 'Brightness',
-                'set_color': 'Color',
-                'set_position': 'Position',
-                'send_command': 'Command'
+                'turn_on': tSwitchbot('catalog.actionPower'),
+                'turn_off': tSwitchbot('catalog.actionPower'),
+                'set_brightness': tSwitchbot('catalog.actionBrightness'),
+                'set_color': tSwitchbot('catalog.actionColor'),
+                'set_position': tSwitchbot('catalog.actionPosition'),
+                'send_command': tSwitchbot('catalog.actionCommand')
               }[action] || action;
               return `<span class="action-tag-pill">${actionLabel}</span>`;
             }).join('')}

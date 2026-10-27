@@ -49,7 +49,7 @@ window._i18nCatalog = {{i18nJSON .I18n}};
   <!-- Pagination -->
   <div id="unicornPagination" class="pagination-controls" style="display: none;">
     <button type="button" onclick="previousUnicornPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
-    <div class="pageInfo">Page 1 of 1</div>
+    <div class="pageInfo">{{replace (replace (.I18n.T "catalog.pageInfo") "{page}" "1") "{total}" "1"}}</div>
     <button type="button" onclick="nextUnicornPage()" disabled>{{.I18n.T "catalog.next"}}</button>
   </div>
 
