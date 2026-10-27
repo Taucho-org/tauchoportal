@@ -803,7 +803,7 @@ GET /device-templates/get?id=123
 | GET | `/device-groups` | List all device groups for current user |
 | GET | `/device-groups/get?id=<id>` | Get a single device group with all its devices |
 | POST | `/device-groups` | Create a new device group |
-| PATCH | `/device-groups/update?id=<id>` | Update a device group name or option |
+| PATCH | `/device-groups/update?id=<id>` | Update a device group name, device targeting, or concurrency mode |
 | DELETE | `/device-groups?id=<id>` | Delete a device group (devices remain unassigned) |
 | POST | `/device-groups/assign?device_id=<id>&group_id=<id>` | Assign a device to a device group |
 | POST | `/device-groups/remove?device_id=<id>` | Remove a device from its device group |
@@ -814,21 +814,32 @@ GET /device-templates/get?id=123
   "id": "string (format: group_<timestamp_nanos>)",
   "user_id": "integer (FK → users.id, CASCADE DELETE)",
   "name": "string (human-readable group name)",
-  "option": "string (sequential | queue)",
+  "device_targeting": "string (ALL | ROUND_ROBIN | USER_AFFINITY)",
+  "concurrency_mode": "string (exclusive | queued)",
   "created_at": "timestamp",
   "updated_at": "timestamp"
 }
 ```
 
-**Option values:**
-- `"sequential"` — "cracker popper" behavior; devices trigger one after another
-- `"queue"` — queue-based behavior; each device serves an audience until exhausted, then moves to next device
+**Device targeting values (which devices receive an action):**
+- `"ALL"` — send each action to all group devices simultaneously
+- `"ROUND_ROBIN"` — send each trigger to the next device, rotating through the group
+- `"USER_AFFINITY"` — send triggers from the same user to the same device
+
+**Concurrency mode values (how overlapping triggers are handled):**
+- `"exclusive"` — reject new triggers while the previous action is executing
+- `"queued"` — queue new triggers and execute them sequentially
+
+The devices page exposes both controls independently. New groups, including implicit
+single-device groups, use `ALL` and `exclusive` by default. Name-only updates leave
+both modes unchanged.
 
 **Request body for `POST /device-groups`:**
 ```json
 {
   "name": "Living Room Lights",
-  "option": "sequential"
+  "device_targeting": "ALL",
+  "concurrency_mode": "exclusive"
 }
 ```
 
@@ -836,7 +847,8 @@ GET /device-templates/get?id=123
 ```json
 {
   "name": "Updated Name",
-  "option": "queue"
+  "device_targeting": "ROUND_ROBIN",
+  "concurrency_mode": "queued"
 }
 ```
 
@@ -846,7 +858,8 @@ GET /device-templates/get?id=123
   "id": "group_1718237456000000000",
   "user_id": 42,
   "name": "Living Room Lights",
-  "option": "sequential",
+  "device_targeting": "ALL",
+  "concurrency_mode": "exclusive",
   "devices": [
     {
       "id": "device_1",
@@ -873,7 +886,7 @@ GET /device-templates/get?id=123
 - Assigning a device to a new group automatically removes it from its previous group
 - Deleting a group does NOT delete its devices — only removes the group reference
 
-**See `/docs/DEVICE_GROUPING.md` for detailed documentation on device grouping, including usage examples and future enhancement roadmap.**
+**See `/docs/DEVICE_GROUP_NAMING_UPDATE.md` for the previous field and enum mappings.**
 
 ### Stream Accounts (`/streams/...`)
 | Method | Path | Description |

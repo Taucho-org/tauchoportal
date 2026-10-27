@@ -70,7 +70,7 @@ Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "ca
   <!-- Pagination -->
   <div id="lifxPagination" class="pagination-controls" style="display: none;">
     <button type="button" id="prevBtn" onclick="previousPage()" disabled>{{.I18n.T "catalog.previous"}}</button>
-    <div id="pageInfo">Page 1 of 1</div>
+    <div id="pageInfo">{{replace (replace (.I18n.T "catalog.pageInfo") "{page}" "1") "{total}" "1"}}</div>
     <button type="button" id="nextBtn" onclick="nextPage()" disabled>{{.I18n.T "catalog.next"}}</button>
   </div>
 
@@ -173,10 +173,10 @@ function renderProducts(products) {
           <div class="product-actions">
             ${(product.supported_actions || []).map(action => {
               const actionLabel = {
-                'set_color': 'Color',
-                'set_brightness': 'Brightness',
-                'turn_on': 'Power',
-                'turn_off': 'Power'
+                'set_color': t('catalog.actionColor'),
+                'set_brightness': t('catalog.actionBrightness'),
+                'turn_on': t('catalog.actionPower'),
+                'turn_off': t('catalog.actionPower')
               }[action] || action;
               return `<span class="action-tag-pill">${actionLabel}</span>`;
             }).join('')}

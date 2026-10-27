@@ -1,8 +1,11 @@
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 )
 
 type Conditions struct{}
@@ -48,22 +51,45 @@ type ConditionTestDeviceActionParams struct {
 }
 
 type Condition struct {
-	Id                         string                      `json:"id"`
-	WatchId                    string                      `json:"watch_id"`
-	Name                       string                      `json:"name"`
-	EventType                  string                      `json:"event_type"`
-	Filter                     string                      `json:"filter"`
-	ConditionLogic             ConditionLogic              `json:"condition_logic"`
-	IsEnabled                  bool                        `json:"is_enabled"`
-	DeviceId                   string                      `json:"device_id"`
-	DeviceAction               string                      `json:"device_action"`
-	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
-	LastTriggeredAt            string                      `json:"last_triggered_at"`
-	CreatedAt                  string                      `json:"created_at"`
-	UpdatedAt                  string                      `json:"updated_at"`
+	TemplateId         *string                     `json:"template_id"`
+	Id                 string                      `json:"id"`
+	WatchId            string                      `json:"watch_id"`
+	Name               string                      `json:"name"`
+	EventType          string                      `json:"event_type"`
+	Filter             string                      `json:"filter"`
+	ConditionLogic     ConditionLogic              `json:"condition_logic"`
+	IsEnabled          bool                        `json:"is_enabled"`
+	DeviceId           string                      `json:"device_id"`
+	DeviceAction       string                      `json:"device_action"`
+	DeviceActionParams ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                      `json:"device_group_id"`
+	LastTriggeredAt    string                      `json:"last_triggered_at"`
+	CreatedAt          string                      `json:"created_at"`
+	UpdatedAt          string                      `json:"updated_at"`
+}
+
+var conditionTemplateIDPattern = regexp.MustCompile(`^[0-9]*[1-9][0-9]*$`)
+
+func (c *Condition) UnmarshalJSON(data []byte) error {
+	type conditionAlias Condition
+	var condition conditionAlias
+	response := struct {
+		*conditionAlias
+		TemplateId *json.Number `json:"template_id"`
+	}{conditionAlias: &condition}
+	if err := json.Unmarshal(data, &response); err != nil {
+		return fmt.Errorf("decode condition: %w", err)
+	}
+	if response.TemplateId != nil {
+		id := response.TemplateId.String()
+		if !conditionTemplateIDPattern.MatchString(id) {
+			return fmt.Errorf("invalid condition template_id: %q", response.TemplateId.String())
+		}
+		condition.TemplateId = &id
+	}
+	*c = Condition(condition)
+	return nil
 }
 
 type ListConditionsResponse []Condition
@@ -72,32 +98,32 @@ type CreateConditionResponse = Condition
 type UpdateConditionResponse = Condition
 
 type CreateConditionRequest struct {
-	WatchId                    string                      `json:"watch_id"`
-	Name                       string                      `json:"name"`
-	EventType                  string                      `json:"event_type"`
-	Filter                     string                      `json:"filter"`
-	ConditionLogic             ConditionLogic              `json:"condition_logic"`
-	IsEnabled                  bool                        `json:"is_enabled"`
-	DeviceId                   string                      `json:"device_id"`
-	DeviceAction               string                      `json:"device_action"`
-	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	TemplateId         *string                     `json:"template_id"`
+	WatchId            string                      `json:"watch_id"`
+	Name               string                      `json:"name"`
+	EventType          string                      `json:"event_type"`
+	Filter             string                      `json:"filter"`
+	ConditionLogic     ConditionLogic              `json:"condition_logic"`
+	IsEnabled          bool                        `json:"is_enabled"`
+	DeviceId           string                      `json:"device_id"`
+	DeviceAction       string                      `json:"device_action"`
+	DeviceActionParams ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                      `json:"device_group_id"`
 }
 
 type UpdateConditionRequest struct {
-	Name                       string                      `json:"name"`
-	EventType                  string                      `json:"event_type"`
-	Filter                     string                      `json:"filter"`
-	ConditionLogic             ConditionLogic              `json:"condition_logic"`
-	IsEnabled                  bool                        `json:"is_enabled"`
-	DeviceId                   string                      `json:"device_id"`
-	DeviceAction               string                      `json:"device_action"`
-	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
+	TemplateId         *string                     `json:"template_id"`
+	Name               string                      `json:"name"`
+	EventType          string                      `json:"event_type"`
+	Filter             string                      `json:"filter"`
+	ConditionLogic     ConditionLogic              `json:"condition_logic"`
+	IsEnabled          bool                        `json:"is_enabled"`
+	DeviceId           string                      `json:"device_id"`
+	DeviceAction       string                      `json:"device_action"`
+	DeviceActionParams ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                      `json:"device_group_id"`
 }
 
 type DeleteConditionResponse struct {
@@ -131,27 +157,27 @@ type ConditionTestEvent struct {
 }
 
 type TestDraftConditionLogicRequest struct {
-	ConditionLogic             ConditionLogic              `json:"condition_logic"`
-	TestEvent                  ConditionTestEvent          `json:"test_event"`
-	DeviceId                   string                      `json:"device_id"`
-	DeviceAction               string                      `json:"device_action"`
-	DeviceActionParams         ConditionDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody           map[string]interface{}      `json:"device_action_body,omitempty"`
-	DeviceActionParamName      string                      `json:"device_action_param_name,omitempty"`
-	DeviceActionParamEvaluator ConditionLogic              `json:"device_action_param_evaluator,omitempty"`
-	TriggerRealDevice          bool                        `json:"trigger_real_device"`
+	TemplateId         *string                     `json:"template_id"`
+	ConditionLogic     ConditionLogic              `json:"condition_logic"`
+	TestEvent          ConditionTestEvent          `json:"test_event"`
+	DeviceId           string                      `json:"device_id"`
+	DeviceAction       string                      `json:"device_action"`
+	DeviceActionParams ConditionDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}      `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                      `json:"device_group_id"`
+	TriggerRealDevice  bool                        `json:"trigger_real_device"`
 }
 
 type TestDraftConditionLogicResponse struct {
-	Matched                  bool                            `json:"matched"`
-	ComputedValues           []string                        `json:"computed_values"`
-	DeviceId                 string                          `json:"device_id"`
-	DeviceAction             string                          `json:"device_action"`
-	DeviceActionParams       ConditionTestDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody         map[string]interface{}          `json:"device_action_body,omitempty"`
-	DeviceActionParamName    string                          `json:"device_action_param_name,omitempty"`
-	ComputedDeviceActionBody map[string]interface{}          `json:"computed_device_action_body,omitempty"`
-	WouldTrigger             bool                            `json:"would_trigger"`
+	Matched            bool                            `json:"matched"`
+	ComputedValues     []string                        `json:"computed_values"`
+	DeviceId           string                          `json:"device_id"`
+	DeviceAction       string                          `json:"device_action"`
+	DeviceActionParams ConditionTestDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}          `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                          `json:"device_group_id"`
+	ResolvedActionBody map[string]interface{}          `json:"resolved_action_body,omitempty"`
+	WouldTrigger       bool                            `json:"would_trigger"`
 }
 
 type TestSavedConditionRequest struct {
@@ -160,17 +186,17 @@ type TestSavedConditionRequest struct {
 }
 
 type TestSavedConditionResponse struct {
-	ConditionId              string                          `json:"condition_id"`
-	ConditionName            string                          `json:"condition_name"`
-	Matched                  bool                            `json:"matched"`
-	ComputedValues           []string                        `json:"computed_values"`
-	DeviceId                 string                          `json:"device_id"`
-	DeviceAction             string                          `json:"device_action"`
-	DeviceActionParams       ConditionTestDeviceActionParams `json:"device_action_params"`
-	DeviceActionBody         map[string]interface{}          `json:"device_action_body,omitempty"`
-	DeviceActionParamName    string                          `json:"device_action_param_name,omitempty"`
-	ComputedDeviceActionBody map[string]interface{}          `json:"computed_device_action_body,omitempty"`
-	WouldTrigger             bool                            `json:"would_trigger"`
+	ConditionId        string                          `json:"condition_id"`
+	ConditionName      string                          `json:"condition_name"`
+	Matched            bool                            `json:"matched"`
+	ComputedValues     []string                        `json:"computed_values"`
+	DeviceId           string                          `json:"device_id"`
+	DeviceAction       string                          `json:"device_action"`
+	DeviceActionParams ConditionTestDeviceActionParams `json:"device_action_params"`
+	DeviceActionBody   map[string]interface{}          `json:"device_action_body,omitempty"`
+	DeviceGroupId      string                          `json:"device_group_id"`
+	ResolvedActionBody map[string]interface{}          `json:"resolved_action_body,omitempty"`
+	WouldTrigger       bool                            `json:"would_trigger"`
 }
 
 type TestAllConditionsRequest struct {

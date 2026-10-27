@@ -8,22 +8,24 @@ import (
 type DeviceGroups struct{}
 
 type DeviceGroup struct {
-	Id        string `json:"id"`
-	UserId    int    `json:"user_id"`
-	Name      string `json:"name"`
-	Option    string `json:"option"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	Id              string `json:"id"`
+	UserId          int    `json:"user_id"`
+	Name            string `json:"name"`
+	DeviceTargeting string `json:"device_targeting"`
+	ConcurrencyMode string `json:"concurrency_mode"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
 }
 
 type DeviceGroupWithDevices struct {
-	Id        string   `json:"id"`
-	UserId    int      `json:"user_id"`
-	Name      string   `json:"name"`
-	Option    string   `json:"option"`
-	CreatedAt string   `json:"created_at"`
-	UpdatedAt string   `json:"updated_at"`
-	Devices   []Device `json:"devices"`
+	Id              string   `json:"id"`
+	UserId          int      `json:"user_id"`
+	Name            string   `json:"name"`
+	DeviceTargeting string   `json:"device_targeting"`
+	ConcurrencyMode string   `json:"concurrency_mode"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
+	Devices         []Device `json:"devices"`
 }
 
 type ListDeviceGroupsResponse []DeviceGroup
@@ -32,13 +34,15 @@ type CreateDeviceGroupResponse = DeviceGroup
 type UpdateDeviceGroupResponse = DeviceGroup
 
 type CreateDeviceGroupRequest struct {
-	Name   string `json:"name"`
-	Option string `json:"option"`
+	Name            string `json:"name"`
+	DeviceTargeting string `json:"device_targeting,omitempty"`
+	ConcurrencyMode string `json:"concurrency_mode,omitempty"`
 }
 
 type UpdateDeviceGroupRequest struct {
-	Name   string `json:"name"`
-	Option string `json:"option"`
+	Name            string `json:"name"`
+	DeviceTargeting string `json:"device_targeting,omitempty"`
+	ConcurrencyMode string `json:"concurrency_mode,omitempty"`
 }
 
 type DeleteDeviceGroupResponse struct {

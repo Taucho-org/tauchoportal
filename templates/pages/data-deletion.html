@@ -30,9 +30,9 @@
   <nav class="policy-nav">
     <a href="/" class="policy-logo">🌊 Taucho</a>
     <div class="policy-nav-links">
-      <a href="/">Home</a>
-      <a href="/login" class="nav-btn">Sign In</a>
-      <a href="/register" class="nav-btn nav-btn-primary">Create Account</a>
+      <a href="/">{{.I18n.T "nav.home"}}</a>
+      <a href="/login" class="nav-btn">{{.I18n.T "nav.signIn"}}</a>
+      <a href="/register" class="nav-btn nav-btn-primary">{{.I18n.T "nav.createAccount"}}</a>
     </div>
   </nav>
   {{end}}
@@ -76,10 +76,7 @@
         <section class="policy-section">
           <h2>{{.I18n.T "dataDeletion.whatDeleted"}}</h2>
           <ul>
-            <li>Your account profile (username, email, picture)</li>
-            <li>All stream channels, devices, and conditions</li>
-            <li>OAuth tokens for connected platforms</li>
-            <li>All activity and usage logs tied to your account</li>
+            <li>{{.I18n.T "dataDeletion.deletedItems"}}</li>
           </ul>
           <p>{{.I18n.T "dataDeletion.deletionTime"}}<strong>30 days</strong> {{.I18n.T "dataDeletion.daysEnd"}}</p>
         </section>

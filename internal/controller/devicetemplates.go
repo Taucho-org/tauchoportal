@@ -28,28 +28,28 @@ type DeviceTemplateExamples struct {
 }
 
 type DeviceTemplate struct {
-	Id                     int                     `json:"id"`
-	BrandName              string                  `json:"brand_name"`
-	TemplateName           string                  `json:"template_name"`
-	Category               string                  `json:"category"`
-	Description            string                  `json:"description"`
-	HttpMethod             string                  `json:"http_method"`
-	RequiredParameters     []string                `json:"required_parameters"`
-	OptionalParameters     []string                `json:"optional_parameters"`
-	ParameterDefaults      map[string]interface{}  `json:"parameter_defaults"`
-	ParameterConstraints   map[string]interface{}  `json:"parameter_constraints"`
-	UiFields               []DeviceTemplateUIField `json:"ui_fields"`
-	RequiresAuthentication bool                    `json:"requires_authentication"`
-	LocalNetworkOnly       bool                    `json:"local_network_only"`
-	Notes                  string                  `json:"notes"`
-	EndpointUrl            *string                 `json:"endpoint_url"`
-	AuthenticationType     *string                 `json:"authentication_type"`
-	AuthHeader             *string                 `json:"auth_header"`
-	BodyTemplate           *string                 `json:"body_template"`
-	Examples               *DeviceTemplateExamples `json:"examples"`
-	SupportsBatchCommands  *bool                   `json:"supports_batch_commands"`
-	CreatedAt              *string                 `json:"created_at"`
-	UpdatedAt              *string                 `json:"updated_at"`
+	Id                       int                     `json:"id"`
+	BrandName                string                  `json:"brand_name"`
+	TemplateName             string                  `json:"template_name"`
+	Category                 string                  `json:"category"`
+	Description              string                  `json:"description"`
+	HttpMethod               string                  `json:"http_method"`
+	DeviceIdentifyParameters []string                `json:"device_identify_parameters"`
+	OptionalParameters       []string                `json:"optional_parameters"`
+	ParameterDefaults        map[string]interface{}  `json:"parameter_defaults"`
+	ParameterConstraints     map[string]interface{}  `json:"parameter_constraints"`
+	UiFields                 []DeviceTemplateUIField `json:"ui_fields"`
+	RequiresAuthentication   bool                    `json:"requires_authentication"`
+	LocalNetworkOnly         bool                    `json:"local_network_only"`
+	Notes                    string                  `json:"notes"`
+	EndpointUrl              *string                 `json:"endpoint_url"`
+	AuthenticationType       *string                 `json:"authentication_type"`
+	AuthHeader               *string                 `json:"auth_header"`
+	BodyTemplate             *string                 `json:"body_template"`
+	Examples                 *DeviceTemplateExamples `json:"examples"`
+	SupportsBatchCommands    *bool                   `json:"supports_batch_commands"`
+	CreatedAt                *string                 `json:"created_at"`
+	UpdatedAt                *string                 `json:"updated_at"`
 }
 
 type ListTemplatesResponse []DeviceTemplate

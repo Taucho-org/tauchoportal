@@ -14,6 +14,7 @@ type MyConnectedBrand struct {
 	ID                       string                 `json:"id"`
 	Name                     string                 `json:"name"`
 	IsConnected              bool                   `json:"is_connected"`
+	IsRegistered             bool                   `json:"is_registered"`
 	AuthType                 *string                `json:"auth_type"`
 	Status                   *string                `json:"status"`
 	ConnectedAt              *string                `json:"connected_at"`
@@ -40,17 +41,19 @@ type MyBrandsListResponse struct {
 	Brands []MyConnectedBrand `json:"brands"`
 }
 
-// ListMyBrands fetches all connected brands with status from API
+// ListMyBrands fetches all brands with their connection status from the API.
 func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 	var response MyBrandsListResponse
 	apiRequest(&response, http.MethodGet, "/auth/brands")
-	brands := make([]MyConnectedBrand, 0, len(response.Brands))
-	for _, brand := range response.Brands {
-		if brand.ID != BuiltInBrandID {
-			brands = append(brands, brand)
-		}
+
+	// Preserve the full brand list. The settings page needs unconnected brands
+	// too, so derive registration state without filtering API results.
+	for i := range response.Brands {
+		brand := &response.Brands[i]
+		brand.IsRegistered = brand.Status != nil && (*brand.Status == "registered" || *brand.Status == "connected")
 	}
-	return brands
+
+	return response.Brands
 }
 
 // GetMyBrandDetails fetches a specific connected brand with credential fields

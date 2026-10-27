@@ -1,3 +1,40 @@
 {{/* DWANGO Devices */}}
 {{define "catalog-dwango"}}
+<div class="catalog-dwango brand-catalog" data-brand="dwango">
+    <div class="catalog-header-section">
+        <img src="/image/logo_dwango.png" alt="DWANGO Logo" class="catalog-logo">
+    </div>
+    <div class="catalog-products">
+        <article class="catalog-card" data-product-id="dwango-device-1">
+            <div class="catalog-image placeholder">
+                <span class="catalog-placeholder-icon">💡</span>
+            </div>
+            <div class="catalog-info">
+                <h3 class="catalog-product-name">{{.I18n.T "catalog.dwango.product1"}}</h3>
+                <p class="catalog-description">{{.I18n.T "catalog.dwango.stubDescription"}}</p>
+            </div>
+            <div class="catalog-actions-bar">
+                <button type="button" class="btn btn-add-device dwango-add-device"
+                        data-product-id="dwango-device-1"
+                        data-product-name="{{.I18n.T "catalog.dwango.product1"}}">
+                    + {{.I18n.T "catalog.addDevice"}}
+                </button>
+            </div>
+        </article>
+    </div>
+</div>
+<script>
+document.addEventListener('click', event => {
+    const button = event.target.closest('.dwango-add-device');
+    if (!button) return;
+    selectProduct('dwango', button.dataset.productId, button.dataset.productName);
+});
+</script>
+<style>
+    .catalog-dwango .catalog-logo {
+        max-width: 100%;
+        height: auto;
+        padding: 3rem 0rem;
+    }
+</style>
 {{end}}
