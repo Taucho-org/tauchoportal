@@ -442,3 +442,40 @@ test('page Save and Test send the same current top-level action configuration', 
     assert.equal(sent[0].body.trigger_real_device, true);
     assert.match(elements.testResultsContent.innerHTML, /resolved_action_body/);
 });
+
+test('condition save errors preserve the HTTP status and API message', async () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'templates', 'pages', 'condition.html'), 'utf8');
+    const inline = html.slice(html.indexOf('<script>\nlet conditionEditor'), html.lastIndexOf('</script>'))
+        .replace(/^<script>\n/, '');
+    const elements = {
+        conditionEventFieldOptionsData: { textContent: '[]' },
+        conditionTemplatesData: { textContent: '[]' },
+        conditionPropertiesData: { textContent: '[]' },
+        conditionLogicInput: { value: JSON.stringify({ Operator: 'OR', SubConditions: [] }) },
+        sendingparamjson: { value: '{}' },
+        submitConditionButton: { textContent: 'Save' }
+    };
+    const alerts = [];
+    const page = vm.createContext({
+        console: { log() {}, error() {} },
+        alert: message => alerts.push(message),
+        document: { getElementById: id => elements[id], querySelector: () => null, addEventListener() {} },
+        deviceActionHandler: {
+            getActionParams: () => ({ device_group_id: 'group-1', template_id: '1', device_action_body: { on: true } })
+        },
+        window: { location: {}, addEventListener() {} },
+        fetch: async () => ({
+            ok: false,
+            status: 422,
+            statusText: 'Unprocessable Entity',
+            text: async () => JSON.stringify({ message: 'device_action_body is required' })
+        })
+    });
+
+    vm.runInContext(inline, page);
+    vm.runInContext('submitCondition()', page);
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.deepEqual(alerts, ['Error saving condition: HTTP 422 Unprocessable Entity: device_action_body is required']);
+    assert.equal(elements.submitConditionButton.disabled, false);
+});

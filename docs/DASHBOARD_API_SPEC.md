@@ -172,6 +172,14 @@ Returns comprehensive dashboard data including metrics, activity feed, and statu
    - `condition_error`: A condition failed to execute
    - `device_online`: A device came back online
 
+   The portal localizes titles, details, and status labels for these known
+   activity types. Keep the `type`, `channel_name`, `device_name`, and `status`
+   fields populated. For compatibility with the current response shape, the
+   portal also extracts supplemental values (such as platform, duration, and
+   action counts) from the documented `title` and `detail` examples above.
+   New activity types should provide structured fields for any display values
+   rather than relying on English prose.
+
 2. **Activity Status Values:**
    - `streaming`, `offline`, `online`, `success`, `warning`, `error`
 

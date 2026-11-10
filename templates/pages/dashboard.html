@@ -102,10 +102,10 @@
                         <li class="activity-item">
                             <span class="activity-icon">{{.Icon}}</span>
                             <div class="activity-content">
-                                <div class="activity-title">{{.Title}}</div>
-                                <div class="activity-detail">{{.Detail}}</div>
-                                <div class="activity-time">{{formatTimeAgo .Timestamp}}</div>
-                                <span class="activity-badge {{.Status}}">{{capitalize .Status}}</span>
+                                <div class="activity-title">{{dashboardActivityTitle . $.I18n}}</div>
+                                <div class="activity-detail">{{dashboardActivityDetail . $.I18n}}</div>
+                                <div class="activity-time">{{formatTimeAgo .Timestamp $.I18n}}</div>
+                                <span class="activity-badge {{.Status}}">{{dashboardActivityStatus .Status $.I18n}}</span>
                             </div>
                         </li>
                         {{end}}

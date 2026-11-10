@@ -468,10 +468,13 @@ func loadTemplates() map[string]*template.Template {
 		"urlEscape": func(s string) string {
 			return url.QueryEscape(s)
 		},
-		"capitalize":     capitalize,
-		"formatTimeAgo":  formatTimeAgo,
-		"getEventLabel":  controller.GetEventLabel,
-		"formatDateTime": controller.FormatDateTime,
+		"capitalize":              capitalize,
+		"formatTimeAgo":           formatTimeAgo,
+		"dashboardActivityTitle":  controller.DashboardActivityTitle,
+		"dashboardActivityDetail": controller.DashboardActivityDetail,
+		"dashboardActivityStatus": controller.DashboardActivityStatus,
+		"getEventLabel":           controller.GetEventLabel,
+		"formatDateTime":          controller.FormatDateTime,
 		"replace": func(s, old, new string) string {
 			return strings.ReplaceAll(s, old, new)
 		},
@@ -818,7 +821,7 @@ func capitalize(s string) string {
 	return strings.ToUpper(string(s[0])) + s[1:]
 }
 
-func formatTimeAgo(timestamp string) string {
+func formatTimeAgo(timestamp string, translator *i18n.Translator) string {
 	if timestamp == "" {
 		return ""
 	}
@@ -843,28 +846,28 @@ func formatTimeAgo(timestamp string) string {
 
 	// Calculate time units
 	if diff < time.Minute {
-		return "just now"
+		return translator.T("dashboard.activity.time.justNow")
 	}
 	if diff < time.Hour {
 		mins := int(diff.Minutes())
 		if mins == 1 {
-			return "1 minute ago"
+			return translator.T("dashboard.activity.time.minuteAgo", "1")
 		}
-		return fmt.Sprintf("%d minutes ago", mins)
+		return translator.T("dashboard.activity.time.minutesAgo", strconv.Itoa(mins))
 	}
 	if diff < 24*time.Hour {
 		hours := int(diff.Hours())
 		if hours == 1 {
-			return "1 hour ago"
+			return translator.T("dashboard.activity.time.hourAgo", "1")
 		}
-		return fmt.Sprintf("%d hours ago", hours)
+		return translator.T("dashboard.activity.time.hoursAgo", strconv.Itoa(hours))
 	}
 	if diff < 7*24*time.Hour {
 		days := int(diff.Hours() / 24)
 		if days == 1 {
-			return "1 day ago"
+			return translator.T("dashboard.activity.time.dayAgo", "1")
 		}
-		return fmt.Sprintf("%d days ago", days)
+		return translator.T("dashboard.activity.time.daysAgo", strconv.Itoa(days))
 	}
 
 	// For dates further back, show the date
