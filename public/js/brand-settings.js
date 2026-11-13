@@ -3,11 +3,11 @@
   const BRANDS = window._allBrands || [];
   const BRAND_LOOKUP = Object.fromEntries(BRANDS.map((brand) => [brand.id, brand]));
   const BRAND_ALIASES = {
-    philipshue: 'philips-hue',
-    hue: 'philips-hue',
-    kasa: 'tp-link-kasa',
-    tplinkkasa: 'tp-link-kasa',
-    tplink: 'tp-link-kasa',
+    philipshue: 'hue',
+    hue: 'hue',
+    kasa: 'kasa',
+    tplinkkasa: 'kasa',
+    tplink: 'kasa',
     alexa: 'amazon-alexa',
     amazonalexa: 'amazon-alexa'
   };
@@ -379,6 +379,8 @@
     if ((step.allow_device_test || step.allow_credential_test) && credentialsSection) {
       renderDeviceTestSection(step, credentialsSection);
     }
+
+    credentialsSection.style['display'] = (step.requires_credentials || step.allow_device_test || step.allow_credential_test) ? 'block' : 'none';
   }
 
   // Builds the list of credential fields to render/submit for a brand.
@@ -941,8 +943,9 @@
         credentials: credentialsPayload
       });
 
+      setupWizardCredentialsSaved = true;
       closeModal('setupWizardModal');
-      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!') + ' Please refresh to see updated status.');
+      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!'));
     } catch (error) {
       showToast(`❌ ${error.message}`);
     } finally {

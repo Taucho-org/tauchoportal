@@ -23,15 +23,15 @@
                 <div class="brand-status-header">
                     <h3>{{.I18n.T "devices.connectedBrands"}}</h3>
             {{$hasConnected := false}}
+            {{$hasQuickConnect := false}}
                     <!-- Brand Status Pills -->
                     <div class="brand-status-pills" id="brandStatusPills">
-                        {{range .Brands}}
+                        {{range .Devices.BrandsSorted}}
                             {{$brandId := .ID}}
-                            {{$deviceCount := 0}}
-                            {{range $.Devices.Devices}}
-                                {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
+                            {{if .IsConnected}}
+                                {{$hasQuickConnect = true}}
                             {{end}}
-                            {{if or (gt $deviceCount 0) (eq $brandId "taucho")}}
+                            {{if or .IsConnected (eq $brandId "taucho")}}
                                 {{$hasConnected = true}}
                                 <div class="brand-pill connected" data-brand-id="{{$brandId}}">
                                     {{if .LogoURL}}
@@ -81,18 +81,15 @@
 
         </div>
 
-        <!-- Quick Connect New Brand Section -->
-         {{ if $hasConnected }}
+        <!-- Quick Connect: import unregistered devices from connected brands -->
+         {{ if $hasQuickConnect }}
         <div class="quick-connect">
             <h3>🚀 {{.I18n.T "devices.quickConnect" }}</h3>
+            <p class="quick-connect-description">{{.I18n.T "devices.quickConnectDescription"}}</p>
             <div class="quick-connect-buttons">
-                {{range .Brands }}
+                {{range .Devices.BrandsSorted}}
                 {{$brandId := .ID}}
-                {{$deviceCount := 0}}
-                {{range $.Devices.Devices}}
-                    {{if eq .Brand $brandId}}{{$deviceCount = add $deviceCount 1}}{{end}}
-                {{end}}
-                {{if or (gt $deviceCount 0) (eq $brandId "taucho")}}
+                {{if .IsConnected}}
                 <button onclick="openQuickConnectModal('{{$brandId}}')">+ {{.Name}}</button>
                 {{end}}
                 {{end}}
@@ -237,8 +234,11 @@
 {{if not $brandColor}}{{$brandColor = "#888888"}}{{end}}
 <div class="device-card" data-id="{{$device.ID}}" data-brand="{{$device.Brand}}" data-group-id="{{$device.DeviceGroupID}}">
     <div class="device-header-section" data-brand="{{$device.Brand}}" style="background:linear-gradient(135deg, {{$brandColor}} 0%, {{$brandColor}} 100%);">
-        <h4 class="device-header-name">{{$device.Name}}</h4>
-        <p class="device-header-brand">{{$device.ProductName}}</p>
+        <img class="device-product-thumbnail" data-product-id="{{$device.ProductID}}" data-brand="{{$device.Brand}}" src="/image/catalog/product-placeholder.png" alt="{{$device.ProductName}}" loading="lazy" onerror="this.onerror=null;this.src='/image/catalog/product-placeholder.png'">
+        <div class="device-header-details">
+            <h4 class="device-header-name">{{$device.Name}}</h4>
+            <p class="device-header-brand">{{$device.ProductName}}</p>
+        </div>
     </div>
     <div class="device-body">
         <div class="device-badges">
@@ -305,12 +305,7 @@
                     {{range .Brands}}
                         {{$brandId := .ID}}
                         {{$brandName := .Name}}
-                        {{$brandColor := .BrandColor}}
                         {{$brandLogo := .LogoURL}}
-                        {{$ownedDevices := 0}}
-                        {{range $.Devices.Devices}}
-                            {{if eq .Brand $brandId}}{{$ownedDevices = add $ownedDevices 1}}{{end}}
-                        {{end}}
                         
                         <div class="accordion-item" data-brand-id="{{$brandId}}">
                             <button type="button" class="accordion-header" onclick="toggleAccordion(this)">
@@ -321,59 +316,12 @@
                                     <div class="accordion-brand-icon">📱</div>
                                 {{end}}
                                 <span class="accordion-brand-name">{{$brandName}}</span>
-                                <span class="accordion-count">
-                                    {{if $ownedDevices}}
-                                        {{if eq $ownedDevices 1}}
-                                            {{ replace ($.I18n.T "devices.ownedDevice") "{0}" (tostring $ownedDevices)}}
-                                        {{else}}
-                                            {{ replace ($.I18n.T "devices.ownedDevices") "{0}" (tostring $ownedDevices)}}
-                                        {{end}}
-                                    {{else}}
-                                        {{$.I18n.T "devices.browseCatalog"}}
-                                    {{end}}
-                                </span>
+                                <span class="accordion-count">{{$.I18n.T "devices.browseCatalog"}}</span>
                             </button>
                             
                             <div class="accordion-products">
-                                <!-- Owned Devices Section -->
-                                {{$hasOwned := false}}
-                                {{range $.Devices.Devices}}
-                                    {{if eq .Brand $brandId}}
-                                        {{$hasOwned = true}}
-                                    {{end}}
-                                {{end}}
-                                
-                                {{if $hasOwned}}
-                                <div class="owned-devices-section">
-                                    {{range $.Devices.Devices}}
-                                        {{if eq .Brand $brandId}}
-                                        <div class="product-item" onclick="selectProduct('{{.Brand}}', '{{.ProductID}}', '{{.ProductName}}', '{{.Name}}', {{toJSON .DeviceIdentifier}})">
-                                            <div class="product-info">
-                                                <h5 class="product-name">{{.Name}}</h5>
-                                                <span class="product-actions">{{.ProductName}}</span>
-                                            </div>
-                                            <span class="product-owned-badge">{{$.I18n.T "devices.ownedBadge"}}</span>
-                                        </div>
-                                        {{end}}
-                                    {{end}}
-                                </div>
-                                {{end}}
-                                
-                                <!-- Discovered Devices Section (populated by JS) -->
+                                <!-- Brand-owned devices that are not yet registered -->
                                 <div class="discovered-devices-section" data-brand-id="{{$brandId}}" style="display: none;"></div>
-                                
-                                <!-- Separator -->
-                                {{$hasOwned := false}}
-                                {{range $.Devices.Devices}}
-                                    {{if eq .Brand $brandId}}
-                                        {{$hasOwned = true}}
-                                    {{end}}
-                                {{end}}
-                                
-                                <!-- Catalog Section (from partials) -->
-                                {{if $hasOwned}}
-                                <div class="section-divider">{{$.I18n.T "devices.availableToAdd"}}</div>
-                                {{end}}
                                 
                                 <!-- Include brand-specific catalog partial using dynamic rendering -->
                                 {{renderCatalog $brandId $.I18n .}}
@@ -424,9 +372,9 @@
                         <small class="form-help">{{.I18n.T "devices.deviceTypeHelp"}}</small>
                     </div>
                     
-                    <div class="form-group">
+                    <div class="form-group device-room-field">
                         <label for="devRoom">{{.I18n.T "devices.room"}}<span class="optional-label">{{.I18n.T "devices.optional"}}</span></label>
-                        <input type="text" id="devRoom" placeholder="{{.I18n.T "devices.roomPlaceholder"}}">
+                        <input type="text" id="devRoom" placeholder="{{.I18n.T "devices.roomPlaceholder"}}" disabled>
                     </div>
 
                     {{if gt (len .MultiDeviceGroups) 0}}
@@ -505,7 +453,7 @@
     </div>
 </div>
 
-<!-- Quick Connect Modal (for owned devices only) -->
+<!-- Quick Connect Modal (for unregistered brand-owned devices) -->
 <div id="quickConnectModal" class="modal">
     <div class="modal-content modal-wide">
         <div class="modal-header">
@@ -520,9 +468,9 @@
                 <input type="text" id="qcSearchBox" placeholder="{{.I18n.T "devices.quickConnectSearch"}}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
             </div>
 
-            <!-- Product List -->
-            <div id="qcProductList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
-                <!-- Populated by JS -->
+            <!-- Unregistered devices discovered in the brand account -->
+            <div id="qcDeviceList" class="qc-device-list">
+                <!-- Populated by JS with unregistered devices from the brand account -->
             </div>
 
             <!-- Loading State -->
