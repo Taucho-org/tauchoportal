@@ -483,6 +483,7 @@ func SplitDevicesForDisplay(devices []DeviceForTemplate, groups []DeviceGroupFor
 type BrandForTemplate struct {
 	ID                            string                         `json:"id"`
 	Name                          string                         `json:"name"`
+	IsConnected                   bool                           `json:"is_connected"`
 	LogoURL                       string                         `json:"logo_url"`
 	BrandColor                    string                         `json:"brand_color"`
 	AffiliateURL                  string                         `json:"affiliate_url"`
@@ -524,9 +525,14 @@ type DevicesPageData struct {
 }
 
 // PrepareDevicesPageData prepares all data needed to render the devices page
-func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
+func PrepareDevicesPageData(brandList []CatalogBrand, connectedBrands []MyConnectedBrand) *DevicesPageData {
 	devices := Devices{}.ListDevices()
 	devicesForTemplate := make([]DeviceForTemplate, 0)
+
+	connectedBrandIDs := make(map[string]bool, len(connectedBrands))
+	for _, brand := range connectedBrands {
+		connectedBrandIDs[brand.ID] = brand.IsConnected
+	}
 
 	// Fetch all active brands from catalog
 	brandsMap := make(map[string]*BrandForTemplate)
@@ -540,6 +546,7 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 		brandForTemplate := &BrandForTemplate{
 			ID:                            b.ID,
 			Name:                          b.Name,
+			IsConnected:                   connectedBrandIDs[b.ID],
 			LogoURL:                       stringValue(b.LogoURL),
 			BrandColor:                    stringValue(b.BrandColor),
 			AffiliateURL:                  stringValue(b.AffiliateURL),

@@ -79,6 +79,7 @@ var pageRoutes = map[string]pageConfig{
 	"/conditions":       {Name: "conditions", TitleKey: "conditions.title", RequireAuth: true},
 	"/condition":        {Name: "condition", TitleKey: "condition.title", RequireAuth: true},
 	"/devices":          {Name: "devices", TitleKey: "devices.title", RequireAuth: true},
+	"/shopping":         {Name: "shopping", TitleKey: "shopping.title", RequireAuth: true},
 	"/brand-settings":   {Name: "brand-settings", TitleKey: "brand-settings.title", RequireAuth: true},
 	"/about":            {Name: "about", TitleKey: "about.title", RequireAuth: false},
 	"/login-settings":   {Name: "login-settings", TitleKey: "login-settings.title", RequireAuth: true},
@@ -667,6 +668,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		data.Channels = pageData
 	}
 
+	if cfg.Name == "shopping" {
+		data.Brands = (controller.BrandList{}).ListAll()
+	}
+
 	// Fetch shared brand data for brand-settings and devices pages.
 	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
 		myBrandSettings := controller.MyBrandSettings{}
@@ -675,7 +680,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		brandList := controller.BrandList{}
 		data.Brands = brandList.ListAll()
 
-		data.Devices = controller.PrepareDevicesPageData(data.Brands)
+		data.Devices = controller.PrepareDevicesPageData(data.Brands, data.MyBrands)
 
 		if cfg.Name == "devices" {
 			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(data.Devices.Devices)
