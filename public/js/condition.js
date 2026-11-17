@@ -3,6 +3,10 @@
  * Supports: static values, event extraction (via condition logic), and JSON editors for complex objects
  * Uses modal dialog for template and parameter selection
  */
+function conditionUiMessage(key, fallback) {
+    return window._i18nMsg?.[key] || fallback;
+}
+
 class DeviceActionHandler {
     constructor(containerElement, options = {}) {
         this.mainContainer = typeof containerElement === 'string' 
@@ -62,13 +66,13 @@ class DeviceActionHandler {
         const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
         if (!groupSelect) return;
         
-        groupSelect.innerHTML = '<option value="">Select a device group...</option>';
+        groupSelect.innerHTML = `<option value="">${conditionUiMessage('condition.ui.selectDeviceGroup', 'Select a device group...')}</option>`;
         this.deviceGroups.forEach(group => {
             const option = document.createElement('option');
             option.value = group.id || group.ID;
             option.textContent = group.devices?.length === 1
-                ? (group.devices[0].name || group.devices[0].id || 'Unnamed')
-                : (group.name || group.Name || 'Unnamed');
+                ? (group.devices[0].name || group.devices[0].id || conditionUiMessage('condition.ui.unnamed', 'Unnamed'))
+                : (group.name || group.Name || conditionUiMessage('condition.ui.unnamed', 'Unnamed'));
             groupSelect.appendChild(option);
         });
         if (this.selectedGroupId) {
@@ -167,20 +171,20 @@ class DeviceActionHandler {
         }
         const label = document.createElement('div');
         label.className = 'group-devices-label';
-        label.textContent = `${container.dataset.label || 'Included devices'} (${devices.length})`;
+        label.textContent = `${container.dataset.label || conditionUiMessage('condition.deviceAction.includedDevices', 'Included devices')} (${devices.length})`;
         container.appendChild(label);
 
         if (devices.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'group-devices-empty';
-            empty.textContent = container.dataset.empty || 'No devices in this group';
+            empty.textContent = container.dataset.empty || conditionUiMessage('condition.deviceAction.noDevices', 'No devices in this group');
             container.appendChild(empty);
         } else {
             const list = document.createElement('ul');
             devices.forEach(device => {
                 const item = document.createElement('li');
                 const name = document.createElement('strong');
-                name.textContent = device.name || device.id || 'Unnamed';
+                name.textContent = device.name || device.id || conditionUiMessage('condition.ui.unnamed', 'Unnamed');
                 item.appendChild(name);
                 const details = [device.brand, device.product_name, device.room].filter(Boolean).join(' / ');
                 if (details) {
@@ -274,22 +278,22 @@ class DeviceActionHandler {
         if (!templateSelect) return;
         
         if (!templates || templates.length === 0) {
-            templateSelect.innerHTML = '<option value="">No templates available</option><option value="__custom__">Custom Template (JSON)</option>';
+            templateSelect.innerHTML = `<option value="">${conditionUiMessage('condition.ui.noTemplatesAvailable', 'No templates available')}</option><option value="__custom__">${conditionUiMessage('condition.deviceAction.customTemplate', 'Custom Template (JSON)')}</option>`;
             templateSelect.disabled = false;
         } else {
             templateSelect.disabled = false;
-            templateSelect.innerHTML = '<option value="">Select template...</option>';
+            templateSelect.innerHTML = `<option value="">${conditionUiMessage('condition.selectTemplate', 'Select template...')}</option>`;
             templates.forEach(template => {
                 const option = document.createElement('option');
                 option.value = template.id || template.ID;
-                option.textContent = template.template_name || template.TemplateName || 'Unnamed';
+                option.textContent = template.template_name || template.TemplateName || conditionUiMessage('condition.ui.unnamed', 'Unnamed');
                 templateSelect.appendChild(option);
             });
             
             // Add custom template option at the end
             const customOption = document.createElement('option');
             customOption.value = '__custom__';
-            customOption.textContent = 'Custom Template (JSON)';
+            customOption.textContent = conditionUiMessage('condition.deviceAction.customTemplate', 'Custom Template (JSON)');
             templateSelect.appendChild(customOption);
             
         }
@@ -474,7 +478,7 @@ class DeviceActionHandler {
             staticRadio.className = 'param-mode-radio';
             staticRadio.checked = (config.mode === 'static');
             staticLabel.appendChild(staticRadio);
-            staticLabel.appendChild(document.createTextNode('Static Value'));
+            staticLabel.appendChild(document.createTextNode(conditionUiMessage('condition.ui.staticValue', 'Static Value')));
             modesDiv.appendChild(staticLabel);
             
             // Flexible mode radio
@@ -486,7 +490,7 @@ class DeviceActionHandler {
             flexibleRadio.className = 'param-mode-radio';
             flexibleRadio.checked = (config.mode === 'flexible');
             flexibleLabel.appendChild(flexibleRadio);
-            flexibleLabel.appendChild(document.createTextNode('Flexible (From Event)'));
+            flexibleLabel.appendChild(document.createTextNode(conditionUiMessage('condition.ui.flexibleFromEvent', 'Flexible (From Event)')));
             modesDiv.appendChild(flexibleLabel);
             
             div.appendChild(modesDiv);
@@ -504,7 +508,7 @@ class DeviceActionHandler {
             staticInput.className = 'param-static-input';
             staticInput.setAttribute('data-path', path);
             staticInput.setAttribute('data-mode', 'static');
-            staticInput.placeholder = 'Static value (numbers, booleans and objects accept JSON)';
+            staticInput.placeholder = conditionUiMessage('condition.ui.staticValuePlaceholder', 'Static value (numbers, booleans and objects accept JSON)');
             staticInput.value = config.mode === 'static'
                 ? (typeof config.value === 'string' ? config.value : JSON.stringify(config.value))
                 : '';
@@ -665,7 +669,7 @@ class DeviceActionHandler {
         ]);
 
         if (!evaluator || !evaluator.Operator) {
-            return { valid: false, error: 'Operator is required' };
+            return { valid: false, error: conditionUiMessage('condition.ui.operatorRequired', 'Operator is required') };
         }
 
         const operator = evaluator.Operator;
@@ -673,19 +677,19 @@ class DeviceActionHandler {
         if (!EXTRACTION_OPERATORS.has(operator)) {
             return { 
                 valid: false, 
-                error: `Operator '${operator}' is not valid for parameter extraction. Must be one of: ${Array.from(EXTRACTION_OPERATORS).join(', ')}`
+                error: `${conditionUiMessage('condition.ui.invalidExtractionOperator', "Operator '{0}' is not valid for parameter extraction. Must be one of:").replace('{0}', operator)} ${Array.from(EXTRACTION_OPERATORS).join(', ')}`
             };
         }
 
         if (evaluator.Variables != null &&
             (!Array.isArray(evaluator.Variables) || evaluator.Variables.some(value => typeof value !== 'string'))) {
-            return { valid: false, error: 'Variables must be an array of strings' };
+            return { valid: false, error: conditionUiMessage('condition.ui.variablesArrayStrings', 'Variables must be an array of strings') };
         }
         if (evaluator.SubConditions != null && !Array.isArray(evaluator.SubConditions)) {
-            return { valid: false, error: 'SubConditions must be an array' };
+            return { valid: false, error: conditionUiMessage('condition.ui.subConditionsArray', 'SubConditions must be an array') };
         }
         if (!(evaluator.Variables?.length || evaluator.SubConditions?.length)) {
-            return { valid: false, error: `Operator '${operator}' requires an input` };
+            return { valid: false, error: conditionUiMessage('condition.ui.operatorRequiresInput', "Operator '{0}' requires an input").replace('{0}', operator) };
         }
         for (const child of evaluator.SubConditions || []) {
             const validation = this.validateParameterEvaluator(child);
@@ -697,7 +701,7 @@ class DeviceActionHandler {
 
     validateActionBody(body) {
         if (!body || typeof body !== 'object' || Array.isArray(body) || !Object.keys(body).length) {
-            throw new Error('Device action body must be a non-empty JSON object');
+            throw new Error(conditionUiMessage('condition.ui.actionBodyRequired', 'Device action body must be a non-empty JSON object'));
         }
         for (const [field, value] of Object.entries(body)) {
             if (value && typeof value === 'object' && Object.hasOwn(value, 'Operator')) {
@@ -708,11 +712,19 @@ class DeviceActionHandler {
     }
 
     buildActionParams() {
-        if (!this.selectedGroupId) throw new Error('Please select a device group');
-        if (!this.selectedTemplateId || !this.selectedTemplate) throw new Error('Please select an action template');
-        const body = this.selectedTemplateId === '__custom__'
-            ? JSON.parse(this.modalElement.querySelector('#modal_customTemplateJSON').value)
-            : JSON.parse(JSON.stringify(this.selectedTemplate.actionBody));
+        if (!this.selectedGroupId) throw new Error(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
+        if (!this.selectedTemplateId || !this.selectedTemplate) throw new Error(conditionUiMessage('condition.ui.selectActionTemplateRequired', 'Please select an action template'));
+        let body;
+        try {
+            body = this.selectedTemplateId === '__custom__'
+                ? JSON.parse(this.modalElement.querySelector('#modal_customTemplateJSON').value)
+                : JSON.parse(JSON.stringify(this.selectedTemplate.actionBody));
+        } catch (error) {
+            if (this.selectedTemplateId === '__custom__') {
+                throw new Error(conditionUiMessage('condition.ui.invalidDeviceActionJSON', 'Invalid device action JSON'));
+            }
+            throw error;
+        }
 
         // Read live editor values: graphical edits do not dispatch textarea change events.
         for (const [field, config] of Object.entries(this.parameterConfigs)) {
@@ -732,10 +744,10 @@ class DeviceActionHandler {
     parseTemplateId(value) {
         if (value == null) return null;
         if (typeof value === 'number' && (!Number.isSafeInteger(value) || value <= 0)) {
-            throw new Error('Invalid action template ID');
+            throw new Error(conditionUiMessage('condition.ui.invalidActionTemplateId', 'Invalid action template ID'));
         }
         const id = String(value);
-        if (!/^[0-9]*[1-9][0-9]*$/.test(id)) throw new Error('Invalid action template ID');
+        if (!/^[0-9]*[1-9][0-9]*$/.test(id)) throw new Error(conditionUiMessage('condition.ui.invalidActionTemplateId', 'Invalid action template ID'));
         return id;
     }
 
@@ -756,12 +768,17 @@ class DeviceActionHandler {
         if (this.modalElement.style.display === 'block' && !this.updateJsonFromForm()) {
             throw new Error(this.configurationError);
         }
-        const params = JSON.parse(this.jsonTextarea.value);
+        let params;
+        try {
+            params = JSON.parse(this.jsonTextarea.value);
+        } catch {
+            throw new Error(conditionUiMessage('condition.ui.invalidDeviceActionJSON', 'Invalid device action JSON'));
+        }
         if (!params || typeof params.device_group_id !== 'string' || !params.device_group_id.trim()) {
-            throw new Error('Please select a device group');
+            throw new Error(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
         }
         if (!this.deviceGroups.some(group => (group.id || group.ID) === params.device_group_id)) {
-            throw new Error('The selected device group is unavailable. Please select an existing group.');
+            throw new Error(conditionUiMessage('condition.ui.deviceGroupUnavailable', 'The selected device group is unavailable. Please select an existing group.'));
         }
         this.validateActionBody(params.device_action_body);
         return {
@@ -804,7 +821,7 @@ class DeviceActionHandler {
         const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
         this.loadFromJson();
         if (!this.selectedGroupId) {
-            alert('Please select a device group');
+            alert(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
             return;
         }
         const group = await this.showGroupDevices(this.selectedGroupId);
@@ -815,7 +832,7 @@ class DeviceActionHandler {
             const template = await this.fetchTemplateById(this.selectedTemplateId);
             if (selectionVersion !== this.selectionVersion) return;
             if (!template) {
-                alert('The saved action template is unavailable. Please select an action template again.');
+                alert(conditionUiMessage('condition.ui.savedTemplateUnavailable', 'The saved action template is unavailable. Please select an action template again.'));
                 this.selectedTemplateId = null;
                 this.selectedTemplate = null;
                 this.renderTemplateSelector(templates);
@@ -936,6 +953,9 @@ class ConditionEditor {
         // Initialize text condition dialog handler
         this.textDialog = new TextDialogHandler(this);
         
+        // Initialize exchange dialog handler
+        this.exchangeDialog = new ExchangeDialogHandler(this);
+
         // Initialize range dialog handler
         this.rangeDialog = new RangeDialogHandler(this);
         
@@ -1701,7 +1721,7 @@ class ConditionEditor {
                     items_parseint.push(node.Variables[i]);
                 }
                 if (items_parseint.length) {
-                    return "<span class='parseint'>" + items_parseint.join(translations["value-joint"]) + "</span>";
+                    return "<span class='parseint'>" + items_parseint.join(translations["valueof-joint"]) + "</span>";
                 } else {
                     return translations["calc-missingvalue"];
                 }
@@ -1718,7 +1738,7 @@ class ConditionEditor {
                     currency = translations["calc-missingvalue"];
                 }
                 if (items_exchange.length) {
-                    return translations["exchange-sentense"].replace("{0}", items_exchange.join(translations["value-joint"])).replace("{1}", currency);
+                    return translations["exchange-sentense"].replace("{0}", items_exchange.join(translations["valueof-joint"])).replace("{1}", currency);
                 } else {
                     return translations["calc-missingvalue"];
                 }
@@ -2418,6 +2438,21 @@ class TextDialogHandler {
     }
 }
 
+class ExchangeDialogHandler {
+    constructor(editor) {
+        this.editor = editor;
+    }
+
+    open(currentvalue, currenttype, currentextractor, currentextractorval, includeenv, includeenter, callback, validator){
+        document.getElementById("exchangeModal").style["display"] = "block";
+        document.getElementById("exchangeSubmitButton").onclick = function() {
+            let exchange = document.getElementById("exchangeSelect").value;
+            callback(exchange, exchange);
+            document.getElementById("exchangeModal").style["display"] = "none";
+        }.bind(this);
+    }
+}
+
 class RangeDialogHandler {
     constructor(editor) {
         this.editor = editor;
@@ -2728,6 +2763,27 @@ class NumericDialogHandler {
             window.keyupEvent = keyEventEvac;
         }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
         document.getElementById("textModal").ondialogclose = function(){ window.keyupEvent = keyEventEvac; };
+    }
+
+    /**
+     * Appends a Exchange pattern
+     */
+    openExchangeInput() {
+        this.editor.exchangeDialog.open(null, null, null, null, true, true, function(dispval, val, type, exttype, extval){
+            let appendnode;
+            if (type == "env") {
+                if (exttype && exttype != "wholesentence" && extval) {
+                    appendnode = {"Operator": "PARSEINT", "SubConditions": [{"Operator": this.editor.operatormap[exttype], "SubConditions": [{"Operator": "PARAM", "SubConditions": null, "Variables": [val]}], "Variables": [extval]}], "Variables": null };
+                } else {
+                    appendnode = {"Operator": "PARSEINT", "SubConditions": [{"Operator": "PARAM", "SubConditions": null, "Variables": [val]}], "Variables": null };
+                }
+            } else if (type == "variable") {
+                appendnode = {"Operator": "PARSEINT", "SubConditions": null, "Variables": [val]};
+            }
+            if (appendnode) {
+                this.appendItemToFormula(appendnode);
+            }
+        }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
     }
 
     /**
@@ -3345,7 +3401,7 @@ async function runConditionTest() {
     const eventType = document.getElementById('testEventType').value;
     
     if (!eventType) {
-        alert('Please select an event type');
+        alert(window._i18nMsg?.['condition.ui.selectEventType'] || 'Please select an event type');
         return;
     }
     
@@ -3360,12 +3416,12 @@ async function runConditionTest() {
     }
     
     if (!conditionLogic) {
-        alert('Invalid condition logic JSON');
+        alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
     if (!window.createTestEventFromMetadata) {
-        alert('Test event metadata builder not available');
+        alert(window._i18nMsg?.['condition.ui.testMetadataUnavailable'] || 'Test event metadata builder not available');
         return;
     }
 
@@ -3380,7 +3436,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert('Failed to load event metadata: ' + error.message);
+        alert((window._i18nMsg?.['condition.ui.testMetadataLoadFailed'] || 'Failed to load event metadata:') + ' ' + error.message);
         return;
     }
     
@@ -3395,7 +3451,7 @@ async function runConditionTest() {
     const resultsContainer = document.getElementById('testResultsContainer');
     const resultsContent = document.getElementById('testResultsContent');
     if (!resultsContainer || !resultsContent) {
-        alert('Test results container not found');
+        alert(window._i18nMsg?.['condition.ui.testResultsUnavailable'] || 'Test results container not found');
         return;
     }
 
@@ -3413,7 +3469,7 @@ async function runConditionTest() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Test failed: ' + response.status);
+            throw new Error((window._i18nMsg?.['condition.ui.testFailed'] || 'Test failed:') + ' ' + response.status);
         }
         return response.json();
     })
@@ -3421,9 +3477,9 @@ async function runConditionTest() {
         // Display results
         let resultHTML = '<pre style="max-height: 300px; overflow-y: auto; background: #fff; padding: 0.5rem; border-radius: 3px; font-size: 0.85rem;">' + JSON.stringify(result, null, 2) + '</pre>';
         resultHTML += '<div style="margin-top: 1rem; padding: 1rem; background: #fff; border-left: 4px solid ' + (result.matched ? '#28a745' : '#dc3545') + ';">';
-        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ Yes' : '✗ No') + '</span><br>';
+        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
         if (result.matched) {
-            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ Yes' : '✗ No') + '</span><br>';
+            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
             if (result.computed_values && result.computed_values.length > 0) {
                 resultHTML += '<strong>' + (window._i18nMsg?.['condition.details'] || 'Details') + ':</strong> <code>' + result.computed_values.join(', ') + '</code><br>';
             }
@@ -3432,7 +3488,7 @@ async function runConditionTest() {
             resultHTML += '<br><strong style="color:red;">' + (window._i18nMsg?.['condition.errors'] || 'Errors') + ':</strong> ' + result.execution_error + '<br>';
         }
         if (result.execution_result) {
-            resultHTML += '<br><strong style="color:green;">Success:</strong> ' + result.execution_result + '<br>';
+            resultHTML += '<br><strong style="color:green;">' + (window._i18nMsg?.['condition.success'] || 'Success') + ':</strong> ' + result.execution_result + '<br>';
         }
         resultHTML += '</div>';
         
@@ -3465,7 +3521,7 @@ function testRegexPattern() {
     const resultDiv = document.getElementById('regexResult');
     
     if (!pattern) {
-        resultDiv.textContent = 'Please enter a regex pattern';
+        resultDiv.textContent = window._i18nMsg?.['condition.ui.regexPatternRequired'] || 'Please enter a regex pattern';
         resultDiv.style.color = '#d32f2f';
         return;
     }
@@ -3475,14 +3531,14 @@ function testRegexPattern() {
         const matches = testString.match(regex);
         
         if (matches) {
-            resultDiv.textContent = `✓ Match found!\n\nMatched text: "${matches[0]}"${matches.length > 1 ? `\n\nCapture groups: ${matches.slice(1).map((m, i) => `[${i + 1}] "${m}"`).join(', ')}` : ''}`;
+            resultDiv.textContent = `✓ ${window._i18nMsg?.['condition.ui.regexMatchFound'] || 'Match found!'}\n\n${window._i18nMsg?.['condition.ui.regexMatchedText'] || 'Matched text'}: "${matches[0]}"${matches.length > 1 ? `\n\n${window._i18nMsg?.['condition.ui.regexCaptureGroups'] || 'Capture groups'}: ${matches.slice(1).map((m, i) => `[${i + 1}] "${m}"`).join(', ')}` : ''}`;
             resultDiv.style.color = '#2e7d32';
         } else {
-            resultDiv.textContent = '✗ No match found';
+            resultDiv.textContent = `✗ ${window._i18nMsg?.['condition.noMatch'] || 'No match found'}`;
             resultDiv.style.color = '#d32f2f';
         }
     } catch (err) {
-        resultDiv.textContent = `✗ Invalid regex pattern:\n${err.message}`;
+        resultDiv.textContent = `✗ ${window._i18nMsg?.['condition.ui.regexInvalidPattern'] || 'Invalid regex pattern'}:\n${err.message}`;
         resultDiv.style.color = '#d32f2f';
     }
 }
@@ -3508,7 +3564,7 @@ function copyToClipboard(text, element) {
         const originalBg = element.style.backgroundColor;
         element.style.backgroundColor = '#4caf50';
         element.style.color = 'white';
-        element.textContent = '✓ Copied!';
+        element.textContent = `✓ ${window._i18nMsg?.['condition.ui.copied'] || 'Copied!'}`;
         
         setTimeout(() => {
             element.textContent = originalText;

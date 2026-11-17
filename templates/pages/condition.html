@@ -40,7 +40,7 @@
       {{else}}
         <div id="templateCards">
         {{range .ConditionTemplates}}
-        <div class="template-card" onclick="conditionEditor.addTemplate('{{toJSON .JSON}}')" title="Click to add: {{($.I18n.T .NameKey .Name)}}">
+        <div class="template-card" onclick="conditionEditor.addTemplate('{{toJSON .JSON}}')" title="{{$.I18n.T "condition.templates.clickToAdd" ($.I18n.T .NameKey .Name)}}">
           <h5 class="template-card-name">{{$.I18n.T .NameKey .Name}}</h5>
           <p class="template-card-desc">{{$.I18n.T .DescriptionKey .Description}}</p>
         </div>
@@ -246,6 +246,29 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('textModal')">{{.I18n.T "condition.button.cancel"}}</button>
                 <button id="textSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exchangeModal" class="modal">
+        <div class="modal-content modal-middle">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('exchangeModal')">×</span>
+                <p>{{.I18n.T "condition.modal.exchange.description"}}</p>
+            </div>
+            <div id="exchangeBody" class="modal-body exchange-selection">
+                <div id="exchangeInputArea" class="selector exchangeinput">
+                    <h4><input id="exchangeInputRadio" type="radio" name="exchangeInputRadio"> {{.I18n.T "condition.modal.exchange.input"}}</h4>
+                    <input id="exchangeInputValue" type="text" placeholder='{{.I18n.T "condition.modal.exchange.inputPlaceholder"}}'>
+                </div>
+                <div id="exchangeSelectArea" class="selector exchangeselect">
+                    <h4><input id="exchangeSelectRadio" type="radio" name="exchangeInputRadio"> {{.I18n.T "condition.modal.exchange.select"}}</h4>
+                    <select id="exchangeSelectValue"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('exchangeModal')">{{.I18n.T "condition.button.cancel"}}</button>
+                <button id="exchangeSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
             </div>
         </div>
     </div>
@@ -666,7 +689,7 @@ async function runConditionTest() {
     const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
     
     if (!eventType) {
-        alert('Please select an event type');
+        alert(window._i18nMsg?.['condition.ui.selectEventType'] || 'Please select an event type');
         return;
     }
     
@@ -681,12 +704,12 @@ async function runConditionTest() {
     }
     
     if (!conditionLogic) {
-        alert('Invalid condition logic JSON');
+        alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
     if (!window.createTestEventFromMetadata) {
-        alert('Test event metadata builder not available');
+        alert(window._i18nMsg?.['condition.ui.testMetadataUnavailable'] || 'Test event metadata builder not available');
         return;
     }
     let sampleEvent;
@@ -700,7 +723,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert('Failed to load event metadata: ' + error.message);
+        alert((window._i18nMsg?.['condition.ui.testMetadataLoadFailed'] || 'Failed to load event metadata:') + ' ' + error.message);
         return;
     }
     
@@ -728,7 +751,7 @@ async function runConditionTest() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Test failed: ' + response.status);
+            throw new Error((window._i18nMsg?.['condition.ui.testFailed'] || 'Test failed:') + ' ' + response.status);
         }
         return response.json();
     })
@@ -736,9 +759,9 @@ async function runConditionTest() {
         // Display results
         let resultHTML = '<pre style="max-height: 300px; overflow-y: auto; background: #fff; padding: 0.5rem; border-radius: 3px; font-size: 0.85rem;">' + JSON.stringify(result, null, 2) + '</pre>';
         resultHTML += '<div style="margin-top: 1rem; padding: 1rem; background: #fff; border-left: 4px solid ' + (result.matched ? '#28a745' : '#dc3545') + ';">';
-        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ Yes' : '✗ No') + '</span><br>';
+        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
         if (result.matched) {
-            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ Yes' : '✗ No') + '</span><br>';
+            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
             if (result.computed_values && result.computed_values.length > 0) {
                 resultHTML += '<strong>' + (window._i18nMsg?.['condition.details'] || 'Details') + ':</strong> <code>' + result.computed_values.join(', ') + '</code><br>';
             }
@@ -807,7 +830,7 @@ function submitCondition() {
     // Show loading state
     const submitBtn = document.getElementById('submitConditionButton');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.textContent = window._i18nMsg?.['condition.ui.saving'] || 'Saving...';
     submitBtn.disabled = true;
     
     fetch(endpoint, {
@@ -830,13 +853,13 @@ function submitCondition() {
     })
     .then(result => {
         console.log('Condition saved:', result);
-        alert('Condition saved successfully!');
+        alert(window._i18nMsg?.['condition.ui.savedSuccess'] || 'Condition saved successfully!');
         // Redirect back to conditions list
         window.location.href = '/channels/' + encodeURIComponent(channelID) + '/conditions';
     })
     .catch(error => {
         console.error('Save error:', error);
-        alert('Error saving condition: ' + error.message);
+        alert((window._i18nMsg?.['condition.ui.saveFailed'] || 'Error saving condition:') + ' ' + error.message);
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     });
