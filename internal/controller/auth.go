@@ -4,8 +4,7 @@ import (
 	"net/http"
 )
 
-type Auth struct {
-}
+type Auth struct{ s *session }
 type GetCurrentUserResponse struct {
 	Id           int                     `json:"id"`
 	Email        string                  `json:"email"`
@@ -36,8 +35,8 @@ type UnicornSSOAssertionResponse struct {
 	Assertion string `json:"assertion"`
 }
 
-func (Auth) GetCurrentUser() GetCurrentUserResponse {
+func (ctl Auth) GetCurrentUser() GetCurrentUserResponse {
 	var result GetCurrentUserResponse
-	apiRequest(&result, http.MethodGet, "/auth/user")
+	ctl.s.apiRequest(&result, http.MethodGet, "/auth/user")
 	return result
 }

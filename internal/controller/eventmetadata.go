@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-type EventMetadata struct{}
+type EventMetadata struct{ s *session }
 
 type ConditionTemplate struct {
 	ID             string      `json:"id"`
@@ -37,19 +37,14 @@ type EventPropertyGroup struct {
 	Properties []EventPropertyDefinition `json:"properties"`
 }
 
-func (EventMetadata) GetTemplatesForEvent(platform, eventType string) TemplatesForEventResponse {
+func (ctl EventMetadata) GetTemplatesForEvent(platform, eventType string) TemplatesForEventResponse {
 	var result TemplatesForEventResponse
-	apiRequest(&result, http.MethodGet, fmt.Sprintf("/condition-templates/%s/%s", url.QueryEscape(platform), url.QueryEscape(eventType)))
+	ctl.s.apiRequest(&result, http.MethodGet, fmt.Sprintf("/condition-templates/%s/%s", url.QueryEscape(platform), url.QueryEscape(eventType)))
 	return result
 }
 
-func getEventPropertySchemas(platform, eventType string) []EventSchemaField {
-	metadata := Conditions{}.GetEventMetadata(platform, eventType)
-	return metadata.Fields
-}
-
-func (EventMetadata) GetEventTypes(platform string) map[string][]string {
-	response := Conditions{}.ListEventTypes(platform)
+func (ctl EventMetadata) GetEventTypes(platform string) map[string][]string {
+	response := Conditions{s: ctl.s}.ListEventTypes(platform)
 	allEvents := map[string][]string{
 		platform: response.Events,
 	}

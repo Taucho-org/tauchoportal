@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type DeviceTemplates struct{}
+type DeviceTemplates struct{ s *session }
 
 type DeviceTemplateUIField struct {
 	Name    string        `json:"name"`
@@ -57,26 +57,26 @@ type ListTemplatesByBrandResponse []DeviceTemplate
 type ListTemplatesByCategoryResponse []DeviceTemplate
 type GetTemplateResponse = DeviceTemplate
 
-func (DeviceTemplates) ListTemplates() ListTemplatesResponse {
+func (ctl DeviceTemplates) ListTemplates() ListTemplatesResponse {
 	var result ListTemplatesResponse
-	apiRequest(&result, http.MethodGet, "/device-templates")
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-templates")
 	return result
 }
 
-func (DeviceTemplates) ListTemplatesByBrand(brand string) ListTemplatesByBrandResponse {
+func (ctl DeviceTemplates) ListTemplatesByBrand(brand string) ListTemplatesByBrandResponse {
 	var result ListTemplatesByBrandResponse
-	apiRequest(&result, http.MethodGet, "/device-templates?brand="+url.QueryEscape(brand))
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-templates?brand="+url.QueryEscape(brand))
 	return result
 }
 
-func (DeviceTemplates) ListTemplatesByCategory(category string) ListTemplatesByCategoryResponse {
+func (ctl DeviceTemplates) ListTemplatesByCategory(category string) ListTemplatesByCategoryResponse {
 	var result ListTemplatesByCategoryResponse
-	apiRequest(&result, http.MethodGet, "/device-templates?category="+url.QueryEscape(category))
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-templates?category="+url.QueryEscape(category))
 	return result
 }
 
-func (DeviceTemplates) GetTemplate(id int) GetTemplateResponse {
+func (ctl DeviceTemplates) GetTemplate(id int) GetTemplateResponse {
 	var result GetTemplateResponse
-	apiRequest(&result, http.MethodGet, "/device-templates/get?id="+url.QueryEscape(strconv.Itoa(id)))
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-templates/get?id="+url.QueryEscape(strconv.Itoa(id)))
 	return result
 }

@@ -6,241 +6,265 @@
 {{end}}
 
 {{define "content"}}
-<div class="wholecontents">
-    <div class="indexheader">
-        <div id="topheaderbg" class="topheaderbg"></div>
-        <div class="topbgcontainer">
-            <div id="topheaderlink" class="topheaderlogoarea">
-                <a href="#" onclick="openLoginModal()"><img id="titleimg_s" src="{{.I18n.T "index.titleimage_s"}}"></a>
-            </div>
-            <div class="topheaderhumburger">
-                <a href="#" onclick="document.getElementById('headerdropdown').style['display']=document.getElementById('headerdropdown').style['display']=='block'?'none':'block';return false">☰</a>
+<div class="lp">
+    <header class="lp-nav" id="lpNav">
+        <div class="lp-nav-inner">
+            <a href="/" class="lp-brand"><img id="titleimg_s" src="{{.I18n.T "index.titleimage_s"}}" alt="Taucho"></a>
+            <button type="button" class="lp-menu-toggle" aria-label="{{.I18n.T "index.menuLabel"}}" aria-expanded="false" aria-controls="headerdropdown" onclick="toggleLpMenu()">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="lp-nav-menu" id="headerdropdown">
+                <a href="#how" class="lp-nav-link" onclick="closeLpMenu()">{{.I18n.T "index.howitworklink"}}</a>
+                <a href="#platforms" class="lp-nav-link" onclick="closeLpMenu()">{{.I18n.T "index.navPlatforms"}}</a>
+                <a href="/about" class="lp-nav-link">{{.I18n.T "index.aboutlink"}}</a>
+                <select class="language-selector" title="{{.I18n.T "index.languageSelectorTitle"}}" aria-label="{{.I18n.T "index.languageSelectorTitle"}}" onchange="window.location='/set-lang?lang='+this.value+'&back='+encodeURIComponent(window.location.pathname)">
+                    <option value="en" {{if eq .Lang "en"}}selected{{end}}>English</option>
+                    <option value="ja" {{if eq .Lang "ja"}}selected{{end}}>日本語</option>
+                    <option value="zh" {{if eq .Lang "zh"}}selected{{end}}>中文</option>
+                    <option value="ko" {{if eq .Lang "ko"}}selected{{end}}>한국어</option>
+                    <option value="de" {{if eq .Lang "de"}}selected{{end}}>Deutsch</option>
+                    <option value="fr" {{if eq .Lang "fr"}}selected{{end}}>Français</option>
+                    <option value="es" {{if eq .Lang "es"}}selected{{end}}>Español</option>
+                </select>
+                <a href="#" class="lp-btn lp-btn-primary lp-btn-sm" onclick="closeLpMenu();openLoginModal();return false">{{.I18n.T "index.loginbutton"}}</a>
             </div>
         </div>
-    </div>
-    <div id="headerdropdown">
-        <a href="#" onclick="openLoginModal()">{{.I18n.T "index.loginbutton"}}</a>
-        <select class="language-selector" title="{{.I18n.T "index.languageSelectorTitle"}}" onchange="window.location='/set-lang?lang='+this.value+'&back='+encodeURIComponent(window.location.pathname)">
-            <option value="en" {{if eq .Lang "en"}}selected{{end}}>English</option>
-            <option value="ja" {{if eq .Lang "ja"}}selected{{end}}>日本語</option>
-            <option value="zh" {{if eq .Lang "zh"}}selected{{end}}>中文</option>
-            <option value="ko" {{if eq .Lang "ko"}}selected{{end}}>한국어</option>
-            <option value="de" {{if eq .Lang "de"}}selected{{end}}>Deutsch</option>
-            <option value="fr" {{if eq .Lang "fr"}}selected{{end}}>Français</option>
-            <option value="es" {{if eq .Lang "es"}}selected{{end}}>Español</option>
-        </select>
-        <a href="/privacy-policy">{{.I18n.T "index.privacylink"}}</a>
-        <a href="/terms-of-service">{{.I18n.T "index.termslink"}}</a>
-        <a href="/about">{{.I18n.T "index.aboutlink"}}</a>
-        <a href="/contact">{{.I18n.T "index.contactlink"}}</a>
-    </div>
+    </header>
 
-    <div>
-        <div id="tauchoTitleImageContainer" class="titleimagecontainer">
-            <img src="{{.I18n.T "index.titleimage_l"}}">
-        </div>
-        <div class="bgfiller">
-            <div>
-                <a href="#" onclick="openLoginModal()" class="loginbutton">{{.I18n.T "index.loginsignupbutton"}}</a>
-                <a href="/about">{{.I18n.T "index.howitworklink"}}</a>
+    <section class="lp-hero">
+        <div class="lp-hero-inner">
+            <img class="lp-hero-title" src="{{.I18n.T "index.titleimage_l"}}" alt="Taucho">
+            <div class="lp-hero-actions">
+                <a href="#" onclick="openLoginModal();return false" class="lp-btn lp-btn-primary lp-btn-lg">{{.I18n.T "index.loginsignupbutton"}}</a>
+                <a href="#how" class="lp-btn lp-btn-glass lp-btn-lg">{{.I18n.T "index.howitworklink"}}</a>
             </div>
         </div>
+    </section>
 
-        <div class="content">
-            <div style="width: 400px">
-                <img src="/image/ad1.png" style="padding: 1em">
-            </div>
-            <div style="min-width: 2em">
-                <h4>{{.I18n.T "index.section1title"}}</h4>
-                <div>{{.I18n.TH "index.section1sentence1"}}</div>
-                <div>{{.I18n.TH "index.section1sentence2"}}</div>
-                <div>{{.I18n.TH "index.section1sentence3"}}</div>
-            </div>
-        </div>
-        <div class="videoarea1">
-            <div class="wrappertext">
-                <div class="overflowtexts">
-                    <h3>{{.I18n.T "index.section2title"}}</h3>
-                    <div>{{.I18n.T "index.section2desc1"}}</div>
-                    <div>{{.I18n.T "index.section2desc2"}}</div>
-                    <div>{{.I18n.T "index.section2desc3"}}</div>
-                    <div>{{.I18n.T "index.section2desc4"}}</div>
-                    <div>{{.I18n.T "index.section2desc5"}}</div>
+    <main class="lp-main">
+        <section class="lp-section lp-intro">
+            <div class="lp-container lp-split">
+                <div class="lp-media lp-media-card">
+                    <img src="/image/ad1.png" alt="" loading="lazy">
+                </div>
+                <div class="lp-copy">
+                    <span class="lp-eyebrow">Taucho</span>
+                    <h2 class="lp-h2">{{.I18n.T "index.section1title"}}</h2>
+                    <p class="lp-lead">{{.I18n.TH "index.section1sentence1"}}</p>
+                    <p class="lp-lead">{{.I18n.TH "index.section1sentence2"}}</p>
+                    <p class="lp-lead lp-pop">{{.I18n.TH "index.section1sentence3"}}</p>
                 </div>
             </div>
-            <div class="videocontainer">
-                <video autoplay muted controls>
-                    <source src="/video/promovideo1.mp4" type="video/mp4">
-                </video>
-            </div>
-        </div>
-                    
-        <div class="content center steps">
-            <div class="step"><h5><span class="stepnumber">1.</span>{{.I18n.T "index.step1title"}}</h5><span>{{.I18n.T "index.step1desc"}}</span></div>
-            <div class="step"><h5><span class="stepnumber">2.</span>{{.I18n.T "index.step2title"}}</h5><span>{{.I18n.T "index.step2desc"}}</span></div>
-            <div class="step"><h5><span class="stepnumber">3.</span>{{.I18n.T "index.step3title"}}</h5><span>{{.I18n.T "index.step3desc"}}</span></div>
-            <div class="step"><h5><span class="stepnumber">4.</span>{{.I18n.T "index.step4title"}}</h5><span>{{.I18n.T "index.step4desc"}}</span></div>
-        </div>
+        </section>
 
-        <div class="content videoarea2">
-            <video autoplay muted controls style="width: 100%;">
-                <source src="/video/promovideo2.mp4" type="video/mp4">
-            </video>
-            <div class="dialog">
-                <h4>{{.I18n.TH "index.section3heading1"}}</h4>
-                <h4>{{.I18n.TH "index.section3heading2"}}</h4>
-                <h4>{{.I18n.TH "index.section3heading3"}}</h4>
-                <hr />
-                <div>{{.I18n.T "index.section3desc1"}}</div>
-                <div>{{.I18n.T "index.section3desc2"}}</div>
-            </div>
-        </div>
-        <div class="content center platforms">
-            <h3>{{.I18n.T "index.platformsTitle"}}</h3>
-            <div class="grid">
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "youtube"}}</div>
-                    <strong>{{.I18n.T "login.youtubeLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveChatComments"}}</li>
-                        <li>{{.I18n.T "index.featureSuperChatStickers"}}</li>
-                        <li>{{.I18n.T "index.featureChannelMemberships"}}</li>
-                        <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
-                    </ul>
+        <section class="lp-section lp-dark">
+            <div class="lp-container lp-split lp-split-wide">
+                <div class="lp-copy">
+                    <h2 class="lp-h2">{{.I18n.T "index.section2title"}}</h2>
+                    <p>{{.I18n.T "index.section2desc1"}}</p>
+                    <p>{{.I18n.T "index.section2desc2"}}</p>
+                    <p class="lp-strong">{{.I18n.T "index.section2desc3"}}</p>
+                    <p>{{.I18n.T "index.section2desc4"}}</p>
+                    <p class="lp-strong">{{.I18n.T "index.section2desc5"}}</p>
                 </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "twitch"}}</div>
-                    <strong>{{.I18n.T "login.twitchLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureChatComments"}}</li>
-                        <li>{{.I18n.T "index.featureCheeringBits"}}</li>
-                        <li>{{.I18n.T "index.featureSubscriptionsFollows"}}</li>
-                        <li>{{.I18n.T "index.featureHypeTrainRaid"}}</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "niconico"}}</div>
-                    <strong>{{.I18n.T "login.niconicoLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureNicoruReactions"}}</li>
-                        <li>{{.I18n.T "index.featureGifts"}}</li>
-                        <li>{{.I18n.T "index.featureEmotionEffects"}}</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "twitcasting"}}</div>
-                    <strong>{{.I18n.T "login.twitcastingLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureTips"}}</li>
-                        <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "instagram"}}</div>
-                    <strong>{{.I18n.T "login.instagramLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureHeartsReactions"}}</li>
-                        <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "tiktok"}}</div>
-                    <strong>{{.I18n.T "login.tiktokLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureGifts"}}</li>
-                        <li>{{.I18n.T "index.featureFollows"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "kick"}}</div>
-                    <strong>{{.I18n.T "login.kickLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureChatComments"}}</li>
-                        <li>{{.I18n.T "index.featureSubscriptions"}}</li>
-                        <li>{{.I18n.T "index.featureGifts"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "facebook"}}</div>
-                    <strong>{{.I18n.T "login.facebookLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureReactions"}}</li>
-                        <li>{{.I18n.T "index.featureStars"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <div class="platform-icon">{{platformIcon "bilibili"}}</div>
-                    <strong>{{.I18n.T "login.bilibiliLogin" }}</strong>
-                    <ul>
-                        <li>{{.I18n.T "index.featureLiveComments"}}</li>
-                        <li>{{.I18n.T "index.featureGifts"}}</li>
-                        <li>{{.I18n.T "index.featureFollows"}}</li>
-                        <li><em>{{.I18n.T "index.featureComingSoon"}}</em></li>
-                    </ul>
+                <div class="lp-video">
+                    <video autoplay muted loop playsinline controls preload="metadata">
+                        <source src="/video/promovideo1.mp4" type="video/mp4">
+                    </video>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="content whiteback">
-            <div style="width: 100%">
-                <h4>{{.I18n.T "index.smartdevicesTitle"}}</h4>
-                <div>{{.I18n.T "index.smartdevicesDesc1"}}</div>
-                <div>{{.I18n.T "index.smartdevicesDesc2"}}</div>
-                <div>{{.I18n.T "index.smartdevicesDesc3"}}</div>
-                <div>{{.I18n.T "index.smartdevicesDesc4"}}</div>
+        <section class="lp-section" id="how">
+            <div class="lp-container">
+                <h2 class="lp-h2 lp-center">{{.I18n.T "index.howitworklink"}}</h2>
+                <ol class="lp-steps">
+                    <li class="lp-step"><span class="lp-step-num">1</span><h3>{{.I18n.T "index.step1title"}}</h3><p>{{.I18n.T "index.step1desc"}}</p></li>
+                    <li class="lp-step"><span class="lp-step-num">2</span><h3>{{.I18n.T "index.step2title"}}</h3><p>{{.I18n.T "index.step2desc"}}</p></li>
+                    <li class="lp-step"><span class="lp-step-num">3</span><h3>{{.I18n.T "index.step3title"}}</h3><p>{{.I18n.T "index.step3desc"}}</p></li>
+                    <li class="lp-step"><span class="lp-step-num">4</span><h3>{{.I18n.T "index.step4title"}}</h3><p>{{.I18n.T "index.step4desc"}}</p></li>
+                </ol>
             </div>
-            <div style="width: 20em">
-                <img src="/image/gadgetsample.png">
-            </div>
-        </div>
-        <div class="content center" style="font-size: smaller">
-            <div style="width: 100%">
-                <h4>{{.I18n.T "index.freeTitle"}}</h4>
-                <div>{{.I18n.T "index.freeDesc1"}}</div>
-                <div>{{.I18n.TH "index.freeDesc2"}}</div>
-                <div>{{.I18n.T "index.freeDesc3"}}</div>
-                <div>{{.I18n.T "index.freeDesc4"}}</div>
-                <div>{{.I18n.T "index.freeDesc5"}}</div>
-                <div>{{.I18n.T "index.freeDesc6"}}</div>
-            </div>
-        </div>
-        <div class="content blueback">
-            <div style="width: 100%;">
-                <h2>{{.I18n.T "index.easyuiTitle"}}</h2>
-                <div>{{.I18n.T "index.easyuiDesc1"}}</div>
-                <div>{{.I18n.T "index.easyuiDesc2"}}</div>
-                <div>{{.I18n.T "index.easyuiDesc3"}}</div>
-                <div>{{.I18n.TH "index.easyuiDesc4"}}</div>
-                <div>{{.I18n.T "index.easyuiDesc5"}}</div> 
-                <div>{{.I18n.T "index.easyuiDesc6"}}</div>
-            </div>
-            <div style="width: 400px">
-                <img src="/image/screenguide.png">
-            </div>
-        </div>
+        </section>
 
-        <hr />
-        <div class="footer">
-            <div>
-                <a href="#">{{platformIcon "youtube"}}</a>
-                <a href="https://www.nicovideo.jp/user/143183688">{{platformIcon "niconico"}}</a>
-                <a href="https://x.com/dontaucho">{{platformIcon "x"}}</a>
-                <a href="https://www.twitch.tv/dontaucho">{{platformIcon "twitch"}}</a>
+        <section class="lp-section lp-feel">
+            <div class="lp-container">
+                <div class="lp-feel-card">
+                    <video autoplay muted loop playsinline controls preload="metadata">
+                        <source src="/video/promovideo2.mp4" type="video/mp4">
+                    </video>
+                    <div class="lp-feel-text">
+                        <h3>{{.I18n.TH "index.section3heading1"}}</h3>
+                        <h3>{{.I18n.TH "index.section3heading2"}}</h3>
+                        <h3 class="lp-feel-big">{{.I18n.TH "index.section3heading3"}}</h3>
+                        <p>{{.I18n.T "index.section3desc1"}}</p>
+                        <p>{{.I18n.T "index.section3desc2"}}</p>
+                    </div>
+                </div>
             </div>
-            <p>Taucho © 2026 | <a href="/about">{{.I18n.T "index.footerAbout"}}</a> | <a href="/login">{{.I18n.T "nav.signIn"}}</a> | <a href="/register">{{.I18n.T "nav.createAccount"}}</a></p>
+        </section>
+
+        <section class="lp-section lp-platforms" id="platforms">
+            <div class="lp-container">
+                <h2 class="lp-h2 lp-center">{{.I18n.T "index.platformsTitle"}}</h2>
+                <div class="lp-grid">
+                    <div class="lp-card">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "youtube"}}</span><strong>{{.I18n.T "login.youtubeLogin" }}</strong></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveChatComments"}}</li>
+                            <li>{{.I18n.T "index.featureSuperChatStickers"}}</li>
+                            <li>{{.I18n.T "index.featureChannelMemberships"}}</li>
+                            <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "twitch"}}</span><strong>{{.I18n.T "login.twitchLogin" }}</strong></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureChatComments"}}</li>
+                            <li>{{.I18n.T "index.featureCheeringBits"}}</li>
+                            <li>{{.I18n.T "index.featureSubscriptionsFollows"}}</li>
+                            <li>{{.I18n.T "index.featureHypeTrainRaid"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "niconico"}}</span><strong>{{.I18n.T "login.niconicoLogin" }}</strong></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureNicoruReactions"}}</li>
+                            <li>{{.I18n.T "index.featureGifts"}}</li>
+                            <li>{{.I18n.T "index.featureEmotionEffects"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "twitcasting"}}</span><strong>{{.I18n.T "login.twitcastingLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureTips"}}</li>
+                            <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "instagram"}}</span><strong>{{.I18n.T "login.instagramLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureHeartsReactions"}}</li>
+                            <li>{{.I18n.T "index.featureStreamStartEnd"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "tiktok"}}</span><strong>{{.I18n.T "login.tiktokLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureGifts"}}</li>
+                            <li>{{.I18n.T "index.featureFollows"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "kick"}}</span><strong>{{.I18n.T "login.kickLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureChatComments"}}</li>
+                            <li>{{.I18n.T "index.featureSubscriptions"}}</li>
+                            <li>{{.I18n.T "index.featureGifts"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "facebook"}}</span><strong>{{.I18n.T "login.facebookLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureReactions"}}</li>
+                            <li>{{.I18n.T "index.featureStars"}}</li>
+                        </ul>
+                    </div>
+                    <div class="lp-card lp-card-soon">
+                        <div class="lp-card-head"><span class="platform-icon">{{platformIcon "bilibili"}}</span><strong>{{.I18n.T "login.bilibiliLogin" }}</strong><em class="lp-badge">{{.I18n.T "index.featureComingSoon"}}</em></div>
+                        <ul>
+                            <li>{{.I18n.T "index.featureLiveComments"}}</li>
+                            <li>{{.I18n.T "index.featureGifts"}}</li>
+                            <li>{{.I18n.T "index.featureFollows"}}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="lp-section whitebackground">
+            <div class="lp-container lp-split">
+                <div class="lp-copy">
+                    <h2 class="lp-h2">{{.I18n.T "index.smartdevicesTitle"}}</h2>
+                    <p class="lp-lead">{{.I18n.T "index.smartdevicesDesc1"}}</p>
+                    <ul class="lp-checks">
+                        <li>{{.I18n.T "index.smartdevicesDesc2"}}</li>
+                        <li>{{.I18n.T "index.smartdevicesDesc3"}}</li>
+                        <li>{{.I18n.T "index.smartdevicesDesc4"}}</li>
+                    </ul>
+                </div>
+                <div class="lp-media lp-media-card">
+                    <img src="/image/gadgetsample.png" alt="" loading="lazy">
+                </div>
+            </div>
+        </section>
+
+        <section class="lp-section lp-free">
+            <div class="lp-container">
+                <div class="lp-free-card">
+                    <h2 class="lp-h2">{{.I18n.T "index.freeTitle"}}</h2>
+                    <p class="lp-lead">{{.I18n.T "index.freeDesc1"}}</p>
+                    <p class="lp-lead">{{.I18n.TH "index.freeDesc2"}}</p>
+                    <p>{{.I18n.T "index.freeDesc3"}}</p>
+                    <p>{{.I18n.T "index.freeDesc4"}}</p>
+                    <p class="lp-muted">{{.I18n.T "index.freeDesc5"}} {{.I18n.T "index.freeDesc6"}}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="lp-section lp-dark">
+            <div class="lp-container lp-split">
+                <div class="lp-copy">
+                    <h2 class="lp-h2">{{.I18n.T "index.easyuiTitle"}}</h2>
+                    <p class="lp-muted">{{.I18n.T "index.easyuiDesc1"}}</p>
+                    <p>{{.I18n.T "index.easyuiDesc2"}}</p>
+                    <p>{{.I18n.T "index.easyuiDesc3"}}</p>
+                    <p>{{.I18n.TH "index.easyuiDesc4"}}</p>
+                    <p>{{.I18n.T "index.easyuiDesc5"}}</p>
+                    <p class="lp-strong">{{.I18n.T "index.easyuiDesc6"}}</p>
+                </div>
+                <div class="lp-media lp-media-card">
+                    <img src="/image/screenguide.png" alt="" loading="lazy">
+                </div>
+            </div>
+        </section>
+
+        <section class="lp-section lp-cta">
+            <div class="lp-container lp-center">
+                <h2 class="lp-h2">{{.I18n.T "index.ctaTitle"}}</h2>
+                <p class="lp-lead">{{.I18n.T "index.ctaDesc"}}</p>
+                <div class="lp-hero-actions">
+                    <a href="#" onclick="openLoginModal();return false" class="lp-btn lp-btn-primary lp-btn-lg">{{.I18n.T "index.loginsignupbutton"}}</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="lp-footer">
+        <div class="lp-container">
+            <div class="lp-social">
+                <a href="#" aria-label="YouTube">{{platformIcon "youtube"}}</a>
+                <a href="https://www.nicovideo.jp/user/143183688" aria-label="niconico">{{platformIcon "niconico"}}</a>
+                <a href="https://x.com/dontaucho" aria-label="X">{{platformIcon "x"}}</a>
+                <a href="https://www.twitch.tv/dontaucho" aria-label="Twitch">{{platformIcon "twitch"}}</a>
+            </div>
+            <div class="lp-footer-links">
+                <a href="/about">{{.I18n.T "index.footerAbout"}}</a>
+                <a href="/privacy-policy">{{.I18n.T "index.privacylink"}}</a>
+                <a href="/terms-of-service">{{.I18n.T "index.termslink"}}</a>
+                <a href="/contact">{{.I18n.T "index.contactlink"}}</a>
+                <a href="/login">{{.I18n.T "nav.signIn"}}</a>
+                <a href="/register">{{.I18n.T "nav.createAccount"}}</a>
+            </div>
+            <p class="lp-copyright">Taucho © 2026</p>
         </div>
-    <div>
-    </div>
+    </footer>
+</div>
 
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
@@ -258,28 +282,25 @@
     </div>
 
     <script language="javascript">
-        function setupScrollAction(){
-            window.addEventListener("scroll", (event) => {
-                const imgcontainer = document.getElementById("tauchoTitleImageContainer");
-                const topheaderlink = document.getElementById("topheaderlink");
-                const topheaderbg = document.getElementById("topheaderbg");
-                const titleheight = document.getElementById("titleimg_s").height;
-                if (window.scrollY > window.innerHeight - 64) {
-                    topheaderbg.style["display"] = "block";
-                    topheaderlink.style["visibility"] = "visible";
-                    imgcontainer.style["display"] = "none";
-                }
-                else if (window.scrollY > (window.innerHeight / 2 - 64)) {
-                    topheaderbg.style["display"] = "none";
-                    topheaderlink.style["visibility"] = "hidden";
-                    imgcontainer.style["display"] = "block";
-                    imgcontainer.style["width"] = window.innerWidth * (window.innerHeight - window.scrollY + titleheight*4) / (window.innerHeight)+ "px";
-                    imgcontainer.style["width"] = imgcontainer.offsetWidth > window.innerWidth ? window.innerWidth : imgcontainer.offsetWidth + "px";
-                    imgcontainer.style["left"] = (window.innerWidth - imgcontainer.offsetWidth) / 2 + "px";
-                    imgcontainer.style["top"] = Math.pow((window.innerHeight * 2 - window.scrollY) / window.innerHeight, 2) + "px";
-                }
-            });
+        function setupNavScroll() {
+            const nav = document.getElementById('lpNav');
+            if (!nav) return;
+            const update = () => nav.classList.toggle('scrolled', window.scrollY > 24);
+            window.addEventListener('scroll', update, { passive: true });
+            update();
         }
+
+        function toggleLpMenu(force) {
+            const nav = document.getElementById('lpNav');
+            const btn = nav ? nav.querySelector('.lp-menu-toggle') : null;
+            if (!nav) return;
+            const open = typeof force === 'boolean' ? force : !nav.classList.contains('menu-open');
+            nav.classList.toggle('menu-open', open);
+            if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        function closeLpMenu() { toggleLpMenu(false); }
+
         let resetLoginModalPosition = null;
 
         function setupLoginModalDrag() {
@@ -374,7 +395,7 @@
 
         // If already logged in, go straight to dashboard
         document.addEventListener('DOMContentLoaded', async () => {
-            setupScrollAction();
+            setupNavScroll();
             setupLoginModalDrag();
             const user = window.__user;
             if (user) window.location.replace('/dashboard');

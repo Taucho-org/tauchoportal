@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type Devices struct{}
+type Devices struct{ s *session }
 
 type Device struct {
 	Id               string            `json:"id"`
@@ -61,32 +61,32 @@ type TestDeviceResponse struct {
 	Message string `json:"message"`
 }
 
-func (Devices) ListDevices() []Device {
+func (ctl Devices) ListDevices() []Device {
 	var result []Device
-	apiRequest(&result, http.MethodGet, "/devices")
+	ctl.s.apiRequest(&result, http.MethodGet, "/devices")
 	return result
 }
 
-func (Devices) CreateDevice(request CreateDeviceRequest) CreateDeviceResponse {
+func (ctl Devices) CreateDevice(request CreateDeviceRequest) CreateDeviceResponse {
 	var result CreateDeviceResponse
-	apiRequest(&result, http.MethodPost, "/devices", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/devices", request)
 	return result
 }
 
-func (Devices) UpdateDevice(id string, request UpdateDeviceRequest) UpdateDeviceResponse {
+func (ctl Devices) UpdateDevice(id string, request UpdateDeviceRequest) UpdateDeviceResponse {
 	var result UpdateDeviceResponse
-	apiRequest(&result, http.MethodPatch, "/devices/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/devices/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Devices) DeleteDevice(id string) DeleteDeviceResponse {
+func (ctl Devices) DeleteDevice(id string) DeleteDeviceResponse {
 	var result DeleteDeviceResponse
-	apiRequest(&result, http.MethodDelete, "/devices?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/devices?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Devices) TestDevice(id string, request TestDeviceRequest) TestDeviceResponse {
+func (ctl Devices) TestDevice(id string, request TestDeviceRequest) TestDeviceResponse {
 	var result TestDeviceResponse
-	apiRequest(&result, http.MethodPost, "/devices/test?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/devices/test?id="+url.QueryEscape(id), request)
 	return result
 }

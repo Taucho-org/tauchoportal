@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type DeviceGroups struct{}
+type DeviceGroups struct{ s *session }
 
 type DeviceGroup struct {
 	Id              string `json:"id"`
@@ -60,44 +60,44 @@ type RemoveDeviceFromGroupResponse struct {
 	DeviceId string `json:"device_id"`
 }
 
-func (DeviceGroups) ListDeviceGroups() ListDeviceGroupsResponse {
+func (ctl DeviceGroups) ListDeviceGroups() ListDeviceGroupsResponse {
 	var result ListDeviceGroupsResponse
-	apiRequest(&result, http.MethodGet, "/device-groups")
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-groups")
 	return result
 }
 
-func (DeviceGroups) GetDeviceGroup(id string) GetDeviceGroupResponse {
+func (ctl DeviceGroups) GetDeviceGroup(id string) GetDeviceGroupResponse {
 	var result GetDeviceGroupResponse
-	apiRequest(&result, http.MethodGet, "/device-groups/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-groups/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (DeviceGroups) CreateDeviceGroup(request CreateDeviceGroupRequest) CreateDeviceGroupResponse {
+func (ctl DeviceGroups) CreateDeviceGroup(request CreateDeviceGroupRequest) CreateDeviceGroupResponse {
 	var result CreateDeviceGroupResponse
-	apiRequest(&result, http.MethodPost, "/device-groups", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/device-groups", request)
 	return result
 }
 
-func (DeviceGroups) UpdateDeviceGroup(id string, request UpdateDeviceGroupRequest) UpdateDeviceGroupResponse {
+func (ctl DeviceGroups) UpdateDeviceGroup(id string, request UpdateDeviceGroupRequest) UpdateDeviceGroupResponse {
 	var result UpdateDeviceGroupResponse
-	apiRequest(&result, http.MethodPatch, "/device-groups/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/device-groups/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (DeviceGroups) DeleteDeviceGroup(id string) DeleteDeviceGroupResponse {
+func (ctl DeviceGroups) DeleteDeviceGroup(id string) DeleteDeviceGroupResponse {
 	var result DeleteDeviceGroupResponse
-	apiRequest(&result, http.MethodDelete, "/device-groups?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/device-groups?id="+url.QueryEscape(id))
 	return result
 }
 
-func (DeviceGroups) AssignDeviceToGroup(deviceId string, groupId string) AssignDeviceToGroupResponse {
+func (ctl DeviceGroups) AssignDeviceToGroup(deviceId string, groupId string) AssignDeviceToGroupResponse {
 	var result AssignDeviceToGroupResponse
-	apiRequest(&result, http.MethodPost, "/device-groups/assign?device_id="+url.QueryEscape(deviceId)+"&group_id="+url.QueryEscape(groupId))
+	ctl.s.apiRequest(&result, http.MethodPost, "/device-groups/assign?device_id="+url.QueryEscape(deviceId)+"&group_id="+url.QueryEscape(groupId))
 	return result
 }
 
-func (DeviceGroups) RemoveDeviceFromGroup(deviceId string) RemoveDeviceFromGroupResponse {
+func (ctl DeviceGroups) RemoveDeviceFromGroup(deviceId string) RemoveDeviceFromGroupResponse {
 	var result RemoveDeviceFromGroupResponse
-	apiRequest(&result, http.MethodPost, "/device-groups/remove?device_id="+url.QueryEscape(deviceId))
+	ctl.s.apiRequest(&result, http.MethodPost, "/device-groups/remove?device_id="+url.QueryEscape(deviceId))
 	return result
 }

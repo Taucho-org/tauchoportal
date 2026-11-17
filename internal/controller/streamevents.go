@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type StreamEvents struct{}
+type StreamEvents struct{ s *session }
 
 type StreamEvent struct {
 	Id            string `json:"id"`
@@ -29,7 +29,7 @@ type StreamEvent struct {
 type ListStreamEventsResponse []StreamEvent
 type GetStreamEventResponse = StreamEvent
 
-func (StreamEvents) ListStreamEvents(limit int, watchId string) ListStreamEventsResponse {
+func (ctl StreamEvents) ListStreamEvents(limit int, watchId string) ListStreamEventsResponse {
 	path := "/stream-events"
 	query := url.Values{}
 	if limit > 0 {
@@ -43,12 +43,12 @@ func (StreamEvents) ListStreamEvents(limit int, watchId string) ListStreamEvents
 	}
 
 	var result ListStreamEventsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (StreamEvents) GetStreamEvent(id string) GetStreamEventResponse {
+func (ctl StreamEvents) GetStreamEvent(id string) GetStreamEventResponse {
 	var result GetStreamEventResponse
-	apiRequest(&result, http.MethodGet, "/stream-events/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/stream-events/get?id="+url.QueryEscape(id))
 	return result
 }

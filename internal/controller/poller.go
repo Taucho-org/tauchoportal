@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-type Poller struct{}
+type Poller struct{ s *session }
 
 type PollerStatusResponse struct {
 	IsRunning bool   `json:"is_running"`
@@ -19,20 +19,20 @@ type StopPollerResponse struct {
 	Status string `json:"status"`
 }
 
-func (Poller) PollerStatus() PollerStatusResponse {
+func (ctl Poller) PollerStatus() PollerStatusResponse {
 	var result PollerStatusResponse
-	apiRequest(&result, http.MethodGet, "/poller/status")
+	ctl.s.apiRequest(&result, http.MethodGet, "/poller/status")
 	return result
 }
 
-func (Poller) StartPoller() StartPollerResponse {
+func (ctl Poller) StartPoller() StartPollerResponse {
 	var result StartPollerResponse
-	apiRequest(&result, http.MethodPost, "/poller/start")
+	ctl.s.apiRequest(&result, http.MethodPost, "/poller/start")
 	return result
 }
 
-func (Poller) StopPoller() StopPollerResponse {
+func (ctl Poller) StopPoller() StopPollerResponse {
 	var result StopPollerResponse
-	apiRequest(&result, http.MethodPost, "/poller/stop")
+	ctl.s.apiRequest(&result, http.MethodPost, "/poller/stop")
 	return result
 }

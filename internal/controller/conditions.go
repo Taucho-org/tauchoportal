@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-type Conditions struct{}
+type Conditions struct{ s *session }
 
 type EventSchemaField struct {
 	Name        string `json:"name"`
@@ -213,76 +213,76 @@ type TestAllConditionsResponse struct {
 	Results         []TestSavedConditionResponse `json:"results"`
 }
 
-func (Conditions) ListConditions(watchId string) ListConditionsResponse {
+func (ctl Conditions) ListConditions(watchId string) ListConditionsResponse {
 	path := "/conditions"
 	if watchId != "" {
 		path += "?watch_id=" + url.QueryEscape(watchId)
 	}
 
 	var result ListConditionsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (Conditions) GetCondition(id string) GetConditionResponse {
+func (ctl Conditions) GetCondition(id string) GetConditionResponse {
 	var result GetConditionResponse
-	apiRequest(&result, http.MethodGet, "/conditions/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/conditions/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Conditions) CreateCondition(request CreateConditionRequest) CreateConditionResponse {
+func (ctl Conditions) CreateCondition(request CreateConditionRequest) CreateConditionResponse {
 	var result CreateConditionResponse
-	apiRequest(&result, http.MethodPost, "/conditions", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/conditions", request)
 	return result
 }
 
-func (Conditions) UpdateCondition(id string, request UpdateConditionRequest) UpdateConditionResponse {
+func (ctl Conditions) UpdateCondition(id string, request UpdateConditionRequest) UpdateConditionResponse {
 	var result UpdateConditionResponse
-	apiRequest(&result, http.MethodPatch, "/conditions/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/conditions/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Conditions) DeleteCondition(id string) DeleteConditionResponse {
+func (ctl Conditions) DeleteCondition(id string) DeleteConditionResponse {
 	var result DeleteConditionResponse
-	apiRequest(&result, http.MethodDelete, "/conditions?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/conditions?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Conditions) TestDraftConditionLogic(request TestDraftConditionLogicRequest) TestDraftConditionLogicResponse {
+func (ctl Conditions) TestDraftConditionLogic(request TestDraftConditionLogicRequest) TestDraftConditionLogicResponse {
 	var result TestDraftConditionLogicResponse
-	apiRequest(&result, http.MethodPost, "/conditions/test-draft", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/conditions/test-draft", request)
 	return result
 }
 
-func (Conditions) TestSavedCondition(id string, request TestSavedConditionRequest) TestSavedConditionResponse {
+func (ctl Conditions) TestSavedCondition(id string, request TestSavedConditionRequest) TestSavedConditionResponse {
 	var result TestSavedConditionResponse
-	apiRequest(&result, http.MethodPost, "/conditions/"+url.PathEscape(id)+"/test", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/conditions/"+url.PathEscape(id)+"/test", request)
 	return result
 }
 
-func (Conditions) TestAllConditions(request TestAllConditionsRequest) TestAllConditionsResponse {
+func (ctl Conditions) TestAllConditions(request TestAllConditionsRequest) TestAllConditionsResponse {
 	var result TestAllConditionsResponse
-	apiRequest(&result, http.MethodPost, "/conditions/test-all", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/conditions/test-all", request)
 	return result
 }
 
 // ListEventMetadata fetches all providers and supported event types from the API
-func (Conditions) ListEventMetadata() AllEventMetadataResponse {
+func (ctl Conditions) ListEventMetadata() AllEventMetadataResponse {
 	var result AllEventMetadataResponse
-	apiRequest(&result, http.MethodGet, "/event-metadata")
+	ctl.s.apiRequest(&result, http.MethodGet, "/event-metadata")
 	return result
 }
 
 // ListEventTypes fetches supported event types for a platform from the API
-func (Conditions) ListEventTypes(platform string) PlatformEventMetadataResponse {
+func (ctl Conditions) ListEventTypes(platform string) PlatformEventMetadataResponse {
 	var result PlatformEventMetadataResponse
-	apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform))
+	ctl.s.apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform))
 	return result
 }
 
 // GetEventMetadata fetches event schema for a specific platform and event type
-func (Conditions) GetEventMetadata(platform, eventType string) EventMetadataResponse {
+func (ctl Conditions) GetEventMetadata(platform, eventType string) EventMetadataResponse {
 	var result EventMetadataResponse
-	apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform)+"/"+url.PathEscape(eventType))
+	ctl.s.apiRequest(&result, http.MethodGet, "/event-metadata/"+url.PathEscape(platform)+"/"+url.PathEscape(eventType))
 	return result
 }
