@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type Catalog struct{}
+type Catalog struct{ s *session }
 
 type Brand struct {
 	Id                            string                         `json:"id"`
@@ -124,68 +124,68 @@ type DeleteProductResponse struct {
 	Status string `json:"status"`
 }
 
-func (Catalog) ListBrands(activeOnly bool) ListBrandsResponse {
+func (ctl Catalog) ListBrands(activeOnly bool) ListBrandsResponse {
 	path := "/catalog/brands"
 	path += "?active_only=" + url.QueryEscape(strconv.FormatBool(activeOnly))
 
 	var result ListBrandsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (Catalog) GetBrand(id string) GetBrandResponse {
+func (ctl Catalog) GetBrand(id string) GetBrandResponse {
 	var result GetBrandResponse
-	apiRequest(&result, http.MethodGet, "/catalog/brands/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/catalog/brands/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Catalog) CreateBrand(request CreateBrandRequest) CreateBrandResponse {
+func (ctl Catalog) CreateBrand(request CreateBrandRequest) CreateBrandResponse {
 	var result CreateBrandResponse
-	apiRequest(&result, http.MethodPost, "/catalog/brands", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/catalog/brands", request)
 	return result
 }
 
-func (Catalog) UpdateBrand(id string, request UpdateBrandRequest) UpdateBrandResponse {
+func (ctl Catalog) UpdateBrand(id string, request UpdateBrandRequest) UpdateBrandResponse {
 	var result UpdateBrandResponse
-	apiRequest(&result, http.MethodPatch, "/catalog/brands/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/catalog/brands/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Catalog) DeleteBrand(id string) DeleteBrandResponse {
+func (ctl Catalog) DeleteBrand(id string) DeleteBrandResponse {
 	var result DeleteBrandResponse
-	apiRequest(&result, http.MethodDelete, "/catalog/brands?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/catalog/brands?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Catalog) ListProducts(brandId string, activeOnly bool) ListProductsResponse {
+func (ctl Catalog) ListProducts(brandId string, activeOnly bool) ListProductsResponse {
 	path := "/catalog/products"
 	path += "?brand_id=" + url.QueryEscape(brandId) + "&active_only=" + url.QueryEscape(strconv.FormatBool(activeOnly))
 
 	var result ListProductsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (Catalog) GetProduct(id string) GetProductResponse {
+func (ctl Catalog) GetProduct(id string) GetProductResponse {
 	var result GetProductResponse
-	apiRequest(&result, http.MethodGet, "/catalog/products/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/catalog/products/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Catalog) CreateProduct(request CreateProductRequest) CreateProductResponse {
+func (ctl Catalog) CreateProduct(request CreateProductRequest) CreateProductResponse {
 	var result CreateProductResponse
-	apiRequest(&result, http.MethodPost, "/catalog/products", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/catalog/products", request)
 	return result
 }
 
-func (Catalog) UpdateProduct(id string, request UpdateProductRequest) UpdateProductResponse {
+func (ctl Catalog) UpdateProduct(id string, request UpdateProductRequest) UpdateProductResponse {
 	var result UpdateProductResponse
-	apiRequest(&result, http.MethodPatch, "/catalog/products/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/catalog/products/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Catalog) DeleteProduct(id string) DeleteProductResponse {
+func (ctl Catalog) DeleteProduct(id string) DeleteProductResponse {
 	var result DeleteProductResponse
-	apiRequest(&result, http.MethodDelete, "/catalog/products?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/catalog/products?id="+url.QueryEscape(id))
 	return result
 }

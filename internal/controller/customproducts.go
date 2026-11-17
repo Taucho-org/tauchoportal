@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type CustomProducts struct{}
+type CustomProducts struct{ s *session }
 
 type CustomProduct struct {
 	Id          string `json:"id"`
@@ -88,67 +88,67 @@ type DeleteCustomActionResponse struct {
 	Status string `json:"status"`
 }
 
-func (CustomProducts) ListCustomProducts() ListCustomProductsResponse {
+func (ctl CustomProducts) ListCustomProducts() ListCustomProductsResponse {
 	var result ListCustomProductsResponse
-	apiRequest(&result, http.MethodGet, "/custom-products")
+	ctl.s.apiRequest(&result, http.MethodGet, "/custom-products")
 	return result
 }
 
-func (CustomProducts) GetCustomProduct(id string) GetCustomProductResponse {
+func (ctl CustomProducts) GetCustomProduct(id string) GetCustomProductResponse {
 	var result GetCustomProductResponse
-	apiRequest(&result, http.MethodGet, "/custom-products/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/custom-products/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (CustomProducts) CreateCustomProduct(request CreateCustomProductRequest) CreateCustomProductResponse {
+func (ctl CustomProducts) CreateCustomProduct(request CreateCustomProductRequest) CreateCustomProductResponse {
 	var result CreateCustomProductResponse
-	apiRequest(&result, http.MethodPost, "/custom-products", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/custom-products", request)
 	return result
 }
 
-func (CustomProducts) UpdateCustomProduct(id string, request UpdateCustomProductRequest) UpdateCustomProductResponse {
+func (ctl CustomProducts) UpdateCustomProduct(id string, request UpdateCustomProductRequest) UpdateCustomProductResponse {
 	var result UpdateCustomProductResponse
-	apiRequest(&result, http.MethodPatch, "/custom-products/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/custom-products/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (CustomProducts) DeleteCustomProduct(id string) DeleteCustomProductResponse {
+func (ctl CustomProducts) DeleteCustomProduct(id string) DeleteCustomProductResponse {
 	var result DeleteCustomProductResponse
-	apiRequest(&result, http.MethodDelete, "/custom-products?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/custom-products?id="+url.QueryEscape(id))
 	return result
 }
 
-func (CustomProducts) ListCustomActions(productId string) ListCustomActionsResponse {
+func (ctl CustomProducts) ListCustomActions(productId string) ListCustomActionsResponse {
 	path := "/custom-actions"
 	if productId != "" {
 		path += "?product_id=" + url.QueryEscape(productId)
 	}
 
 	var result ListCustomActionsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (CustomProducts) GetCustomAction(id string) GetCustomActionResponse {
+func (ctl CustomProducts) GetCustomAction(id string) GetCustomActionResponse {
 	var result GetCustomActionResponse
-	apiRequest(&result, http.MethodGet, "/custom-actions/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/custom-actions/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (CustomProducts) CreateCustomAction(request CreateCustomActionRequest) CreateCustomActionResponse {
+func (ctl CustomProducts) CreateCustomAction(request CreateCustomActionRequest) CreateCustomActionResponse {
 	var result CreateCustomActionResponse
-	apiRequest(&result, http.MethodPost, "/custom-actions", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/custom-actions", request)
 	return result
 }
 
-func (CustomProducts) UpdateCustomAction(id string, request UpdateCustomActionRequest) UpdateCustomActionResponse {
+func (ctl CustomProducts) UpdateCustomAction(id string, request UpdateCustomActionRequest) UpdateCustomActionResponse {
 	var result UpdateCustomActionResponse
-	apiRequest(&result, http.MethodPatch, "/custom-actions/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/custom-actions/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (CustomProducts) DeleteCustomAction(id string) DeleteCustomActionResponse {
+func (ctl CustomProducts) DeleteCustomAction(id string) DeleteCustomActionResponse {
 	var result DeleteCustomActionResponse
-	apiRequest(&result, http.MethodDelete, "/custom-actions?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/custom-actions?id="+url.QueryEscape(id))
 	return result
 }

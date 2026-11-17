@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type LiveEvents struct{}
+type LiveEvents struct{ s *session }
 
 type LiveEventRaw struct {
 	PurchaseAmountMicros int64 `json:"purchase_amount_micros"`
@@ -67,7 +67,7 @@ type CountLiveEventsByTypeResponse struct {
 	ViewerJoin int `json:"viewer_join"`
 }
 
-func (LiveEvents) ListLiveEvents(streamId string, eventType string, limit int) ListLiveEventsResponse {
+func (ctl LiveEvents) ListLiveEvents(streamId string, eventType string, limit int) ListLiveEventsResponse {
 	path := "/live-events"
 	query := url.Values{}
 	if streamId != "" {
@@ -84,18 +84,18 @@ func (LiveEvents) ListLiveEvents(streamId string, eventType string, limit int) L
 	}
 
 	var result ListLiveEventsResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (LiveEvents) GetLiveEvent(id string) GetLiveEventResponse {
+func (ctl LiveEvents) GetLiveEvent(id string) GetLiveEventResponse {
 	var result GetLiveEventResponse
-	apiRequest(&result, http.MethodGet, "/live-events/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/live-events/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (LiveEvents) CountLiveEventsByType(streamId string) CountLiveEventsByTypeResponse {
+func (ctl LiveEvents) CountLiveEventsByType(streamId string) CountLiveEventsByTypeResponse {
 	var result CountLiveEventsByTypeResponse
-	apiRequest(&result, http.MethodGet, "/live-events/count?stream_id="+url.QueryEscape(streamId))
+	ctl.s.apiRequest(&result, http.MethodGet, "/live-events/count?stream_id="+url.QueryEscape(streamId))
 	return result
 }

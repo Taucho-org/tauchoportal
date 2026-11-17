@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type Streams struct{}
+type Streams struct{ s *session }
 
 type StreamAccount struct {
 	Id        string  `json:"id"`
@@ -44,32 +44,32 @@ type DeleteStreamAccountResponse struct {
 	Status string `json:"status"`
 }
 
-func (Streams) ListStreamAccounts() ListStreamAccountsResponse {
+func (ctl Streams) ListStreamAccounts() ListStreamAccountsResponse {
 	var result ListStreamAccountsResponse
-	apiRequest(&result, http.MethodGet, "/streams")
+	ctl.s.apiRequest(&result, http.MethodGet, "/streams")
 	return result
 }
 
-func (Streams) GetStreamAccount(id string) GetStreamAccountResponse {
+func (ctl Streams) GetStreamAccount(id string) GetStreamAccountResponse {
 	var result GetStreamAccountResponse
-	apiRequest(&result, http.MethodGet, "/streams/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/streams/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Streams) CreateStreamAccount(request CreateStreamAccountRequest) CreateStreamAccountResponse {
+func (ctl Streams) CreateStreamAccount(request CreateStreamAccountRequest) CreateStreamAccountResponse {
 	var result CreateStreamAccountResponse
-	apiRequest(&result, http.MethodPost, "/streams", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/streams", request)
 	return result
 }
 
-func (Streams) UpdateStreamAccount(id string, request UpdateStreamAccountRequest) UpdateStreamAccountResponse {
+func (ctl Streams) UpdateStreamAccount(id string, request UpdateStreamAccountRequest) UpdateStreamAccountResponse {
 	var result UpdateStreamAccountResponse
-	apiRequest(&result, http.MethodPatch, "/streams/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/streams/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Streams) DeleteStreamAccount(id string) DeleteStreamAccountResponse {
+func (ctl Streams) DeleteStreamAccount(id string) DeleteStreamAccountResponse {
 	var result DeleteStreamAccountResponse
-	apiRequest(&result, http.MethodDelete, "/streams?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/streams?id="+url.QueryEscape(id))
 	return result
 }

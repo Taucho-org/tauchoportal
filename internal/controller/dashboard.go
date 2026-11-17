@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-type Dashboard struct{}
+type Dashboard struct{ s *session }
 
 // DashboardStatsResponse represents the complete dashboard data from the API
 type DashboardStatsResponse struct {
@@ -80,8 +80,8 @@ type DeviceStatus struct {
 }
 
 // GetDashboardStats fetches the complete dashboard data from API
-func (Dashboard) GetDashboardStats() DashboardStatsResponse {
+func (ctl Dashboard) GetDashboardStats() DashboardStatsResponse {
 	var result DashboardStatsResponse
-	apiRequest(&result, http.MethodGet, "/dashboard/stats")
+	ctl.s.apiRequest(&result, http.MethodGet, "/dashboard/stats")
 	return result
 }
