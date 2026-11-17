@@ -212,6 +212,7 @@ nav.policy-nav { display: none; }
 .lp-section { padding: 88px 0; }
 .lp-section + .lp-section:not(.lp-dark):not(.lp-cta) { padding-top: 24px; }
 .lp-dark + .lp-section, .lp-section.lp-dark + .lp-section { padding-top: 88px !important; }
+.lp-section.whitebackground { background: white; }
 
 .lp-h2 {
     font-size: clamp(28px, 3.4vw, 42px);
@@ -256,12 +257,6 @@ nav.policy-nav { display: none; }
 }
 .lp-split-wide { grid-template-columns: 5fr 7fr; }
 
-.lp-media-card {
-    background: var(--lp-surface);
-    border-radius: var(--lp-radius);
-    padding: 14px;
-    box-shadow: var(--lp-shadow-lg);
-}
 .lp-media-card img { width: 100%; height: auto; border-radius: 12px; }
 
 .lp-video video {
