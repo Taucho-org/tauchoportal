@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type PlatformDiscovery struct{}
+type PlatformDiscovery struct{ s *session }
 
 type YouTubeChannel struct {
 	ChannelId       string `json:"channel_id"`
@@ -124,164 +124,164 @@ type BilibiliUsersPage struct {
 	Items []BilibiliUser `json:"items"`
 }
 
-func (PlatformDiscovery) ListMyYouTubeChannels() []YouTubeChannel {
+func (ctl PlatformDiscovery) ListMyYouTubeChannels() []YouTubeChannel {
 	var result []YouTubeChannel
-	apiRequest(&result, http.MethodGet, "/platform/youtube/channels/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/youtube/channels/mine")
 	return result
 }
 
-func (PlatformDiscovery) ListYouTubeSubscriptions(pageToken string) YouTubeChannelsPage {
+func (ctl PlatformDiscovery) ListYouTubeSubscriptions(pageToken string) YouTubeChannelsPage {
 	path := "/platform/youtube/subscriptions"
 	if pageToken != "" {
 		path += "?page_token=" + url.QueryEscape(pageToken)
 	}
 
 	var result YouTubeChannelsPage
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) SearchYouTubeChannels(query string, pageToken string) YouTubeChannelsPage {
+func (ctl PlatformDiscovery) SearchYouTubeChannels(query string, pageToken string) YouTubeChannelsPage {
 	path := "/platform/youtube/search?q=" + url.QueryEscape(query)
 	if pageToken != "" {
 		path += "&page_token=" + url.QueryEscape(pageToken)
 	}
 
 	var result YouTubeChannelsPage
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) ListMyTwitchChannels() []TwitchChannel {
+func (ctl PlatformDiscovery) ListMyTwitchChannels() []TwitchChannel {
 	var result []TwitchChannel
-	apiRequest(&result, http.MethodGet, "/platform/twitch/channels/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/twitch/channels/mine")
 	return result
 }
 
-func (PlatformDiscovery) ListTwitchFollowing(cursor string) TwitchChannelsPage {
+func (ctl PlatformDiscovery) ListTwitchFollowing(cursor string) TwitchChannelsPage {
 	path := "/platform/twitch/following"
 	if cursor != "" {
 		path += "?cursor=" + url.QueryEscape(cursor)
 	}
 
 	var result TwitchChannelsPage
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) SearchTwitchChannels(query string, cursor string) TwitchChannelsPage {
+func (ctl PlatformDiscovery) SearchTwitchChannels(query string, cursor string) TwitchChannelsPage {
 	path := "/platform/twitch/search?q=" + url.QueryEscape(query)
 	if cursor != "" {
 		path += "&cursor=" + url.QueryEscape(cursor)
 	}
 
 	var result TwitchChannelsPage
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) ListMyInstagramAccounts() []InstagramUser {
+func (ctl PlatformDiscovery) ListMyInstagramAccounts() []InstagramUser {
 	var result []InstagramUser
-	apiRequest(&result, http.MethodGet, "/platform/instagram/user/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/instagram/user/mine")
 	return result
 }
 
-func (PlatformDiscovery) SearchInstagramUsers(query string) InstagramUsersPage {
+func (ctl PlatformDiscovery) SearchInstagramUsers(query string) InstagramUsersPage {
 	var result InstagramUsersPage
-	apiRequest(&result, http.MethodGet, "/platform/instagram/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/instagram/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) ListMyFacebookPages() []FacebookPage {
+func (ctl PlatformDiscovery) ListMyFacebookPages() []FacebookPage {
 	var result []FacebookPage
-	apiRequest(&result, http.MethodGet, "/platform/facebook/page/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/facebook/page/mine")
 	return result
 }
 
-func (PlatformDiscovery) SearchFacebookPages(query string) FacebookPagesResponse {
+func (ctl PlatformDiscovery) SearchFacebookPages(query string) FacebookPagesResponse {
 	var result FacebookPagesResponse
-	apiRequest(&result, http.MethodGet, "/platform/facebook/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/facebook/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) ListMyTikTokAccounts() []TikTokUser {
+func (ctl PlatformDiscovery) ListMyTikTokAccounts() []TikTokUser {
 	var result []TikTokUser
-	apiRequest(&result, http.MethodGet, "/platform/tiktok/user/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/tiktok/user/mine")
 	return result
 }
 
-func (PlatformDiscovery) SearchTikTokUsers(query string) TikTokUsersPage {
+func (ctl PlatformDiscovery) SearchTikTokUsers(query string) TikTokUsersPage {
 	var result TikTokUsersPage
-	apiRequest(&result, http.MethodGet, "/platform/tiktok/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/tiktok/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) ListMyXAccounts() []XUser {
+func (ctl PlatformDiscovery) ListMyXAccounts() []XUser {
 	var result []XUser
-	apiRequest(&result, http.MethodGet, "/platform/x/user/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/x/user/mine")
 	return result
 }
 
-func (PlatformDiscovery) SearchXUsers(query string) XUsersPage {
+func (ctl PlatformDiscovery) SearchXUsers(query string) XUsersPage {
 	var result XUsersPage
-	apiRequest(&result, http.MethodGet, "/platform/x/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/x/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) ListMyKickChannels() []KickChannel {
+func (ctl PlatformDiscovery) ListMyKickChannels() []KickChannel {
 	var result []KickChannel
-	apiRequest(&result, http.MethodGet, "/platform/kick/channels/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/kick/channels/mine")
 	return result
 }
 
-func (PlatformDiscovery) ListKickFollowing(cursor string) KickChannelsPage {
+func (ctl PlatformDiscovery) ListKickFollowing(cursor string) KickChannelsPage {
 	path := "/platform/kick/following"
 	if cursor != "" {
 		path += "?cursor=" + url.QueryEscape(cursor)
 	}
 
 	var result KickChannelsPage
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) SearchKickChannels(query string) KickSearchResponse {
+func (ctl PlatformDiscovery) SearchKickChannels(query string) KickSearchResponse {
 	var result KickSearchResponse
-	apiRequest(&result, http.MethodGet, "/platform/kick/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/kick/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) ListMyNicoNicoChannels() []NicoNicoChannel {
+func (ctl PlatformDiscovery) ListMyNicoNicoChannels() []NicoNicoChannel {
 	var result []NicoNicoChannel
-	apiRequest(&result, http.MethodGet, "/platform/niconico/channels/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/niconico/channels/mine")
 	return result
 }
 
-func (PlatformDiscovery) SearchNicoNicoChannels(query string) []NicoNicoSearchChannel {
+func (ctl PlatformDiscovery) SearchNicoNicoChannels(query string) []NicoNicoSearchChannel {
 	var result []NicoNicoSearchChannel
-	apiRequest(&result, http.MethodGet, "/platform/niconico/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/niconico/search?q="+url.QueryEscape(query))
 	return result
 }
 
-func (PlatformDiscovery) GetMyBilibiliSpace() BilibiliErrorResponse {
+func (ctl PlatformDiscovery) GetMyBilibiliSpace() BilibiliErrorResponse {
 	var result BilibiliErrorResponse
-	apiRequest(&result, http.MethodGet, "/platform/bilibili/user/mine")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/bilibili/user/mine")
 	return result
 }
 
-func (PlatformDiscovery) ListBilibiliFollowing(cursor string) BilibiliErrorResponse {
+func (ctl PlatformDiscovery) ListBilibiliFollowing(cursor string) BilibiliErrorResponse {
 	path := "/platform/bilibili/following"
 	if cursor != "" {
 		path += "?cursor=" + url.QueryEscape(cursor)
 	}
 
 	var result BilibiliErrorResponse
-	apiRequest(&result, http.MethodGet, path)
+	ctl.s.apiRequest(&result, http.MethodGet, path)
 	return result
 }
 
-func (PlatformDiscovery) SearchBilibiliUsers(query string) BilibiliUsersPage {
+func (ctl PlatformDiscovery) SearchBilibiliUsers(query string) BilibiliUsersPage {
 	var result BilibiliUsersPage
-	apiRequest(&result, http.MethodGet, "/platform/bilibili/search?q="+url.QueryEscape(query))
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform/bilibili/search?q="+url.QueryEscape(query))
 	return result
 }

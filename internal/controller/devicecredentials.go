@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type DeviceCredentials struct{}
+type DeviceCredentials struct{ s *session }
 
 type DeviceCredentialMetadata struct {
 	HostIp string `json:"host_ip"`
@@ -69,32 +69,32 @@ type DeleteCredentialResponse struct {
 	Status string `json:"status"`
 }
 
-func (DeviceCredentials) ListCredentials() ListCredentialsResponse {
+func (ctl DeviceCredentials) ListCredentials() ListCredentialsResponse {
 	var result ListCredentialsResponse
-	apiRequest(&result, http.MethodGet, "/device-credentials")
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-credentials")
 	return result
 }
 
-func (DeviceCredentials) GetCredential(id int) GetCredentialResponse {
+func (ctl DeviceCredentials) GetCredential(id int) GetCredentialResponse {
 	var result GetCredentialResponse
-	apiRequest(&result, http.MethodGet, "/device-credentials/get?id="+url.QueryEscape(strconv.Itoa(id)))
+	ctl.s.apiRequest(&result, http.MethodGet, "/device-credentials/get?id="+url.QueryEscape(strconv.Itoa(id)))
 	return result
 }
 
-func (DeviceCredentials) CreateCredential(request CreateCredentialRequest) CreateCredentialResponse {
+func (ctl DeviceCredentials) CreateCredential(request CreateCredentialRequest) CreateCredentialResponse {
 	var result CreateCredentialResponse
-	apiRequest(&result, http.MethodPost, "/device-credentials", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/device-credentials", request)
 	return result
 }
 
-func (DeviceCredentials) UpdateCredential(id int, request UpdateCredentialRequest) UpdateCredentialResponse {
+func (ctl DeviceCredentials) UpdateCredential(id int, request UpdateCredentialRequest) UpdateCredentialResponse {
 	var result UpdateCredentialResponse
-	apiRequest(&result, http.MethodPatch, "/device-credentials/update?id="+url.QueryEscape(strconv.Itoa(id)), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/device-credentials/update?id="+url.QueryEscape(strconv.Itoa(id)), request)
 	return result
 }
 
-func (DeviceCredentials) DeleteCredential(id int) DeleteCredentialResponse {
+func (ctl DeviceCredentials) DeleteCredential(id int) DeleteCredentialResponse {
 	var result DeleteCredentialResponse
-	apiRequest(&result, http.MethodDelete, "/device-credentials?id="+url.QueryEscape(strconv.Itoa(id)))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/device-credentials?id="+url.QueryEscape(strconv.Itoa(id)))
 	return result
 }

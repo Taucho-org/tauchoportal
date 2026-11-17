@@ -5,7 +5,7 @@ import (
 )
 
 // MyBrandSettings handles user's connected brands from /auth/brands endpoint
-type MyBrandSettings struct{}
+type MyBrandSettings struct{ s *session }
 
 const BuiltInBrandID = "taucho"
 
@@ -42,9 +42,9 @@ type MyBrandsListResponse struct {
 }
 
 // ListMyBrands fetches all brands with their connection status from the API.
-func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
+func (ctl MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 	var response MyBrandsListResponse
-	apiRequest(&response, http.MethodGet, "/auth/brands")
+	ctl.s.apiRequest(&response, http.MethodGet, "/auth/brands")
 
 	// Preserve the full brand list. The settings page needs unconnected brands
 	// too, so derive registration state without filtering API results.
@@ -57,14 +57,14 @@ func (MyBrandSettings) ListMyBrands() []MyConnectedBrand {
 }
 
 // GetMyBrandDetails fetches a specific connected brand with credential fields
-func (MyBrandSettings) GetMyBrandDetails(brandID string) MyConnectedBrand {
+func (ctl MyBrandSettings) GetMyBrandDetails(brandID string) MyConnectedBrand {
 	var result MyConnectedBrand
-	apiRequest(&result, http.MethodGet, "/auth/brand/"+brandID)
+	ctl.s.apiRequest(&result, http.MethodGet, "/auth/brand/"+brandID)
 	return result
 }
 
 // BrandList handles all available brands from /catalog/brands endpoint
-type BrandList struct{}
+type BrandList struct{ s *session }
 
 // CatalogBrand represents a brand from the catalog API response
 type CatalogBrand struct {
@@ -94,15 +94,15 @@ type CatalogBrandsResponse struct {
 }
 
 // ListAll fetches all available brands from catalog API
-func (BrandList) ListAll() []CatalogBrand {
+func (ctl BrandList) ListAll() []CatalogBrand {
 	var response []CatalogBrand
-	apiRequest(&response, http.MethodGet, "/catalog/brands?active_only=true")
+	ctl.s.apiRequest(&response, http.MethodGet, "/catalog/brands?active_only=true")
 	return response
 }
 
 // Get fetches a specific brand from catalog API
-func (BrandList) Get(brandID string) CatalogBrand {
+func (ctl BrandList) Get(brandID string) CatalogBrand {
 	var result CatalogBrand
-	apiRequest(&result, http.MethodGet, "/catalog/brands/get?id="+brandID)
+	ctl.s.apiRequest(&result, http.MethodGet, "/catalog/brands/get?id="+brandID)
 	return result
 }

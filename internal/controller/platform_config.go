@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type PlatformConfig struct{}
+type PlatformConfig struct{ s *session }
 
 // PlatformParameter represents a single parameter for an event
 type PlatformParameter struct {
@@ -42,43 +42,43 @@ type ParameterAvailableResponse struct {
 }
 
 // ListPlatforms fetches all available platforms
-func (PlatformConfig) ListPlatforms() []string {
+func (ctl PlatformConfig) ListPlatforms() []string {
 	var result PlatformsListResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms")
 	return result.Platforms
 }
 
 // ListEventsForPlatform fetches all events for a specific platform
-func (PlatformConfig) ListEventsForPlatform(platform string) []string {
+func (ctl PlatformConfig) ListEventsForPlatform(platform string) []string {
 	var result EventsListResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events")
 	return result.Events
 }
 
 // GetAvailableParameters fetches only available parameters for an event
-func (PlatformConfig) GetAvailableParameters(platform, event string) []PlatformParameter {
+func (ctl PlatformConfig) GetAvailableParameters(platform, event string) []PlatformParameter {
 	var result ParametersResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/available")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/available")
 	return result.Parameters
 }
 
 // GetAllParameters fetches all parameters (available and unavailable) for an event
-func (PlatformConfig) GetAllParameters(platform, event string) []PlatformParameter {
+func (ctl PlatformConfig) GetAllParameters(platform, event string) []PlatformParameter {
 	var result ParametersResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters")
 	return result.Parameters
 }
 
 // GetUnavailableParameters fetches only unavailable parameters for an event
-func (PlatformConfig) GetUnavailableParameters(platform, event string) []PlatformParameter {
+func (ctl PlatformConfig) GetUnavailableParameters(platform, event string) []PlatformParameter {
 	var result ParametersResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/unavailable")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/unavailable")
 	return result.Parameters
 }
 
 // CheckParameterAvailable checks if a single parameter is available for an event
-func (PlatformConfig) CheckParameterAvailable(platform, event, parameter string) bool {
+func (ctl PlatformConfig) CheckParameterAvailable(platform, event, parameter string) bool {
 	var result ParameterAvailableResponse
-	apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/"+url.PathEscape(parameter)+"/available")
+	ctl.s.apiRequest(&result, http.MethodGet, "/platform-config/platforms/"+url.PathEscape(platform)+"/events/"+url.PathEscape(event)+"/parameters/"+url.PathEscape(parameter)+"/available")
 	return result.Available
 }

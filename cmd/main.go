@@ -146,6 +146,9 @@ func main() {
 		r.Host = target.Host
 		r.RequestURI = ""
 		attachIdentityToken(r, tokenSource)
+		// Never forward a browser-supplied X-User-ID: only the portal sets it,
+		// and only after verifying the visitor's session below.
+		r.Header.Del("X-User-ID")
 		// Inject X-User-ID so the API can resolve user ownership without
 		// re-parsing the session cookie on every resource request.
 		// The portal is the trusted proxy: it validates the cookie via
@@ -168,6 +171,7 @@ func main() {
 		r.URL.Host = target.Host
 		r.Host = target.Host
 		r.RequestURI = ""
+		r.Header.Del("X-User-ID")
 		attachIdentityToken(r, tokenSource)
 	}
 	callbackProxy.ModifyResponse = func(resp *http.Response) error {
@@ -237,6 +241,11 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"healthy"}`))
 	})
 	mux.HandleFunc("/debug/api", func(w http.ResponseWriter, r *http.Request) {
+		// Diagnostics reveal API URL and token status; off unless explicitly enabled.
+		if os.Getenv("ENABLE_DEBUG_ENDPOINTS") != "true" {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, "<h2>API Debug</h2>")
 		fmt.Fprintf(w, "<p><b>API URL:</b> %s</p>", htmlEscape(apiURL))
@@ -604,15 +613,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		useridstr = strconv.Itoa(user.ID)
 	}
-	api, _ := controller.Init(s.apiURL, useridstr)
-
-	// Inject cookies from the incoming request into the controller's HTTP client
-	// This allows the controller to use the same session as the proxy
-	controller.InjectCookies(r)
+	// Per-request API client: carries only this visitor's cookies and user ID,
+	// so concurrent page renders cannot see each other's data.
+	api := controller.New(s.apiURL, useridstr, r)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	lang := i18n.DetectLang(r)
-	data := PageData{TitleKey: cfg.TitleKey, User: user, Page: cfg.Name, Lang: lang, I18n: s.i18n.Translator(lang), API: &api}
+	data := PageData{TitleKey: cfg.TitleKey, User: user, Page: cfg.Name, Lang: lang, I18n: s.i18n.Translator(lang), API: api}
 
 	// Fetch conditions page data if on /conditions page
 	if cfg.Name == "conditions" || cfg.Name == "condition" {
@@ -623,7 +630,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Check if this is a single condition page (has condition_id)
 			if len(parts) >= 4 {
 				conditionID := parts[3]
-				pageData := controller.PrepareConditionPageData(channelID, conditionID, data.I18n)
+				pageData := controller.PrepareConditionPageData(api, channelID, conditionID, data.I18n)
 				data.CurrentChannel = pageData.CurrentChannel
 				data.Condition = pageData.Condition
 				data.PlatformMeta = pageData.PlatformMeta
@@ -632,7 +639,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				data.ConditionProperties = pageData.ConditionProperties
 			} else {
 				// This is the conditions list page
-				pageData := controller.PrepareConditionsPageData(channelID)
+				pageData := controller.PrepareConditionsPageData(api, channelID)
 				data.CurrentChannel = pageData.CurrentChannel
 				data.Conditions = pageData.Conditions
 				data.EventTypes = pageData.EventTypes
@@ -648,7 +655,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if len(parts) >= 2 && parts[0] == "channels" {
 			channelID := parts[1]
-			pageData := controller.PrepareChannelDetailPageData(channelID)
+			pageData := controller.PrepareChannelDetailPageData(api, channelID)
 			data.ChannelDetail = pageData.CurrentChannel
 			data.ChannelDetailConditions = pageData.CurrentChannel.Conditions
 			data.PlatformMeta = pageData.PlatformMeta
@@ -658,32 +665,32 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch dashboard page data if on /dashboard page
 	if cfg.Name == "dashboard" {
-		pageData := controller.PrepareDashboardPageData()
+		pageData := controller.PrepareDashboardPageData(api)
 		data.Dashboard = pageData
 	}
 
 	// Fetch channels page data if on /channels page
 	if cfg.Name == "channels" {
-		pageData := controller.PrepareChannelsPageData()
+		pageData := controller.PrepareChannelsPageData(api)
 		data.Channels = pageData
 	}
 
 	if cfg.Name == "shopping" {
-		data.Brands = (controller.BrandList{}).ListAll()
+		data.Brands = api.BrandList.ListAll()
 	}
 
 	// Fetch shared brand data for brand-settings and devices pages.
 	if cfg.Name == "brand-settings" || cfg.Name == "devices" {
-		myBrandSettings := controller.MyBrandSettings{}
+		myBrandSettings := api.MyBrandSettings
 		data.MyBrands = myBrandSettings.ListMyBrands()
 
-		brandList := controller.BrandList{}
+		brandList := api.BrandList
 		data.Brands = brandList.ListAll()
 
-		data.Devices = controller.PrepareDevicesPageData(data.Brands, data.MyBrands)
+		data.Devices = controller.PrepareDevicesPageData(api, data.Brands, data.MyBrands)
 
 		if cfg.Name == "devices" {
-			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(data.Devices.Devices)
+			data.DeviceGroups, data.UngroupedDevices = controller.PrepareDeviceGroupsPageData(api, data.Devices.Devices)
 			data.MultiDeviceGroups, data.StandaloneDevices = controller.SplitDevicesForDisplay(data.Devices.Devices, data.DeviceGroups)
 		}
 	}
