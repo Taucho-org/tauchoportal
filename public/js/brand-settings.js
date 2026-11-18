@@ -607,7 +607,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -708,7 +708,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -863,7 +863,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -931,7 +931,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -986,7 +986,7 @@
 
       // Case 1: User exists in brand (and we auto-registered them, so registered_with_us will be true)
       if (checkResponse.exists_in_brand && checkResponse.registered_with_us) {
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
         setTimeout(() => window.location.reload(), 1000);
         return;
       }
@@ -994,8 +994,7 @@
       // Case 2: User doesn't exist in brand - ask to create account
       if (!checkResponse.exists_in_brand) {
         const shouldRegister = confirm(
-          window._i18nMsg?.['brandSettings.sso.createAccount'] || 
-          `Create a new ${getBrandName(meta.id)} account with your email?`
+          (window._i18nMsg?.['brandSettings.sso.createAccount'] || 'Create a new {brand} account with your email?').replace('{brand}', getBrandName(meta.id))
         );
 
         if (!shouldRegister) {
@@ -1026,11 +1025,11 @@
         });
 
         if (!registerResponse.success) {
-          showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
+          showToast(`❌ ${registerResponse.message || window._i18nMsg?.['brandSettings.sso.registerError'] || 'Registration failed'}`);
           return;
         }
 
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
         setTimeout(() => window.location.reload(), 1500);
       }
 
