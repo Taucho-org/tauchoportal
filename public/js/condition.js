@@ -289,7 +289,7 @@ class DeviceActionHandler {
             // Add custom template option at the end
             const customOption = document.createElement('option');
             customOption.value = '__custom__';
-            customOption.textContent = 'Custom Template (JSON)';
+            customOption.textContent = globalThis._i18nMsg?.['condition.deviceAction.customTemplate'] || 'Custom Template (JSON)';
             templateSelect.appendChild(customOption);
             
         }
@@ -474,7 +474,7 @@ class DeviceActionHandler {
             staticRadio.className = 'param-mode-radio';
             staticRadio.checked = (config.mode === 'static');
             staticLabel.appendChild(staticRadio);
-            staticLabel.appendChild(document.createTextNode('Static Value'));
+            staticLabel.appendChild(document.createTextNode(globalThis._i18nMsg?.['condition.deviceAction.staticValue'] || 'Static Value'));
             modesDiv.appendChild(staticLabel);
             
             // Flexible mode radio
@@ -486,7 +486,7 @@ class DeviceActionHandler {
             flexibleRadio.className = 'param-mode-radio';
             flexibleRadio.checked = (config.mode === 'flexible');
             flexibleLabel.appendChild(flexibleRadio);
-            flexibleLabel.appendChild(document.createTextNode('Flexible (From Event)'));
+            flexibleLabel.appendChild(document.createTextNode(globalThis._i18nMsg?.['condition.deviceAction.flexibleValue'] || 'Flexible (From Event)'));
             modesDiv.appendChild(flexibleLabel);
             
             div.appendChild(modesDiv);
@@ -504,7 +504,7 @@ class DeviceActionHandler {
             staticInput.className = 'param-static-input';
             staticInput.setAttribute('data-path', path);
             staticInput.setAttribute('data-mode', 'static');
-            staticInput.placeholder = 'Static value (numbers, booleans and objects accept JSON)';
+            staticInput.placeholder = globalThis._i18nMsg?.['condition.deviceAction.staticValuePlaceholder'] || 'Static value (numbers, booleans and objects accept JSON)';
             staticInput.value = config.mode === 'static'
                 ? (typeof config.value === 'string' ? config.value : JSON.stringify(config.value))
                 : '';
@@ -804,7 +804,7 @@ class DeviceActionHandler {
         const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
         this.loadFromJson();
         if (!this.selectedGroupId) {
-            alert('Please select a device group');
+            alert(globalThis._i18nMsg?.['condition.deviceAction.selectGroupAlert'] || 'Please select a device group');
             return;
         }
         const group = await this.showGroupDevices(this.selectedGroupId);
@@ -815,7 +815,7 @@ class DeviceActionHandler {
             const template = await this.fetchTemplateById(this.selectedTemplateId);
             if (selectionVersion !== this.selectionVersion) return;
             if (!template) {
-                alert('The saved action template is unavailable. Please select an action template again.');
+                alert(globalThis._i18nMsg?.['condition.deviceAction.templateUnavailable'] || 'The saved action template is unavailable. Please select an action template again.');
                 this.selectedTemplateId = null;
                 this.selectedTemplate = null;
                 this.renderTemplateSelector(templates);
@@ -3345,7 +3345,7 @@ async function runConditionTest() {
     const eventType = document.getElementById('testEventType').value;
     
     if (!eventType) {
-        alert('Please select an event type');
+        alert(globalThis._i18nMsg?.['conditions.selectEventTypeRequired'] || 'Please select an event type');
         return;
     }
     
@@ -3360,7 +3360,7 @@ async function runConditionTest() {
     }
     
     if (!conditionLogic) {
-        alert('Invalid condition logic JSON');
+        alert(globalThis._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
@@ -3380,7 +3380,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert('Failed to load event metadata: ' + error.message);
+        alert((globalThis._i18nMsg?.['condition.failedLoadEventMetadata'] || 'Failed to load event metadata: ') + error.message);
         return;
     }
     
@@ -3465,7 +3465,7 @@ function testRegexPattern() {
     const resultDiv = document.getElementById('regexResult');
     
     if (!pattern) {
-        resultDiv.textContent = 'Please enter a regex pattern';
+        resultDiv.textContent = globalThis._i18nMsg?.['condition.regexPatternRequired'] || 'Please enter a regex pattern';
         resultDiv.style.color = '#d32f2f';
         return;
     }
