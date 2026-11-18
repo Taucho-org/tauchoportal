@@ -90,7 +90,7 @@
         <div id="sendingParameterArea" class="device-action-form">
             <div class="form-section">
                 <label for="deviceActionGroup">{{.I18n.T "condition.deviceAction.selectGroup" "Select Device Group"}}</label>
-                <select id="deviceActionGroup" class="form-control">
+                <select id="deviceActionGroup" class="form-control" autocomplete="off">
                     <option value="">{{.I18n.T "condition.loadingDeviceGroups"}}</option>
                 </select>
                 <button type="button" class="btn btn-secondary" onclick="deviceActionHandler.editConfiguration()">{{.I18n.T "condition.deviceAction.configure"}}</button>
@@ -102,7 +102,7 @@
         
         <!-- JSON Editor Toggle and Advanced Options -->
         <div id="sendingParamJsonArea" style="display:none"><div class="jsontab"><img src="/image/jsonareaedge.png" width="43" height="27"><a onclick="if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParamJsonArea').classList.remove('active');}else {document.getElementById('sendingParamJsonArea').classList.add('active')};if(document.getElementById('sendingParamJsonArea').classList.contains('active')){document.getElementById('sendingParameterArea').classList.add('hide')}else {document.getElementById('sendingParameterArea').classList.remove('hide')};return false">{{.I18n.T "condition.sendingParams.jsonEditor" "JSON (Advanced)"}}</a></div>
-            <div id="sendingParameterJsonWrapper"><textarea id="sendingparamjson" onchange="refreshRequest()">{{.Condition.DeviceActionParams}}</textarea></div>
+            <div id="sendingParameterJsonWrapper"><textarea id="sendingparamjson" autocomplete="off" onchange="refreshRequest()">{{.Condition.DeviceActionParams}}</textarea></div>
         </div>
     </div>
     <div id="buttonsContainer">
@@ -123,7 +123,7 @@
                 <!-- Template Selector -->
                 <div class="form-section">
                     <label for="modal_deviceActionTemplate">{{.I18n.T "condition.deviceAction.selectTemplate" "Select Action Template"}}</label>
-                    <select id="modal_deviceActionTemplate" class="form-control">
+                    <select id="modal_deviceActionTemplate" class="form-control" autocomplete="off">
                         <option value="">{{.I18n.T "condition.selectTemplate"}}</option>
                         <option value="__custom__">{{.I18n.T "condition.deviceAction.customTemplate" "Custom Template (JSON)"}}</option>
                     </select>

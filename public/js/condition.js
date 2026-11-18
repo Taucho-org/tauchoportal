@@ -782,10 +782,14 @@ class DeviceActionHandler {
             this.parameterEditors = {};
             this.deviceIdentifyParameters = [];
             const templateId = this.parseTemplateId(data?.template_id);
-            this.selectedTemplateId = templateId != null ? String(templateId) : (data?.device_action_body ? '__custom__' : null);
-            this.selectedTemplate = data?.device_action_body ? { actionBody: data.device_action_body } : null;
+            // Only treat the body as saved data when it is a non-empty object; an empty
+            // or missing body means nothing has been configured yet.
+            const body = data?.device_action_body;
+            const hasBody = !!body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length > 0;
+            this.selectedTemplateId = templateId != null ? String(templateId) : (hasBody ? '__custom__' : null);
+            this.selectedTemplate = hasBody ? { actionBody: body } : null;
             const customInput = this.modalElement.querySelector('#modal_customTemplateJSON');
-            if (customInput) customInput.value = JSON.stringify(data?.device_action_body || {}, null, 2);
+            if (customInput) customInput.value = hasBody ? JSON.stringify(body, null, 2) : '';
             
             // Update group selector
             const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
