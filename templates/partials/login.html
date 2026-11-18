@@ -177,6 +177,9 @@
 <div id="bilibili-toast" class="bilibili-toast"></div>
 
 <script>
+    // Login messages for this script; pages using the base layout don't set window._i18nMsg.
+    window._i18nMsg = Object.assign({{i18nJSONByPrefix .I18n "login"}}, window._i18nMsg || {});
+
     // Handle form submission
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
@@ -229,7 +232,7 @@
             document.getElementById('nicoStep1').style.display = '';
             document.getElementById('nicoStep2').style.display = 'none';
             document.getElementById('nicoLoginBtn').disabled = false;
-            document.getElementById('nicoLoginBtn').textContent = 'Login';
+            document.getElementById('nicoLoginBtn').textContent = window._i18nMsg?.['login.nicoLoginButton'] || 'Login';
             document.getElementById('nicoOverlay').style.display = 'flex';
             document.getElementById('nicoEmail').focus();
         };
@@ -251,7 +254,7 @@
             document.getElementById('nicoStep1').style.display = '';
             document.getElementById('nicoErr1').style.display  = 'none';
             document.getElementById('nicoLoginBtn').disabled = false;
-            document.getElementById('nicoLoginBtn').textContent = 'Login';
+            document.getElementById('nicoLoginBtn').textContent = window._i18nMsg?.['login.nicoLoginButton'] || 'Login';
         };
 
         window.submitNicoLogin = async function () {
@@ -415,7 +418,7 @@
                 // Display QR code
                 displayBilibiliQRCode(data.qrcode_image, data.qrcode_key, data.ttl_seconds);
             } catch (error) {
-                showBilibiliError(window._i18nMsg?.['login.bilibiliNetError'] || 'Network error: ' + error.message);
+                showBilibiliError((window._i18nMsg?.['login.bilibiliNetError'] || 'Network error: ') + error.message);
             }
         };
 
@@ -527,7 +530,7 @@
 
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({}));
-                    showBilibiliError(window._i18nMsg?.['login.bilibiliLoginFailed'] || 'Login failed: ' + (error.error || 'Unknown error'));
+                    showBilibiliError((window._i18nMsg?.['login.bilibiliLoginFailed'] || 'Login failed: ') + (error.error || 'Unknown error'));
                     return;
                 }
 
@@ -544,7 +547,7 @@
                     showBilibiliError(window._i18nMsg?.['login.bilibiliUnexpected'] || 'Unexpected response from server');
                 }
             } catch (error) {
-                showBilibiliError(window._i18nMsg?.['login.bilibiliCompleteError'] || 'Error completing login: ' + error.message);
+                showBilibiliError((window._i18nMsg?.['login.bilibiliCompleteError'] || 'Error completing login: ') + error.message);
             }
         }
 

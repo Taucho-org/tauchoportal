@@ -112,6 +112,13 @@ body {
     font-size: 1rem;
     font-weight: 600;
 }
+
+.quick-connect-description {
+    margin: -0.5rem 0 1rem;
+    color: #586574;
+    font-size: 0.9rem;
+}
+
 .quick-connect-buttons {
     display: flex;
     gap: 0.75rem;
@@ -132,6 +139,64 @@ body {
 .quick-connect-buttons button:hover {
     background: #559cec;
     color: white;
+}
+
+.qc-device-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.85rem;
+}
+
+.qc-device-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid #e3e8ef;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.qc-device-info {
+    min-width: 0;
+}
+
+.qc-device-name {
+    overflow-wrap: anywhere;
+    color: #29334b;
+    font-weight: 650;
+}
+
+.qc-device-type {
+    margin-top: 0.2rem;
+    color: #758096;
+    font-size: 0.85rem;
+}
+
+.qc-device-actions {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.qc-add-btn {
+    padding: 0.45rem 0.8rem;
+    border: 0;
+    border-radius: 6px;
+    background: #0969da;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+}
+
+.qc-add-btn:disabled {
+    background: #d7dce5;
+    color: #70798a;
+    cursor: not-allowed;
 }
 
 /* Brand Pills Status */
@@ -339,6 +404,23 @@ body {
     color: white;
     padding: 1rem;
     display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.device-product-thumbnail {
+    width: 64px;
+    height: 64px;
+    padding: 3px;
+    flex: 0 0 64px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.device-header-details {
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
@@ -441,13 +523,11 @@ body {
 }
 
 .device-room {
-    display: inline-block;
-    padding: 0.35rem 0.75rem;
-    background: #f3f4f6;
-    border-radius: 14px;
-    font-size: 0.8rem;
-    color: #4b5563;
-    white-space: nowrap;
+    display: none !important;
+}
+
+.device-room-field {
+    display: none !important;
 }
 
 .device-action-chips {
@@ -739,28 +819,6 @@ body {
     display: block;
 }
 
-/* =============================================
-   Integrated Modal: Owned Devices + Catalog
-   ============================================= */
-
-/* Section for owned devices */
-.owned-devices-section {
-    padding: 0.5rem 0;
-}
-
-/* Badge showing device is owned */
-.product-owned-badge {
-    display: inline-block;
-    background: #c8e6c9;
-    color: #2e7d32;
-    padding: 0.25rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
 /* Badge showing device status (online/offline/already-registered) */
 .product-status-badge {
     display: inline-block;
@@ -782,21 +840,15 @@ body {
     color: #757575;
 }
 
-.status-already-registered {
-    background: #fff3cd;
-    color: #856404;
+.discovered-devices-heading {
+    padding: 0.75rem 1rem 0;
 }
 
-/* Divider between owned and catalog sections */
-.section-divider {
-    padding: 0.75rem 1rem 0.5rem 1rem;
-    color: #999;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-    border-top: 1px solid #e8e8e8;
-    margin-top: 0.25rem;
+.discovered-devices-heading p,
+.discovered-devices-empty {
+    margin: 0.35rem 1rem 0.75rem;
+    color: #666;
+    font-size: 0.85rem;
 }
 
 /* Category filter buttons */

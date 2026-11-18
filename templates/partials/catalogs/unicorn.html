@@ -1,7 +1,10 @@
 {{/* Unicorn Extermination Section - API-Driven Catalog */}}
 {{define "catalog-unicorn"}}
 <script>
-window._i18nCatalog = {{i18nJSON .I18n}};
+if (typeof window._i18nCatalog === 'undefined') {
+  window._i18nCatalog = {};
+}
+Object.assign(window._i18nCatalog, {{i18nJSONByPrefix .I18n "catalog.common" "catalog.unicorn"}});
 </script>
 
 <div class="catalog-unicorn brand-catalog" data-brand="unicorn">

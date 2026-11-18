@@ -136,9 +136,8 @@ func (t *Translator) JS() template.JS {
 	return template.JS(b)
 }
 
-// JSByPrefix returns translations matching the given prefixes as a JSON object.
-// Useful for limiting i18n data embedded in pages (e.g., only catalog.common and catalog.govee).
-// Removes prefix from keys for easier access (e.g., "catalog.loading" → "loading").
+// JSByPrefix returns translations matching the given prefixes as a JSON object,
+// preserving full keys for use by JavaScript translation lookups.
 func (t *Translator) JSByPrefix(prefixes []string) template.JS {
 	result := make(map[string]string)
 	if t == nil || t.strings == nil {
@@ -150,6 +149,15 @@ func (t *Translator) JSByPrefix(prefixes []string) template.JS {
 			if strings.HasPrefix(key, prefix+".") {
 				result[key] = value
 				break
+			}
+			// Shared catalog strings still use flat "catalog.*" keys in locale
+			// files; treat those as catalog.common without including brand namespaces.
+			if prefix == "catalog.common" && strings.HasPrefix(key, "catalog.") {
+				commonKey := strings.TrimPrefix(key, "catalog.")
+				if !strings.Contains(commonKey, ".") {
+					result[key] = value
+					break
+				}
 			}
 		}
 	}

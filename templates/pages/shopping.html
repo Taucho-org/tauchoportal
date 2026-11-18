@@ -1,0 +1,56 @@
+{{define "page"}}{{template "base" .}}{{end}}
+
+{{define "head"}}
+<link rel="stylesheet" href="/css/shopping.css">
+{{end}}
+
+{{define "content"}}
+<main class="shopping-page">
+  <section class="shopping-hero">
+    <span class="shopping-eyebrow">{{.I18n.T "shopping.comingSoon"}}</span>
+    <h1>{{.I18n.T "shopping.heading"}}</h1>
+    <p>{{.I18n.T "shopping.intro"}}</p>
+  </section>
+
+  <div class="shopping-sold-out-notice" role="status">
+    <span class="shopping-notice-icon" aria-hidden="true">!</span>
+    <p>{{.I18n.T "shopping.soldOutNotice"}}</p>
+  </div>
+
+  <section class="shopping-catalog" aria-label="{{.I18n.T "shopping.title"}}">
+    <div class="shopping-toolbar">
+      <label class="shopping-search">
+        <span>{{.I18n.T "shopping.searchLabel"}}</span>
+        <input id="shoppingSearch" type="search" placeholder="{{.I18n.T "shopping.searchPlaceholder"}}" autocomplete="off">
+      </label>
+      <label class="shopping-brand-filter">
+        <span>{{.I18n.T "shopping.brandFilter"}}</span>
+        <select id="shoppingBrand">
+          <option value="">{{.I18n.T "shopping.allBrands"}}</option>
+          {{range .Brands}}
+          <option value="{{.ID}}">{{.Name}}</option>
+          {{end}}
+        </select>
+      </label>
+    </div>
+
+    <p id="shoppingResultCount" class="shopping-result-count" aria-live="polite"></p>
+    <p id="shoppingLoading" class="shopping-message" role="status">{{.I18n.T "shopping.loading"}}</p>
+    <p id="shoppingError" class="shopping-message shopping-error" role="alert" hidden>{{.I18n.T "shopping.error"}}</p>
+    <p id="shoppingEmpty" class="shopping-message" hidden>{{.I18n.T "shopping.empty"}}</p>
+    <div id="shoppingProducts" class="shopping-product-grid" aria-live="polite"></div>
+    <nav id="shoppingPagination" class="shopping-pagination" aria-label="{{.I18n.T "shopping.pagination"}}">
+      <button id="shoppingPrevious" type="button">{{.I18n.T "shopping.previous"}}</button>
+      <span id="shoppingPageInfo"></span>
+      <button id="shoppingNext" type="button">{{.I18n.T "shopping.next"}}</button>
+    </nav>
+  </section>
+</main>
+{{end}}
+
+{{define "scripts"}}
+<script id="shoppingTranslations" type="application/json">
+{{.I18n.TByPrefix "shopping" | jsonMarshal}}
+</script>
+<script src="/js/shopping.js"></script>
+{{end}}

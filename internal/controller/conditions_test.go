@@ -130,10 +130,6 @@ func TestConditionTestResolvedBody(t *testing.T) {
 }
 
 func TestConditionPageLoadsCurrentActionFields(t *testing.T) {
-	previousURL, previousClient, previousUser := baseUrl, httpClient, loginUserId
-	t.Cleanup(func() {
-		baseUrl, httpClient, loginUserId = previousURL, previousClient, previousUser
-	})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
@@ -146,8 +142,7 @@ func TestConditionPageLoadsCurrentActionFields(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	baseUrl, httpClient = server.URL, server.Client()
-	page := PrepareConditionPageData("watch-1", "condition-1", nil)
+	page := PrepareConditionPageData(New(server.URL, "7", nil), "watch-1", "condition-1", nil)
 	var params struct {
 		Group      string                 `json:"device_group_id"`
 		Body       map[string]interface{} `json:"device_action_body"`

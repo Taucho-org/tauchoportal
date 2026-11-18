@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-type Watches struct{}
+type Watches struct{ s *session }
 
 type WatchStreamFilter struct {
 	RequireTitleContains      []string `json:"require_title_contains"`
@@ -55,32 +55,32 @@ type DeleteWatchResponse struct {
 	Status string `json:"status"`
 }
 
-func (Watches) ListWatches() ListWatchesResponse {
+func (ctl Watches) ListWatches() ListWatchesResponse {
 	var result ListWatchesResponse
-	apiRequest(&result, http.MethodGet, "/watches")
+	ctl.s.apiRequest(&result, http.MethodGet, "/watches")
 	return result
 }
 
-func (Watches) GetWatch(id string) GetWatchResponse {
+func (ctl Watches) GetWatch(id string) GetWatchResponse {
 	var result GetWatchResponse
-	apiRequest(&result, http.MethodGet, "/watches/get?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodGet, "/watches/get?id="+url.QueryEscape(id))
 	return result
 }
 
-func (Watches) CreateWatch(request CreateWatchRequest) CreateWatchResponse {
+func (ctl Watches) CreateWatch(request CreateWatchRequest) CreateWatchResponse {
 	var result CreateWatchResponse
-	apiRequest(&result, http.MethodPost, "/watches", request)
+	ctl.s.apiRequest(&result, http.MethodPost, "/watches", request)
 	return result
 }
 
-func (Watches) UpdateWatch(id string, request UpdateWatchRequest) UpdateWatchResponse {
+func (ctl Watches) UpdateWatch(id string, request UpdateWatchRequest) UpdateWatchResponse {
 	var result UpdateWatchResponse
-	apiRequest(&result, http.MethodPatch, "/watches/update?id="+url.QueryEscape(id), request)
+	ctl.s.apiRequest(&result, http.MethodPatch, "/watches/update?id="+url.QueryEscape(id), request)
 	return result
 }
 
-func (Watches) DeleteWatch(id string) DeleteWatchResponse {
+func (ctl Watches) DeleteWatch(id string) DeleteWatchResponse {
 	var result DeleteWatchResponse
-	apiRequest(&result, http.MethodDelete, "/watches?id="+url.QueryEscape(id))
+	ctl.s.apiRequest(&result, http.MethodDelete, "/watches?id="+url.QueryEscape(id))
 	return result
 }

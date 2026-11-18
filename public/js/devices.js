@@ -46,6 +46,32 @@ async function apiRequest(method, path, body) {
     return r.status === 204 ? null : r.json();
 }
 
+async function loadDeviceProductThumbnails() {
+    const imagesByProduct = new Map();
+    document.querySelectorAll('.device-product-thumbnail[data-product-id]').forEach(image => {
+        const productId = image.dataset.productId;
+        if (!productId || image.dataset.brand === 'custom') return;
+        if (!imagesByProduct.has(productId)) imagesByProduct.set(productId, []);
+        imagesByProduct.get(productId).push(image);
+    });
+
+    await Promise.all(Array.from(imagesByProduct, async ([productId, images]) => {
+        try {
+            const product = await apiRequest(
+                'GET',
+                `/catalog/products/get?id=${encodeURIComponent(productId)}`
+            );
+            const thumbnailUrl = product?.thumbnail_url;
+            if (typeof thumbnailUrl !== 'string' || !thumbnailUrl.trim()) return;
+            images.forEach(image => {
+                image.src = thumbnailUrl;
+            });
+        } catch (error) {
+            console.warn(`Failed to load thumbnail for product ${productId}:`, error);
+        }
+    }));
+}
+
 let activeTestDeviceId = null;
 let activeTestDevice = null;
 let activeTestTemplates = [];
@@ -439,10 +465,6 @@ function openAddModal(groupId) {
     document.getElementById('deviceModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
     
-    // Load discovered devices from all connected brands
-    setTimeout(() => {
-        loadDiscoveredDevicesInModal();
-    }, 100);
 }
 
 async function openEditModal(devId) {
@@ -521,24 +543,35 @@ function closeModal() {
 // Quick Connect Modal (for owned devices)
 // =============================================
 let quickConnectBrandId = null;
-let quickConnectSearchTimeout = null;
 let quickConnectRequestId = 0;
+let quickConnectDevices = [];
+
+async function fetchUnregisteredBrandDevices(brandId) {
+    const response = await apiRequest('POST', `/devices/discover?brand=${encodeURIComponent(brandId)}`, {});
+    if (!Array.isArray(response?.discovered_devices)) {
+        throw new Error('Invalid device discovery response');
+    }
+
+    return response.discovered_devices.filter(device => !isDeviceAlreadyRegistered(brandId, device));
+}
 
 function openQuickConnectModal(brandId) {
-    quickConnectBrandId = brandId;
     const brand = BRANDS.find(b => b.id === brandId);
-    if (!brand) return;
+    if (!brand || !window.MY_BRANDS?.[brandId]?.is_connected) return;
 
+    quickConnectBrandId = brandId;
     document.getElementById('qcTitle').textContent = devicesI18n['quickConnectTitle'] + ' - ' + brand.name;
     const subtitleMsg = devicesI18n['quickConnectSubtitle'];
     document.getElementById('qcSubtitle').textContent = subtitleMsg.replace('{brand}', brand.name);
-    
+
     document.getElementById('qcSearchBox').value = '';
+    document.getElementById('qcDeviceList').innerHTML = '';
+    quickConnectDevices = [];
     showQuickConnectLoading(true);
     document.getElementById('quickConnectModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
-    
-    loadQuickConnectProducts(brandId, '', ++quickConnectRequestId);
+
+    loadQuickConnectDevices(brandId, ++quickConnectRequestId);
 }
 
 function closeQuickConnectModal() {
@@ -547,158 +580,174 @@ function closeQuickConnectModal() {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
     }
-    clearTimeout(quickConnectSearchTimeout);
     quickConnectRequestId++;
     quickConnectBrandId = null;
+    quickConnectDevices = [];
 }
 
-async function loadQuickConnectProducts(brandId, searchTerm, requestId) {
+async function loadQuickConnectDevices(brandId, requestId) {
     try {
-        const params = new URLSearchParams({
-            brand_id: brandId,
-            active_only: 'true',
-            search: searchTerm,
-            limit: 500,
-            offset: 0,
-            sort_by: 'name'
-        });
-        const response = await fetch(`/api/catalog/products?${params}`, { credentials: 'include' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const devices = await fetchUnregisteredBrandDevices(brandId);
         if (requestId !== quickConnectRequestId) return;
 
+        quickConnectDevices = devices;
         showQuickConnectLoading(false);
-        renderQuickConnectProducts(data.products || []);
+        renderQuickConnectDevices(document.getElementById('qcSearchBox').value);
     } catch (error) {
         if (requestId !== quickConnectRequestId) return;
-        console.error(devicesI18n['failedLoadProducts'] + ' ' + error);
-        document.getElementById('qcProductList').innerHTML = '';
-        showQuickConnectLoading(false);
-        document.getElementById('qcEmpty').style.display = 'block';
+        console.error(`Failed to discover Quick Connect devices for brand ${brandId}:`, error);
+        closeQuickConnectModal();
     }
 }
 
-function renderQuickConnectProducts(products) {
-    const listDiv = document.getElementById('qcProductList');
-    if (!products || products.length === 0) {
-        listDiv.innerHTML = '';
-        document.getElementById('qcEmpty').style.display = 'block';
+function renderQuickConnectDevices(searchTerm = '') {
+    const list = document.getElementById('qcDeviceList');
+    const term = searchTerm.trim().toLocaleLowerCase();
+    const devices = quickConnectDevices.filter(device =>
+        `${device.brand_device_name || ''} ${device.brand_device_type || ''}`
+            .toLocaleLowerCase()
+            .includes(term)
+    );
+
+    if (devices.length === 0) {
+        list.replaceChildren();
+        const emptyMessage = document.getElementById('qcEmpty');
+        emptyMessage.querySelector('p').textContent = devicesI18n[
+            quickConnectDevices.length > 0 ? 'quickConnectNoMatches' : 'quickConnectEmpty'
+        ];
+        emptyMessage.style.display = 'block';
         return;
     }
 
     document.getElementById('qcEmpty').style.display = 'none';
-    listDiv.innerHTML = products.map(product => `
-        <div class="qc-product-card" onclick="selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">
-            ${product.image_url ? `<img src="${product.image_url}" alt="${escapeJsString(product.name)}" class="qc-product-image" onerror="this.style.display='none'">` : '<div class="qc-product-image-placeholder">📱</div>'}
-            <div class="qc-product-info">
-                <div class="qc-product-name">${escapeJsString(product.name)}</div>
-                ${product.model ? `<div class="qc-product-model">${escapeJsString(product.model)}</div>` : ''}
+    list.innerHTML = devices.map(device => {
+        const online = device.online === true;
+        const deviceId = String(device.brand_device_id || '');
+        const deviceName = device.brand_device_name || deviceId;
+        const disabled = !online || !deviceId;
+
+        return `
+        <div class="qc-device-card">
+            <div class="qc-device-info">
+                <div class="qc-device-name">${escapeHtml(deviceName)}</div>
+                <div class="qc-device-type">${escapeHtml(localizedDeviceType(device.brand_device_type))}</div>
             </div>
-            <button class="qc-add-btn" onclick="event.stopPropagation(); selectQuickConnectDevice('${escapeJsString(product.id)}', '${escapeJsString(product.name)}', '${escapeJsString(quickConnectBrandId)}')">${escapeJsString(devicesI18n['quickConnectIOwn'])}</button>
+            <div class="qc-device-actions">
+                <span class="product-status-badge ${online ? 'status-online' : 'status-offline'}">${escapeHtml(online ? devicesI18n['discoverDeviceOnline'] : devicesI18n['discoverDeviceOffline'])}</span>
+                <button type="button" class="qc-add-btn" data-device-id="${escapeHtml(deviceId)}" data-device-name="${escapeHtml(deviceName)}" ${disabled ? 'disabled' : ''}>${escapeHtml(devicesI18n['addDeviceButton'])}</button>
+            </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function showQuickConnectLoading(show) {
     document.getElementById('qcLoading').style.display = show ? 'block' : 'none';
-    document.getElementById('qcProductList').style.display = show ? 'none' : 'grid';
+    document.getElementById('qcDeviceList').style.display = show ? 'none' : 'grid';
     document.getElementById('qcEmpty').style.display = 'none';
+    document.getElementById('qcSearchBox').disabled = show;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadDeviceProductThumbnails();
+
     const searchBox = document.getElementById('qcSearchBox');
     if (searchBox) {
-        searchBox.addEventListener('input', () => {
-            clearTimeout(quickConnectSearchTimeout);
-            const requestId = ++quickConnectRequestId;
-            const searchTerm = searchBox.value.trim();
-            const brandId = quickConnectBrandId;
-            if (!brandId) return;
-            showQuickConnectLoading(true);
-            quickConnectSearchTimeout = setTimeout(() => {
-                loadQuickConnectProducts(brandId, searchTerm, requestId);
-            }, 250);
-        });
+        searchBox.addEventListener('input', () => renderQuickConnectDevices(searchBox.value));
     }
+
+    const deviceList = document.getElementById('qcDeviceList');
+    deviceList.addEventListener('click', event => {
+        const button = event.target instanceof Element ? event.target.closest('.qc-add-btn') : null;
+        if (!button || button.disabled || !quickConnectBrandId) return;
+        const brandId = quickConnectBrandId;
+        const deviceId = button.dataset.deviceId;
+        const deviceName = button.dataset.deviceName;
+        closeQuickConnectModal();
+        importAndSelectDiscoveredDevice(brandId, deviceId, deviceName);
+    });
 });
 
-function selectQuickConnectDevice(productId, productName, brandId) {
-    // Set selected device for the main add form
-    selectedBrand = brandId;
-    selectedProduct = productId;
-    selectedProductName = productName;
-    
-    // Capture the product's actions before closing (closing clears the product list)
-    const qcProduct = quickConnectProducts.find(p => p.id === productId);
-    const qcGroupKey = deviceGroupKey(brandId, qcProduct && qcProduct.supported_actions);
+// =============================================
+// Load brand-owned devices that have not yet been registered with Taucho.
+// =============================================
+async function loadDiscoveredDevicesForBrand(brandId) {
+    const section = Array.from(document.querySelectorAll('.discovered-devices-section'))
+        .find(element => element.dataset.brandId === brandId);
+    if (!section || ['loading', 'loaded', 'skipped'].includes(section.dataset.discoveryState)) return;
 
-    // Close quick connect modal and open the device configuration form
-    closeQuickConnectModal();
-    
-    // Jump to step 2 with the selected product pre-filled
-    const brand = BRANDS.find(b => b.id === brandId);
-    if (brand) {
-        setStep2Brand(brand);
-        document.getElementById('devProductDisplay').value = productName;
-        document.getElementById('devProduct').value = productId;
-        renderCredFields(brandId);
-        syncBrandRequiredFields(brandId);
-        document.getElementById('devName').value = '';
-        document.getElementById('devRoom').value = '';
-        pendingGroupId = '';
-        filterDeviceFormGroups(brandId, qcGroupKey);
-        setDeviceFormGroup('');
-        document.getElementById('devSaveBtn').textContent = devicesI18n['addDeviceButton'];
-        editingId = null;
-        showStep(2);
-        document.getElementById('deviceModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
+    if (!window.MY_BRANDS?.[brandId]?.is_connected) {
+        section.dataset.discoveryState = 'skipped';
+        return;
+    }
+
+    section.dataset.discoveryState = 'loading';
+
+    try {
+        const importableDevices = await fetchUnregisteredBrandDevices(brandId);
+        renderDiscoveredDevices(brandId, importableDevices);
+        section.dataset.discoveryState = 'loaded';
+    } catch (error) {
+        console.error(`Failed to load discovered devices for brand ${brandId}:`, error);
+        section.replaceChildren();
+        section.style.display = 'none';
+        section.dataset.discoveryState = 'error';
     }
 }
 
-// =============================================
-// Load Discovered Devices in Add Device Modal
-// =============================================
-async function loadDiscoveredDevicesInModal() {
-    const brands = document.querySelectorAll('[data-brand-id]');
-    
-    for (const brandEl of brands) {
-        const brandId = brandEl.getAttribute('data-brand-id');
-        if (!brandId) continue;
-        
-        try {
-            const response = await apiRequest('POST', `/devices/discover?brand=${encodeURIComponent(brandId)}`, {});
-            const discoveredDevices = response.discovered_devices || [];
-            
-            if (discoveredDevices.length > 0) {
-                renderDiscoveredDevices(brandId, discoveredDevices);
-            }
-        } catch (error) {
-            console.error('Failed to load discovered devices for brand ' + brandId + ':', error);
-        }
-    }
+function isDeviceAlreadyRegistered(brandId, discoveredDevice) {
+    if (discoveredDevice.already_registered) return true;
+
+    const discoveredId = String(discoveredDevice.brand_device_id || '').trim();
+    if (!discoveredId) return false;
+
+    const deviceIdentifierKeys = new Set([
+        'branddeviceid',
+        'device',
+        'deviceid',
+        'id',
+        'ipaddress',
+        'macaddress',
+        'providerdeviceid',
+        'serial',
+        'serialnumber',
+        'uuid'
+    ]);
+
+    return (window.MY_DEVICES || []).some(device => {
+        if (device.brand !== brandId) return false;
+
+        return Object.entries(device.device_identifier || {}).some(([key, value]) =>
+            deviceIdentifierKeys.has(normalizeTestParameterName(key)) &&
+            String(value).trim() === discoveredId
+        );
+    });
 }
 
 function renderDiscoveredDevices(brandId, devices) {
-    const section = document.querySelector(`.discovered-devices-section[data-brand-id="${brandId}"]`);
+    const section = Array.from(document.querySelectorAll('.discovered-devices-section'))
+        .find(element => element.dataset.brandId === brandId);
     if (!section) return;
     
-    if (!devices || devices.length === 0) {
+    if (devices.length === 0) {
+        section.replaceChildren();
         section.style.display = 'none';
         return;
     }
+
+    const title = escapeHtml(devicesI18n['discoverDevicesTitle'] || 'Devices on this brand account');
+    const subtitle = escapeHtml(devicesI18n['discoverDevicesSubtitle'] || 'Import devices you own on this brand that are not registered with Taucho.');
     
     const html = devices.map(device => {
-        const statusClass = device.already_registered ? 'status-already-registered' : (device.online ? 'status-online' : 'status-offline');
-        const statusLabel = device.already_registered 
-            ? devicesI18n['discoverDeviceAlreadyRegistered']
-            : (device.online ? devicesI18n['discoverDeviceOnline'] : devicesI18n['discoverDeviceOffline']);
-        const isDisabled = device.already_registered ? 'disabled' : '';
+        const online = device.online === true;
+        const statusClass = online ? 'status-online' : 'status-offline';
+        const statusLabel = online ? devicesI18n['discoverDeviceOnline'] : devicesI18n['discoverDeviceOffline'];
+        const isDisabled = !online || !device.brand_device_id;
         
         return `
-        <div class="product-item ${isDisabled}" onclick="selectDiscoveredDevice('${escapeJsString(brandId)}', '${escapeJsString(device.brand_device_id)}', '${escapeJsString(device.brand_device_name)}', '${escapeJsString(device.brand_device_type)}', ${device.online})"  ${isDisabled ? 'style="pointer-events: none; opacity: 0.6;"' : ''}>
+        <div class="product-item discovered-device-item" data-device-id="${escapeHtml(device.brand_device_id || '')}" data-device-type="${escapeHtml(device.brand_device_type || '')}" data-online="${online}" ${isDisabled ? 'style="pointer-events: none; opacity: 0.6;"' : ''}>
             <div class="product-info">
-                <h5 class="product-name">${escapeHtml(device.brand_device_name)}</h5>
+                <h5 class="product-name">${escapeHtml(device.brand_device_name || device.brand_device_id || '')}</h5>
                 <span class="product-actions">${escapeHtml(localizedDeviceType(device.brand_device_type))}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -708,8 +757,14 @@ function renderDiscoveredDevices(brandId, devices) {
         `;
     }).join('');
     
-    section.innerHTML = html;
+    section.innerHTML = `<div class="discovered-devices-heading"><strong>${title}</strong><p>${subtitle}</p></div>${html}`;
     section.style.display = 'block';
+    section.onclick = event => {
+        const item = event.target instanceof Element ? event.target.closest('.discovered-device-item') : null;
+        if (!item || !section.contains(item) || item.dataset.online !== 'true') return;
+        const deviceName = item.querySelector('.product-name')?.textContent || '';
+        selectDiscoveredDevice(brandId, item.dataset.deviceId, deviceName, item.dataset.deviceType, true);
+    };
 }
 
 function selectDiscoveredDevice(brandId, deviceId, deviceName, deviceType, online) {
@@ -731,13 +786,26 @@ async function importAndSelectDiscoveredDevice(brandId, deviceId, deviceName) {
 
         if (!response) throw new Error('No response from server');
         
-        const imported = response.imported || [];
-        if (imported.length > 0) {
-            const device = imported[0];
-            selectProduct(brandId, device.product_id, device.name, device.name, {});
-        } else {
-            alert(devicesI18n['failedImportDevice']);
+        const imported = Array.isArray(response.imported) ? response.imported : [];
+        const failed = Array.isArray(response.failed) ? response.failed : [];
+        const skipped = Array.isArray(response.skipped) ? response.skipped : [];
+        if (imported.length === 0) {
+            const details = [...failed, ...skipped]
+                .map(item => item.message || item.error)
+                .filter(Boolean)
+                .join('\n');
+            throw new Error(details || 'No devices were imported.');
         }
+
+        const rejectedCount = failed.length + skipped.length;
+        const message = rejectedCount
+            ? (devicesI18n['discoverImportPartialFailed'] || 'Imported {0} device(s), but {1} failed or were skipped.')
+                .replace('{0}', imported.length)
+                .replace('{1}', rejectedCount)
+            : (devicesI18n['discoverImportSuccess'] || 'Successfully imported {0} device(s)!')
+                .replace('{0}', imported.length);
+        alert(message);
+        window.location.reload();
     } catch (error) {
         alert(devicesI18n['failedImportDevice'] + ' ' + error.message);
     }
@@ -817,6 +885,10 @@ function toggleAccordion(headerBtn) {
     
     // Toggle current item
     item.classList.toggle('open', !isOpen);
+
+    if (!isOpen && item.dataset.brandId) {
+        loadDiscoveredDevicesForBrand(item.dataset.brandId);
+    }
 }
 
 // =============================================
@@ -1499,12 +1571,12 @@ function renderGroupDeviceList(groupId, initialDeviceId) {
             ? `<span class="group-device-note">${escapeHtml(devicesI18n['groupCurrentlyIn'].replace('{0}', otherGroup.name))}</span>`
             : '';
         return `
-        <label class="group-device-row" data-search="${escapeHtml(((dev.name || '') + ' ' + (dev.product_name || '') + ' ' + (dev.room || '')).toLowerCase())}">
+        <label class="group-device-row" data-search="${escapeHtml(((dev.name || '') + ' ' + (dev.product_name || '')).toLowerCase())}">
             <input type="checkbox" value="${escapeHtml(dev.id)}" ${checked ? 'checked' : ''} onchange="updateGroupSelectedCount()">
             <span class="group-device-color" style="background:${escapeHtml(color)}"></span>
             <span class="group-device-info">
                 <span class="group-device-name">${escapeHtml(dev.name)}</span>
-                <span class="group-device-meta">${escapeHtml(dev.product_name || dev.product_id || '')}${dev.room ? ' · 🏠 ' + escapeHtml(dev.room) : ''}</span>
+                <span class="group-device-meta">${escapeHtml(dev.product_name || dev.product_id || '')}</span>
             </span>
             ${incompatible ? `<span class="group-device-note incompatible">${escapeHtml(devicesI18n['groupIncompatibleMember'])}</span>` : note}
         </label>`;

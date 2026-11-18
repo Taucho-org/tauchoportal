@@ -67,15 +67,12 @@ func TestDeviceGroupModesInPageData(t *testing.T) {
 		_, _ = w.Write([]byte(`[{"id":"group","name":"Group","device_targeting":"ROUND_ROBIN","concurrency_mode":"queued"}]`))
 	}))
 	defer server.Close()
-	oldURL, oldClient := baseUrl, httpClient
-	baseUrl, httpClient = server.URL, server.Client()
-	t.Cleanup(func() { baseUrl, httpClient = oldURL, oldClient })
 
 	devices := []DeviceForTemplate{
 		{ID: "one", DeviceGroupID: "group", GroupKey: "brand|on"},
 		{ID: "two", DeviceGroupID: "group", GroupKey: "brand|on"},
 	}
-	groups, _ := PrepareDeviceGroupsPageData(devices)
+	groups, _ := PrepareDeviceGroupsPageData(New(server.URL, "7", nil), devices)
 	visible, _ := SplitDevicesForDisplay(devices, groups)
 	if len(visible) != 1 || visible[0].DeviceTargeting != "ROUND_ROBIN" || visible[0].ConcurrencyMode != "queued" {
 		t.Fatalf("template modes lost: %#v", visible)

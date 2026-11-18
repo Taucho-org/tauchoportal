@@ -214,8 +214,8 @@ type ChannelDetailPageData struct {
 type DashboardPageData = DashboardStatsResponse
 
 // PrepareDashboardPageData fetches dashboard data from the API endpoint
-func PrepareDashboardPageData() *DashboardPageData {
-	dashAPI := Dashboard{}
+func PrepareDashboardPageData(api *API) *DashboardPageData {
+	dashAPI := api.Dashboard
 	result := dashAPI.GetDashboardStats()
 	return &result
 }
@@ -231,9 +231,9 @@ type ConditionsPageData struct {
 }
 
 // PrepareConditionsPageData prepares all data needed to render the conditions page
-func PrepareConditionsPageData(channelID string) *ConditionsPageData {
+func PrepareConditionsPageData(api *API, channelID string) *ConditionsPageData {
 	// Fetch current channel and all conditions
-	watches := Watches{}.ListWatches()
+	watches := api.Watches.ListWatches()
 	var currentChannel *ChannelForTemplate
 	for _, w := range watches {
 		if w.Id == channelID {
@@ -246,7 +246,7 @@ func PrepareConditionsPageData(channelID string) *ConditionsPageData {
 		}
 	}
 
-	cond := Conditions{}
+	cond := api.Conditions
 	condList := cond.ListConditions(channelID)
 
 	// Get unique event types
@@ -293,9 +293,9 @@ func PrepareConditionsPageData(channelID string) *ConditionsPageData {
 }
 
 // PrepareChannelDetailPageData prepares all data needed to render the channel detail page
-func PrepareChannelDetailPageData(channelID string) *ChannelDetailPageData {
+func PrepareChannelDetailPageData(api *API, channelID string) *ChannelDetailPageData {
 	// Fetch current watch and conditions
-	watches := Watches{}.ListWatches()
+	watches := api.Watches.ListWatches()
 	var currentWatch *Watch
 	for _, w := range watches {
 		if w.Id == channelID {
@@ -306,7 +306,7 @@ func PrepareChannelDetailPageData(channelID string) *ChannelDetailPageData {
 	}
 
 	if currentWatch == nil {
-		cond := Conditions{}
+		cond := api.Conditions
 		return &ChannelDetailPageData{
 			PlatformMeta:    GetPlatformMetadata(cond),
 			EventBadgeClass: GetEventBadgeClasses(cond),
@@ -314,7 +314,7 @@ func PrepareChannelDetailPageData(channelID string) *ChannelDetailPageData {
 	}
 
 	// Fetch conditions for this channel
-	cond := Conditions{}
+	cond := api.Conditions
 	condList := cond.ListConditions(channelID)
 
 	conditions := make([]ConditionDetailForTemplate, 0)
@@ -410,8 +410,8 @@ type DeviceGroupForTemplate struct {
 // PrepareDeviceGroupsPageData fetches the user's device groups and distributes devices into them.
 // A device whose device_group_id does not match any existing group (e.g. the group was deleted)
 // is treated as ungrouped, and its DeviceGroupID is cleared in the passed slice.
-func PrepareDeviceGroupsPageData(devices []DeviceForTemplate) ([]DeviceGroupForTemplate, []DeviceForTemplate) {
-	groups := DeviceGroups{}.ListDeviceGroups()
+func PrepareDeviceGroupsPageData(api *API, devices []DeviceForTemplate) ([]DeviceGroupForTemplate, []DeviceForTemplate) {
+	groups := api.DeviceGroups.ListDeviceGroups()
 
 	groupsForTemplate := make([]DeviceGroupForTemplate, 0, len(groups))
 	indexByID := make(map[string]int, len(groups))
@@ -483,6 +483,7 @@ func SplitDevicesForDisplay(devices []DeviceForTemplate, groups []DeviceGroupFor
 type BrandForTemplate struct {
 	ID                            string                         `json:"id"`
 	Name                          string                         `json:"name"`
+	IsConnected                   bool                           `json:"is_connected"`
 	LogoURL                       string                         `json:"logo_url"`
 	BrandColor                    string                         `json:"brand_color"`
 	AffiliateURL                  string                         `json:"affiliate_url"`
@@ -524,9 +525,14 @@ type DevicesPageData struct {
 }
 
 // PrepareDevicesPageData prepares all data needed to render the devices page
-func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
-	devices := Devices{}.ListDevices()
+func PrepareDevicesPageData(api *API, brandList []CatalogBrand, connectedBrands []MyConnectedBrand) *DevicesPageData {
+	devices := api.Devices.ListDevices()
 	devicesForTemplate := make([]DeviceForTemplate, 0)
+
+	connectedBrandIDs := make(map[string]bool, len(connectedBrands))
+	for _, brand := range connectedBrands {
+		connectedBrandIDs[brand.ID] = brand.IsConnected
+	}
 
 	// Fetch all active brands from catalog
 	brandsMap := make(map[string]*BrandForTemplate)
@@ -540,6 +546,7 @@ func PrepareDevicesPageData(brandList []CatalogBrand) *DevicesPageData {
 		brandForTemplate := &BrandForTemplate{
 			ID:                            b.ID,
 			Name:                          b.Name,
+			IsConnected:                   connectedBrandIDs[b.ID],
 			LogoURL:                       stringValue(b.LogoURL),
 			BrandColor:                    stringValue(b.BrandColor),
 			AffiliateURL:                  stringValue(b.AffiliateURL),
@@ -634,9 +641,9 @@ type ChannelsPageData struct {
 }
 
 // PrepareChannelsPageData prepares all data needed to render the channels list page
-func PrepareChannelsPageData() *ChannelsPageData {
+func PrepareChannelsPageData(api *API) *ChannelsPageData {
 	// Fetch all watches
-	watches := Watches{}.ListWatches()
+	watches := api.Watches.ListWatches()
 
 	watchesForTemplate := make([]WatchForTemplate, 0)
 	for _, w := range watches {
@@ -656,7 +663,7 @@ func PrepareChannelsPageData() *ChannelsPageData {
 
 	return &ChannelsPageData{
 		Watches:      watchesForTemplate,
-		PlatformMeta: GetPlatformMetadata(Conditions{}),
+		PlatformMeta: GetPlatformMetadata(api.Conditions),
 	}
 }
 
@@ -671,9 +678,9 @@ type ConditionPageData struct {
 }
 
 // PrepareConditionPageData prepares all data needed to render a single condition logic page
-func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Translator) *ConditionPageData {
+func PrepareConditionPageData(api *API, channelID, conditionID string, translator *i18n.Translator) *ConditionPageData {
 	// Fetch current channel
-	watches := Watches{}.ListWatches()
+	watches := api.Watches.ListWatches()
 	var currentChannel *ChannelForTemplate
 	for _, w := range watches {
 		if w.Id == channelID {
@@ -687,7 +694,7 @@ func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Tr
 	}
 
 	// Fetch specific condition
-	cond := Conditions{}
+	cond := api.Conditions
 	condition := cond.GetCondition(conditionID)
 
 	condLogicJSON, _ := json.Marshal(condition.ConditionLogic)
@@ -710,7 +717,7 @@ func PrepareConditionPageData(channelID, conditionID string, translator *i18n.Tr
 	}
 
 	// Fetch condition templates for this event type
-	eventMeta := EventMetadata{}
+	eventMeta := api.EventMetadata
 	templatesResponse := eventMeta.GetTemplatesForEvent(currentChannel.Platform, condition.EventType)
 
 	return &ConditionPageData{

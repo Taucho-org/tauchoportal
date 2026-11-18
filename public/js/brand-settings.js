@@ -3,11 +3,11 @@
   const BRANDS = window._allBrands || [];
   const BRAND_LOOKUP = Object.fromEntries(BRANDS.map((brand) => [brand.id, brand]));
   const BRAND_ALIASES = {
-    philipshue: 'philips-hue',
-    hue: 'philips-hue',
-    kasa: 'tp-link-kasa',
-    tplinkkasa: 'tp-link-kasa',
-    tplink: 'tp-link-kasa',
+    philipshue: 'hue',
+    hue: 'hue',
+    kasa: 'kasa',
+    tplinkkasa: 'kasa',
+    tplink: 'kasa',
     alexa: 'amazon-alexa',
     amazonalexa: 'amazon-alexa'
   };
@@ -379,6 +379,8 @@
     if ((step.allow_device_test || step.allow_credential_test) && credentialsSection) {
       renderDeviceTestSection(step, credentialsSection);
     }
+
+    credentialsSection.style['display'] = (step.requires_credentials || step.allow_device_test || step.allow_credential_test) ? 'block' : 'none';
   }
 
   // Builds the list of credential fields to render/submit for a brand.
@@ -605,7 +607,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -706,7 +708,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -861,7 +863,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -929,7 +931,7 @@
 
     if (missingFields.length > 0) {
       const fieldNames = missingFields.map(f => f.label || f.id).join(', ');
-      showToast(window._i18nMsg?.['brandSettings.validation.fillAllFields'] || `Please fill in: ${fieldNames}`);
+      showToast((window._i18nMsg?.['brandSettings.validation.fillAllFields'] || 'Please fill in: ') + fieldNames);
       return;
     }
 
@@ -941,8 +943,9 @@
         credentials: credentialsPayload
       });
 
+      setupWizardCredentialsSaved = true;
       closeModal('setupWizardModal');
-      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!') + ' Please refresh to see updated status.');
+      showToast('✅ ' + (window._i18nMsg?.['brandSettings.savedSuccess'] || 'Brand credentials saved successfully!'));
     } catch (error) {
       showToast(`❌ ${error.message}`);
     } finally {
@@ -983,7 +986,7 @@
 
       // Case 1: User exists in brand (and we auto-registered them, so registered_with_us will be true)
       if (checkResponse.exists_in_brand && checkResponse.registered_with_us) {
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.alreadyConnected'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
         setTimeout(() => window.location.reload(), 1000);
         return;
       }
@@ -991,8 +994,7 @@
       // Case 2: User doesn't exist in brand - ask to create account
       if (!checkResponse.exists_in_brand) {
         const shouldRegister = confirm(
-          window._i18nMsg?.['brandSettings.sso.createAccount'] || 
-          `Create a new ${getBrandName(meta.id)} account with your email?`
+          (window._i18nMsg?.['brandSettings.sso.createAccount'] || 'Create a new {brand} account with your email?').replace('{brand}', getBrandName(meta.id))
         );
 
         if (!shouldRegister) {
@@ -1023,11 +1025,11 @@
         });
 
         if (!registerResponse.success) {
-          showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.registerError'] || registerResponse.message || 'Registration failed'}`);
+          showToast(`❌ ${registerResponse.message || window._i18nMsg?.['brandSettings.sso.registerError'] || 'Registration failed'}`);
           return;
         }
 
-        showToast(`✅ ${window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to ' + getBrandName(meta.id) + '!'}`);
+        showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
         setTimeout(() => window.location.reload(), 1500);
       }
 

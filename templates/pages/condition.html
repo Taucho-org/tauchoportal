@@ -666,7 +666,7 @@ async function runConditionTest() {
     const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
     
     if (!eventType) {
-        alert('Please select an event type');
+        alert(window._i18nMsg?.['conditions.selectEventTypeRequired'] || 'Please select an event type');
         return;
     }
     
@@ -681,7 +681,7 @@ async function runConditionTest() {
     }
     
     if (!conditionLogic) {
-        alert('Invalid condition logic JSON');
+        alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
@@ -700,7 +700,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert('Failed to load event metadata: ' + error.message);
+        alert((window._i18nMsg?.['condition.failedLoadEventMetadata'] || 'Failed to load event metadata: ') + error.message);
         return;
     }
     
@@ -807,7 +807,7 @@ function submitCondition() {
     // Show loading state
     const submitBtn = document.getElementById('submitConditionButton');
     const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.textContent = window._i18nMsg?.['condition.ui.saving'] || 'Saving...';
     submitBtn.disabled = true;
     
     fetch(endpoint, {
@@ -841,13 +841,13 @@ function submitCondition() {
     })
     .then(result => {
         console.log('Condition saved:', result);
-        alert('Condition saved successfully!');
+        alert(window._i18nMsg?.['condition.savedSuccess'] || 'Condition saved successfully!');
         // Redirect back to conditions list
         window.location.href = '/channels/' + encodeURIComponent(channelID) + '/conditions';
     })
     .catch(error => {
         console.error('Save error:', error);
-        alert('Error saving condition: ' + error.message);
+        alert((window._i18nMsg?.['condition.errorSaving'] || 'Error saving condition: ') + error.message);
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     });
