@@ -162,6 +162,21 @@ test('saved group and per-field logic reload and can be edited again', () => {
     assert.throws(() => instance.getActionParams(), /device group is unavailable/);
 });
 
+test('unconfigured actions load with no template selected and no custom JSON', () => {
+    for (const body of [null, undefined, {}]) {
+        const instance = handler();
+        const customInput = { value: 'stale' };
+        instance.modalElement = { querySelector: () => customInput };
+        instance.jsonTextarea.value = JSON.stringify({ device_group_id: 'group-1', template_id: null, device_action_body: body });
+        instance.mainContainer = { querySelector: () => ({ value: '' }) };
+        instance.showGroupDevices = () => {};
+        instance.loadFromJson();
+        assert.equal(instance.selectedTemplateId, null);
+        assert.equal(instance.selectedTemplate, null);
+        assert.equal(customInput.value, '');
+    }
+});
+
 test('saved preset reopens with its ID and values, not template defaults', async () => {
     const instance = handler();
     const saved = { device_group_id: 'group-1', template_id: '7', device_action_body: { brightness: evaluator, enabled: false } };
