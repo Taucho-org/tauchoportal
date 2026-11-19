@@ -175,28 +175,67 @@
                     <input id="textconditionselectvalue" type="hidden" value="" />
                     <input id="textconditionselecttype" type="hidden" value="" />
                 </span>
-                </div>
-                <div id="boolmodal_numeric" class="selector">
+            </div>
+            <div id="boolmodal_numeric" class="selector">
                 <div><input id="boolnumericradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.comparison"}}</div>
-                    <span id="numericcomparebasedisp" class="numselector">
-                        <span id="numericcomparebaseplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
-                        <span id="numericcomparebaseplacedisp" class="value" style="display:none"></span>
-                    </span>
-                    <input id="numericcomparebase" type="hidden" />
-                    <select id="numericcompareoperator">
+                <span id="numericcomparebasedisp" class="numselector">
+                    <span id="numericcomparebaseplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="numericcomparebaseplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="numericcomparebase" type="hidden" />
+                <select id="numericcompareoperator">
                     <option value="greater_than">&gt;</option>
                     <option value="greater_or_equal" selected>&gt;=</option>
                     <option value="equivalent">=</option>
                     <option value="less_or_equal">&lt;=</option>
                     <option value="less_than">&lt;</option>
-                    </select>
-                    <span id="numericcomparetargetdisp" class="numselector">
-                        <span id="numericcomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
-                        <span id="numericcomparetargetplacedisp" class="value" style="display:none"></span>
-                    </span>
-                    <input id="numericcomparetarget" type="hidden" />
-                </div>
-                <div id="boolmodal_bool" class="selector">
+                </select>
+                <span id="numericcomparetargetdisp" class="numselector">
+                    <span id="numericcomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="numericcomparetargetplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="numericcomparetarget" type="hidden" />
+            </div>
+            <div id="boolmodal_currency" class="selector">
+                <div><input id="boolcurrencyradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.exchange"}}</div>
+                <select id="currencyfieldselector"></select>
+                <select id="currencyselector">
+                    <option value="EUR">EUR</option>
+                    <option value="USD" selected>USD</option>
+                    <option value="JPY">JPY</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CNY">CNY</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                    <option value="HKD">HKD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="KRW">KRW</option>
+                    <option value="INR">INR</option>
+                    <option value="MXN">MXN</option>
+                    <option value="BRL">BRL</option>
+                    <option value="NZD">NZD</option>
+                    <option value="SEK">SEK</option>
+                    <option value="NOK">NOK</option>
+                    <option value="PLN">PLN</option>
+                    <option value="THB">THB</option>
+                    <option value="ZAR">ZAR</option>
+                </select>
+                <select id="currencycompareoperator">
+                    <option value="greater_than">&gt;</option>
+                    <option value="greater_or_equal" selected>&gt;=</option>
+                    <option value="equivalent">=</option>
+                    <option value="less_or_equal">&lt;=</option>
+                    <option value="less_than">&lt;</option>
+                </select>
+                <span id="currencycomparetargetdisp" class="numselector">
+                    <span id="currencycomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="currencycomparetargetplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="currencycomparetarget" type="hidden" />
+                <small id="currencyratewarning" style="display:none">{{.I18n.T "condition.modal.bool.exchangeApproximate"}}</small>
+            </div>
+            <div id="boolmodal_bool" class="selector">
                 <div><input id="boolconditionradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.moreCondition"}}</div>
                 <select id="boolcondition"></select>
                 </div>
@@ -475,36 +514,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('operatorRefModal')">{{.I18n.T "condition.button.close"}}</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Test Condition Modal -->
-    <div id="testConditionModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <span class="close" onclick="closeTestModal()">×</span>
-                <h2>{{.I18n.T "channelLayout.testConditionTitle"}}</h2>
-                <p>{{.I18n.T "channelLayout.testConditionSubtitle"}}</p>
-            </div>
-            <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
-                <div>
-                    <label for="testEventType" style="display:block; font-weight:600; margin-bottom:0.5rem;">{{.I18n.T "channelLayout.testEventType"}}:</label>
-                    <select id="testEventType" onchange="updateTestEventParams()" style="width:100%; padding:0.75rem; border:1px solid #ced4da; border-radius:6px;">
-                        <option value="">{{.I18n.T "channelLayout.testEventTypeSelect"}}</option>
-                    </select>
-                </div>
-                <div id="testEventParamsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9;">
-                    <p style="color:#666; font-size:0.9rem;">{{.I18n.T "condition.testEventParamsHint"}}</p>
-                </div>
-                <div id="testResultsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9; display:none;">
-                    <div style="font-weight:600; margin-bottom:0.75rem;">{{.I18n.T "channelLayout.testResults"}}</div>
-                    <div id="testResultsContent" style="font-family:monospace; white-space:pre-wrap; font-size:0.9rem;"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeTestModal()">{{.I18n.T "condition.button.close"}}</button>
-                <button type="button" class="btn btn-primary" onclick="runConditionTest()">{{.I18n.T "channelLayout.testButton"}}</button>
             </div>
         </div>
     </div>

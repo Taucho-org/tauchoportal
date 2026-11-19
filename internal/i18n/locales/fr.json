@@ -1254,6 +1254,8 @@
   "condition.modal.bool.separator": " - ",
   "condition.modal.bool.comparison": "Comparaison?",
   "condition.modal.bool.numericEnter": "Entrez la Valeur",
+  "condition.modal.bool.exchange": "Comparer avec la Monnaie",
+  "condition.modal.bool.exchangeApproximate": "Le taux de change est approximatif.",
   "condition.modal.bool.moreCondition": "Ajouter plus de condition?",
   "condition.modal.bool.addButton": "Ajouter un Élément",
   "condition.modal.text.description": "Valeur.",

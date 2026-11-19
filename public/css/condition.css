@@ -1464,6 +1464,13 @@ fieldset.item.param>div.icons{
     padding-bottom: 0.6rem;
 }
 
+.param-constraint-details {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
 .param-label {
     font-weight: 600;
     color: #1f2937;

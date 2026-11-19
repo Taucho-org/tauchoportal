@@ -434,7 +434,14 @@ class DeviceActionHandler {
             }
         }
         
-        const paramPaths = this.extractParameterPaths(templateBody)
+        const hasParameterConstraints = this.selectedTemplateId !== '__custom__' &&
+            Object.prototype.hasOwnProperty.call(this.selectedTemplate, 'parameter_constraints');
+        const parameterConstraints = hasParameterConstraints
+            ? (this.selectedTemplate.parameter_constraints || {})
+            : {};
+        const paramPaths = (hasParameterConstraints
+            ? Object.keys(parameterConstraints)
+            : this.extractParameterPaths(templateBody))
             .filter(path => !this.deviceIdentifyParameters.includes(path));
         this.parameterEditors = {};
         
@@ -457,16 +464,39 @@ class DeviceActionHandler {
             const headerTitle = document.createElement('strong');
             headerTitle.textContent = path;
             header.appendChild(headerTitle);
+            const constraint = parameterConstraints[path];
+            if (constraint && typeof constraint === 'object') {
+                const details = [];
+                if (constraint.type) details.push(constraint.type);
+                if (constraint.min != null || constraint.max != null) {
+                    details.push(`${constraint.min ?? 'no minimum'} to ${constraint.max ?? 'no maximum'}`);
+                }
+                if (constraint.format) details.push(constraint.format);
+                if (details.length) {
+                    const constraintDetails = document.createElement('small');
+                    constraintDetails.className = 'param-constraint-details';
+                    constraintDetails.textContent = details.join(' · ');
+                    header.appendChild(constraintDetails);
+                }
+            }
             div.appendChild(header);
             
             // Create mode selection
             const modesDiv = document.createElement('div');
             modesDiv.className = 'param-modes';
             
-            const value = templateBody[path];
+            const constraintDefault = constraint && typeof constraint === 'object'
+                ? constraint.default
+                : undefined;
+            const value = this.selectedTemplate.parameter_defaults?.[path] ??
+                constraintDefault ??
+                templateBody[path];
+            const initialValue = typeof value === 'string' && /^\{[^{}]+\}$/.test(value)
+                ? undefined
+                : value;
             const config = this.parameterConfigs[path] || (value && typeof value === 'object' && value.Operator
                 ? { mode: 'flexible', evaluator: value }
-                : { mode: 'static', value });
+                : { mode: 'static', value: initialValue });
             this.parameterConfigs[path] = config;
             
             // Static mode radio
@@ -504,13 +534,20 @@ class DeviceActionHandler {
             // Static input
             const staticInput = document.createElement('input');
             staticInput.id = drawingAreaIdBase + '_static';
-            staticInput.type = 'text';
+            const constraintType = String(constraint?.type || '').toLowerCase();
+            const numericConstraint = ['integer', 'number', 'float'].includes(constraintType);
+            staticInput.type = numericConstraint ? 'number' : 'text';
+            if (numericConstraint) {
+                if (constraint.min != null) staticInput.min = String(constraint.min);
+                if (constraint.max != null) staticInput.max = String(constraint.max);
+                staticInput.step = constraintType === 'integer' ? '1' : 'any';
+            }
             staticInput.className = 'param-static-input';
             staticInput.setAttribute('data-path', path);
             staticInput.setAttribute('data-mode', 'static');
             staticInput.placeholder = conditionUiMessage('condition.ui.staticValuePlaceholder', 'Static value (numbers, booleans and objects accept JSON)');
             staticInput.value = config.mode === 'static'
-                ? (typeof config.value === 'string' ? config.value : JSON.stringify(config.value))
+                ? (typeof config.value === 'string' ? config.value : (JSON.stringify(config.value) ?? ''))
                 : '';
             staticInput.style.display = (config.mode === 'static') ? 'block' : 'none';
             inputsDiv.appendChild(staticInput);
@@ -623,9 +660,10 @@ class DeviceActionHandler {
             });
         });
         
-        // Attach change listener to static input
+        // Update numeric inputs as they are edited so constraint validation uses the latest value.
         if (staticInput) {
-            staticInput.addEventListener('change', () => {
+            const eventName = staticInput.type === 'number' ? 'input' : 'change';
+            staticInput.addEventListener(eventName, () => {
                 this.parameterConfigs[paramPath].value = this.parseStaticValue(staticInput.value);
                 this.updateJsonFromForm();
             });
@@ -729,9 +767,27 @@ class DeviceActionHandler {
         // Read live editor values: graphical edits do not dispatch textarea change events.
         for (const [field, config] of Object.entries(this.parameterConfigs)) {
             const editor = this.parameterEditors?.[field];
-            body[field] = config.mode === 'flexible'
-                ? (editor ? JSON.parse(editor.conditionInput.value) : config.evaluator)
-                : config.value;
+            if (config.mode === 'flexible') {
+                body[field] = editor ? JSON.parse(editor.conditionInput.value) : config.evaluator;
+                continue;
+            }
+
+            const constraint = this.selectedTemplate.parameter_constraints?.[field];
+            const type = String(constraint?.type || '').toLowerCase();
+            let value = config.value;
+            if (['integer', 'number', 'float'].includes(type) && value !== '' && value != null) {
+                value = typeof value === 'number' ? value : Number(value);
+                if (!Number.isFinite(value) || (type === 'integer' && !Number.isInteger(value))) {
+                    throw new Error(`${field} must be a valid ${type} value`);
+                }
+                if (constraint.min != null && value < Number(constraint.min)) {
+                    throw new Error(`${field} must be at least ${constraint.min}`);
+                }
+                if (constraint.max != null && value > Number(constraint.max)) {
+                    throw new Error(`${field} must be at most ${constraint.max}`);
+                }
+            }
+            body[field] = value;
         }
         this.validateActionBody(body);
         return {
@@ -1732,7 +1788,10 @@ class ConditionEditor {
                 for (const i in node.SubConditions) {
                     items_exchange.push(this._summarize(node.SubConditions[i]));
                 }
-                if (node.Variables.length) {
+                if (node.Variables.length > 1) {
+                    currency = node.Variables[1];
+                } else 
+                if (node.Variables.length > 0) {
                     currency = node.Variables[0];
                 } else {
                     currency = translations["calc-missingvalue"];
@@ -1895,6 +1954,28 @@ class ConditionEditor {
                 currentnode["Operator"] = this.operatormap[numericcompareoperator];
                 currentnode["SubConditions"] = [JSON.parse(numericcomparebasevalue), JSON.parse(numericcomparetarget)];
                 
+            } else if (document.getElementById("boolcurrencyradio").checked) {
+                const field = this.boolDialog.getSelectedExchangeableField();
+                const target = document.getElementById("currencycomparetarget").value;
+                if (!field || !target) {
+                    return;
+                }
+                currentnode.Operator = this.operatormap[document.getElementById("currencycompareoperator").value];
+                currentnode.Variables = [];
+                const exchangeSubConditions = [
+                    { Operator: "PARAM", Variables: [this.boolDialog.getConditionParameter(field)] }
+                ];
+                const variables = [document.getElementById("currencyselector").value];
+                const sourceCurrencyParameter = this.boolDialog.getSourceCurrencyParameter(field);
+                if (sourceCurrencyParameter) {
+                    variables.unshift(sourceCurrencyParameter);
+                }
+                currentnode.SubConditions = [{
+                    Operator: "EXCHANGE",
+                    SubConditions: exchangeSubConditions,
+                    Variables: variables
+                }, JSON.parse(target)];
+
             } else if (document.getElementById("boolconditionradio").checked) {
                 // Add boolean condition
                 currentnode["Operator"] = document.getElementById("boolcondition").value;
@@ -2010,11 +2091,13 @@ class BoolDialogHandler {
     constructor(editor) {
         this.editor = editor;
         this.elem = document.getElementById("boolBody");
+        this.localizeCurrencyOptions();
 
         document.getElementById("boolmodal_text").onclick = function(e) {
             document.getElementById('booltextradio').checked=true;
             document.getElementById('boolmodal_text').classList.add('available');
             document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
             document.getElementById('boolmodal_bool').classList.remove('available');
             this.validate();
         }.bind(this);
@@ -2023,6 +2106,16 @@ class BoolDialogHandler {
             document.getElementById('boolnumericradio').checked=true;
             document.getElementById('boolmodal_text').classList.remove('available');
             document.getElementById('boolmodal_numeric').classList.add('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
+            document.getElementById('boolmodal_bool').classList.remove('available');
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("boolmodal_currency").onclick = function(e) {
+            document.getElementById('boolcurrencyradio').checked=true;
+            document.getElementById('boolmodal_text').classList.remove('available');
+            document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.add('available');
             document.getElementById('boolmodal_bool').classList.remove('available');
             this.validate();
         }.bind(this);
@@ -2078,10 +2171,33 @@ class BoolDialogHandler {
             }.bind(this));
         }.bind(this);
 
+
+        document.getElementById("currencycomparetargetdisp").onclick = function(e) {
+            this.editor.numericDialog.open(
+                document.getElementById('currencycomparetarget').value,
+                function(val,disp){
+                    document.getElementById('currencycomparetarget').value = val;
+                    document.getElementById('currencycomparetargetplacedisp').innerHTML=disp;
+                    document.getElementById('currencycomparetargetplacedisp').style['display']='inline';
+                    document.getElementById('currencycomparetargetplaceholder').style['display']='none';
+                    document.getElementById('currencycomparetarget').value=val;
+                    this.validate();
+            }.bind(this));
+        }.bind(this);
+
+        document.getElementById("currencyfieldselector").onchange = function() {
+            this.applyExchangeFieldCurrencyDefault();
+            this.updateExchangeRateWarning();
+            this.validate();
+        }.bind(this);
+        document.getElementById("currencyselector").onchange = this.validate.bind(this);
+        document.getElementById("currencycompareoperator").onchange = this.validate.bind(this);
+
         document.getElementById("boolmodal_bool").onclick= function(e) {
             document.getElementById('boolconditionradio').checked=true;
             document.getElementById('boolmodal_text').classList.remove('available');
             document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
             document.getElementById('boolmodal_bool').classList.add('available');
             this.validate();
         }.bind(this);
@@ -2101,6 +2217,19 @@ class BoolDialogHandler {
                 option.text = editor.booleanoperators[i];
                 document.getElementById("boolcondition").appendChild(option);
             }
+        }
+    }
+
+    localizeCurrencyOptions() {
+        const locale = document.documentElement.lang || "en";
+        const selector = document.getElementById("currencyselector");
+        for (const option of selector.options) {
+            const symbol = new Intl.NumberFormat(locale, {
+                style: "currency",
+                currency: option.value,
+                currencyDisplay: "narrowSymbol"
+            }).formatToParts(0).find((part) => part.type === "currency")?.value || option.value;
+            option.textContent = `${option.value} (${symbol})`;
         }
     }
 
@@ -2126,6 +2255,10 @@ class BoolDialogHandler {
             document.getElementById("booltextradio").style["display"] = "inline";
             document.getElementById("boolnumericradio").style["display"] = "inline";
             document.getElementById("boolconditionradio").style["display"] = "inline";
+            this.populateExchangeableFields();
+            const currencyModeAvailable = this.getExchangeableFields().length > 0;
+            document.getElementById("boolmodal_currency").style["display"] = currencyModeAvailable ? "block" : "none";
+            document.getElementById("boolcurrencyradio").style["display"] = currencyModeAvailable ? "inline" : "none";
 
             if (this.editor.textoperators.includes(currentnode.Operator)) {
                 document.getElementById("boolmodal_text").style["display"] = "inline";
@@ -2205,14 +2338,50 @@ class BoolDialogHandler {
             document.getElementById("numericcomparebaseplaceholder").style["display"] = "inline-block";
             document.getElementById("numericcomparebaseplacedisp").style["display"] = "none";
             document.getElementById("numericcomparebase").value = "";
-            document.getElementById("numericcompareoperator").value = ">";
+            document.getElementById("numericcompareoperator").value = "greater_than";
             document.getElementById("numericcomparetargetplaceholder").style["display"] = "inline-block";
             document.getElementById("numericcomparetargetplacedisp").style["display"] = "none";
             document.getElementById("numericcomparetarget").value = "";
+            document.getElementById("currencyselector").value = "USD";
+            document.getElementById("currencycompareoperator").value = "greater_than";
+            document.getElementById("currencycomparetargetplaceholder").style["display"] = "inline-block";
+            document.getElementById("currencycomparetargetplacedisp").style["display"] = "none";
+            document.getElementById("currencycomparetarget").value = "";
+            document.getElementById("boolcurrencyradio").checked = false;
+            document.getElementById("boolmodal_currency").classList.remove("available");
+            document.getElementById("currencyfieldselector").selectedIndex = 0;
+            this.applyExchangeFieldCurrencyDefault();
+            this.updateExchangeRateWarning();
             document.getElementById("boolconditionradio").checked = false;
             document.getElementById("boolmodal_bool").classList.remove("available");
             document.getElementById("boolSubmitButton").disabled = "disabled";
             document.getElementById("boolcondition").value = "";
+
+            const exchangeCondition = currentnode.SubConditions?.[0]?.Operator === "EXCHANGE"
+                ? currentnode.SubConditions[0]
+                : null;
+            if (exchangeCondition && currencyModeAvailable) {
+                const selectedField = this.getExchangeableFields().find((field) =>
+                    this.getConditionParameter(field) === exchangeCondition.SubConditions?.[0]?.Variables?.[0] &&
+                    (!this.getSourceCurrencyParameter(field) ||
+                        this.getSourceCurrencyParameter(field) === exchangeCondition.SubConditions?.[1]?.Variables?.[0]));
+                if (selectedField) {
+                    document.getElementById("boolcurrencyradio").checked = true;
+                    document.getElementById("boolmodal_currency").classList.add("available");
+                    document.getElementById("currencyfieldselector").value = selectedField.Name;
+                    document.getElementById("currencyselector").value = exchangeCondition.Variables?.[0] || "USD";
+                    document.getElementById("currencycompareoperator").value = this.editor.namingmap[currentnode.Operator] || "greater_than";
+                    const targetValue = currentnode.SubConditions?.[1];
+                    if (targetValue) {
+                        const target = JSON.stringify(targetValue);
+                        document.getElementById("currencycomparetarget").value = target;
+                        document.getElementById("currencycomparetargetplacedisp").innerHTML = this.editor._summarize(targetValue);
+                        document.getElementById("currencycomparetargetplacedisp").style["display"] = "inline";
+                        document.getElementById("currencycomparetargetplaceholder").style["display"] = "none";
+                    }
+                    this.updateExchangeRateWarning();
+                }
+            }
 
             document.getElementById("boolModal").style["display"] = "block";
             document.getElementById("boolPath").value = path;
@@ -2222,6 +2391,7 @@ class BoolDialogHandler {
             document.getElementById("boolSubmitButton").onclick = function() {
                 self.editor._editBoolItem(path);
             };
+            this.validate();
         } catch (err) {
             console.error('Error in BoolDialogHandler.open():', err);
         }
@@ -2231,7 +2401,6 @@ class BoolDialogHandler {
      * Validate boolean dialog form inputs
      */
     validate() {
-        const classList = document.getElementById("boolBody").classList;
         document.getElementById("boolSubmitButton").disabled = "disabled";
         if (document.getElementById("booltextradio").checked) {
             document.getElementById("boolSubmitButton").disabled =
@@ -2244,9 +2413,57 @@ class BoolDialogHandler {
                 document.getElementById("numericcomparebase").value &&
                 document.getElementById("numericcompareoperator").value && 
                 document.getElementById("numericcomparetarget").value ? "" : "disabled";
+        } else if (document.getElementById("boolcurrencyradio").checked) {
+            document.getElementById("boolSubmitButton").disabled =
+                this.getSelectedExchangeableField() &&
+                document.getElementById("currencyselector").value &&
+                document.getElementById("currencycompareoperator").value &&
+                document.getElementById("currencycomparetarget").value ? "" : "disabled";
         } else if (document.getElementById("boolconditionradio").checked) {
             document.getElementById("boolSubmitButton").disabled =
                 document.getElementById("boolcondition").value ? "" : "disabled";
+        }
+    }
+
+    getExchangeableFields() {
+        return this.editor.eventFieldOptions.filter((field) => field.Exchangeable === true);
+    }
+
+    getConditionParameter(field) {
+        return field.ConditionParameter || field.Name;
+    }
+
+    getSourceCurrencyParameter(field) {
+        return field.SourceCurrencyParameter || "";
+    }
+
+    getSelectedExchangeableField() {
+        const selectedName = document.getElementById("currencyfieldselector").value;
+        return this.getExchangeableFields().find((field) => field.Name === selectedName);
+    }
+
+    populateExchangeableFields() {
+        const selector = document.getElementById("currencyfieldselector");
+        selector.replaceChildren();
+        for (const field of this.getExchangeableFields()) {
+            const option = document.createElement("option");
+            option.value = field.Name;
+            option.textContent = field.Label || field.Name;
+            selector.appendChild(option);
+        }
+    }
+
+    updateExchangeRateWarning() {
+        const field = this.getSelectedExchangeableField();
+        const warning = document.getElementById("currencyratewarning");
+        warning.style.display = field?.ExchangeRateApproximate ? "block" : "none";
+    }
+
+    applyExchangeFieldCurrencyDefault() {
+        const currency = this.getSelectedExchangeableField()?.ExchangeRateCurrency;
+        const selector = document.getElementById("currencyselector");
+        if (currency && Array.from(selector.options).some((option) => option.value === currency)) {
+            selector.value = currency;
         }
     }
 }

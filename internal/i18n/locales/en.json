@@ -1277,6 +1277,8 @@
   "condition.modal.bool.separator": " - ",
   "condition.modal.bool.comparison": "Comparison?",
   "condition.modal.bool.numericEnter": "Enter Value",
+  "condition.modal.bool.exchange": "Compare with Currency",
+  "condition.modal.bool.exchangeApproximate": "The exchange rate is approximate.",
   "condition.modal.bool.moreCondition": "Add more condition?",
   "condition.modal.bool.addButton": "Add Item",
   "condition.modal.text.description": "Value.",

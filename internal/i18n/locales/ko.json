@@ -1254,6 +1254,8 @@
   "condition.modal.bool.separator": " - ",
   "condition.modal.bool.comparison": "비교?",
   "condition.modal.bool.numericEnter": "값 입력",
+  "condition.modal.bool.exchange": "통화 변환 비교",
+  "condition.modal.bool.exchangeApproximate": "환율은 대략적인 값입니다.",
   "condition.modal.bool.moreCondition": "더 많은 조건을 추가하시겠습니까?",
   "condition.modal.bool.addButton": "항목 추가",
   "condition.modal.text.description": "값.",

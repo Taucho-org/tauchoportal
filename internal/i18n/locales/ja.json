@@ -1254,6 +1254,8 @@
   "condition.modal.bool.separator": " - ",
   "condition.modal.bool.comparison": "数値としての比較",
   "condition.modal.bool.numericEnter": "値を入力してください",
+  "condition.modal.bool.exchange": "通貨換算で比較",
+  "condition.modal.bool.exchangeApproximate": "為替レートは概算です。",
   "condition.modal.bool.moreCondition": "条件を追加する",
   "condition.modal.bool.addButton": "追加",
   "condition.modal.text.description": "文字の入力",
