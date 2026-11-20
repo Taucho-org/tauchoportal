@@ -1261,6 +1261,8 @@
   "condition.modal.text.description": "값.",
   "condition.modal.text.selectInput": "입력 매개변수 선택",
   "condition.modal.text.staticValue": "정적 값",
+  "condition.modal.text.selectSource": "입력 원본 선택",
+  "condition.modal.text.color": "색상 선택",
   "condition.modal.text.extract": "추출",
   "condition.modal.numeric.description": "숫자.",
   "condition.modal.textCondition.description": "텍스트 조건.",

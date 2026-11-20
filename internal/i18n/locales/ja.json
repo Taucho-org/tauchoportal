@@ -1260,6 +1260,8 @@
   "condition.modal.bool.addButton": "追加",
   "condition.modal.text.description": "文字の入力",
   "condition.modal.text.selectInput": "データからの入力",
+  "condition.modal.text.selectSource": "入力元の選択",
+  "condition.modal.text.color": "色の選択",
   "condition.modal.text.staticValue": "指定の文",
   "condition.modal.text.extract": "抽出条件",
   "condition.modal.numeric.description": "数値の入力",

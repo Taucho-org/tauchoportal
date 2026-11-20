@@ -751,7 +751,8 @@ div#logictotaldescription span.or .or .and:hover::after {
   color: black;
   border-color: black;
 }
-#textExtArea select {
+#textExtArea select,
+#textColorExtArea select {
   max-width: 16rem;
 }
 #textSelector .value {
@@ -793,7 +794,8 @@ div#logictotaldescription span.or .or .and:hover::after {
     border-color: #26651e;
     background-color: #a8d1a2;
 }
-#textEnvSelect {
+#textEnvSelect,
+#textColorsourceSelect {
     max-width: 8em;
 }
 
@@ -864,19 +866,35 @@ div#logictotaldescription span.or .or .and:hover::after {
 }
 
 .textselection {
+	display: inline-block;
+}
+.textrangeselection {
 	display: flex;
 }
-.textselection .envselection {
+.textselection .envselection,
+.textrangeselection .envselection {
 	display: none;
 }
-.textselection.includeenv .envselection {
-	display: inline-block;
+.textselection.includeenv .envselection,
+.textrangeselection.includeenv .envselection {
+	display: block;
 }
-.textselection .entervalue {
+.textselection.includeenv .envselection > div,
+.textrangeselection.includeenv .envselection > div {
+	display: inline-block;
+    vertical-align: top;
+}
+.textselection .colorselection,
+.textrangeselection .colorselection {
 	display: none;
 }
-.textselection.includeenter .entervalue {
-	display: inline-block;
+.textselection .entervalue,
+.textrangeselection .entervalue {
+	display: none;
+}
+.textselection.includeenter .entervalue,
+.textrangeselection.includeenter .entervalue {
+	display: block;
 }
 
 fieldset.item.regex_extract,
@@ -956,11 +974,11 @@ fieldset.item.param>div.icons{
 	cursor: pointer;
 }
 .extractorselection {
-	margin-left: 2rem;
+	margin-left: 1rem;
 	display: none;
 }
 .includeenv .extractorselection {
-	display: block;
+	display: inline-block;
 }
 .askenvbutton {
   color: transparent;
@@ -1351,6 +1369,7 @@ fieldset.item.param>div.icons{
 #deviceActionModal .param-inputs {
     display: flex;
     flex-direction: row;
+    align-items: center;
     gap: 0.2rem;
     width: 100%;
 }
@@ -1528,10 +1547,76 @@ fieldset.item.param>div.icons{
 }
 
 .param-static-input {
+    box-sizing: border-box;
+    width: 100%;
     padding: 0.6rem;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     background-color: white;
+}
+
+#deviceActionModal .param-static-input[type="color"] {
+    max-width: 5rem;
+    min-height: 2.5rem;
+    padding: 0.2rem;
+}
+
+.param-range-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.param-range-control input[type="range"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.param-range-value {
+    min-width: max-content;
+    color: #4b5563;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+}
+
+#deviceActionModal .param-toggle-input {
+    appearance: none;
+    position: relative;
+    width: 2.75rem;
+    height: 1.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #9ca3af;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#deviceActionModal .param-toggle-input::before {
+    content: "";
+    position: absolute;
+    top: 0.15rem;
+    left: 0.15rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.15s ease;
+}
+
+#deviceActionModal .param-toggle-input:checked {
+    background: #2563eb;
+}
+
+#deviceActionModal .param-toggle-input:checked::before {
+    transform: translateX(1.25rem);
+}
+
+#deviceActionModal .param-toggle-input:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
 }
 
 .param-flexible-input,

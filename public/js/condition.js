@@ -7,6 +7,73 @@ function conditionUiMessage(key, fallback) {
     return window._i18nMsg?.[key] || fallback;
 }
 
+function parseDeviceTemplateBody(bodyTemplate) {
+    if (typeof bodyTemplate !== 'string') return bodyTemplate;
+
+    // Temporarily quote placeholders so both string and raw-value slots can be parsed as JSON.
+    let markerPrefix = '__TAUCHO_TEMPLATE_PLACEHOLDER_';
+    while (bodyTemplate.includes(markerPrefix)) markerPrefix += '_';
+
+    const placeholders = [];
+    let jsonTemplate = '';
+    let insideString = false;
+    let escaped = false;
+
+    for (let index = 0; index < bodyTemplate.length;) {
+        const isPlaceholderStart = bodyTemplate[index] === '{' &&
+            bodyTemplate[index - 1] !== '{' &&
+            bodyTemplate[index + 1] !== '{';
+        const match = !escaped && isPlaceholderStart
+            ? bodyTemplate.slice(index).match(/^\{([A-Za-z0-9_][A-Za-z0-9_.-]*)\}/)
+            : null;
+
+        if (match) {
+            const marker = `${markerPrefix}${placeholders.length}__`;
+            placeholders.push([marker, match[0]]);
+            jsonTemplate += insideString ? marker : JSON.stringify(marker);
+            index += match[0].length;
+            continue;
+        }
+
+        const character = bodyTemplate[index];
+        jsonTemplate += character;
+        if (insideString) {
+            if (escaped) {
+                escaped = false;
+            } else if (character === '\\') {
+                escaped = true;
+            } else if (character === '"') {
+                insideString = false;
+            }
+        } else if (character === '"') {
+            insideString = true;
+        }
+        index++;
+    }
+
+    const parsedBody = JSON.parse(jsonTemplate);
+    const restorePlaceholders = value => {
+        if (typeof value === 'string') {
+            return placeholders.reduce(
+                (restored, [marker, placeholder]) => restored.split(marker).join(placeholder),
+                value
+            );
+        }
+        if (Array.isArray(value)) return value.map(restorePlaceholders);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(
+                Object.entries(value).map(([key, child]) => [
+                    restorePlaceholders(key),
+                    restorePlaceholders(child)
+                ])
+            );
+        }
+        return value;
+    };
+
+    return restorePlaceholders(parsedBody);
+}
+
 class DeviceActionHandler {
     constructor(containerElement, options = {}) {
         this.mainContainer = typeof containerElement === 'string' 
@@ -343,9 +410,7 @@ class DeviceActionHandler {
             
             this.selectedTemplate = {
                 ...template,
-                actionBody: typeof template.body_template === 'string'
-                    ? JSON.parse(template.body_template)
-                    : template.body_template
+                actionBody: parseDeviceTemplateBody(template.body_template)
             };
             
             this.renderParameterForm();
@@ -439,6 +504,10 @@ class DeviceActionHandler {
         const parameterConstraints = hasParameterConstraints
             ? (this.selectedTemplate.parameter_constraints || {})
             : {};
+        const uiFields = new Map((this.selectedTemplate.ui_fields || []).map(field => [
+            field.key || field.name,
+            field
+        ]));
         const paramPaths = (hasParameterConstraints
             ? Object.keys(parameterConstraints)
             : this.extractParameterPaths(templateBody))
@@ -454,6 +523,7 @@ class DeviceActionHandler {
         
         // Render each parameter
         paramPaths.forEach((path, index) => {
+            const uiField = uiFields.get(path);
             const div = document.createElement('div');
             div.className = 'parameter-config-card';
             div.setAttribute('data-param-path', path);
@@ -462,22 +532,25 @@ class DeviceActionHandler {
             const header = document.createElement('div');
             header.className = 'param-header';
             const headerTitle = document.createElement('strong');
-            headerTitle.textContent = path;
+            headerTitle.textContent = uiField?.name || path;
             header.appendChild(headerTitle);
             const constraint = parameterConstraints[path];
-            if (constraint && typeof constraint === 'object') {
-                const details = [];
-                if (constraint.type) details.push(constraint.type);
-                if (constraint.min != null || constraint.max != null) {
-                    details.push(`${constraint.min ?? 'no minimum'} to ${constraint.max ?? 'no maximum'}`);
-                }
-                if (constraint.format) details.push(constraint.format);
-                if (details.length) {
-                    const constraintDetails = document.createElement('small');
-                    constraintDetails.className = 'param-constraint-details';
-                    constraintDetails.textContent = details.join(' · ');
-                    header.appendChild(constraintDetails);
-                }
+            const details = [];
+            if (constraint?.type || uiField?.type) details.push(constraint?.type || uiField.type);
+            const min = uiField?.min ?? constraint?.min;
+            const max = uiField?.max ?? constraint?.max;
+            if (min != null || max != null) {
+                details.push(`${min ?? 'no minimum'} to ${max ?? 'no maximum'}`);
+            }
+            const unit = uiField?.unit || constraint?.unit;
+            if (unit) details.push(unit);
+            const format = uiField?.format || constraint?.format;
+            if (format) details.push(format);
+            if (details.length) {
+                const constraintDetails = document.createElement('small');
+                constraintDetails.className = 'param-constraint-details';
+                constraintDetails.textContent = details.join(' · ');
+                header.appendChild(constraintDetails);
             }
             div.appendChild(header);
             
@@ -531,26 +604,96 @@ class DeviceActionHandler {
             
             const drawingAreaIdBase = `paramsinput_${index}`;
 
-            // Static input
-            const staticInput = document.createElement('input');
+            const fieldType = String(uiField?.type || constraint?.type || 'text').toLowerCase();
+            const isSelect = fieldType === 'select' || Array.isArray(uiField?.options);
+            const isToggle = fieldType === 'toggle';
+            const isSlider = fieldType === 'slider' || fieldType === 'range';
+            const isColor = fieldType === 'color';
+            const isNumeric = isSlider || ['integer', 'number', 'float'].includes(fieldType);
+            const staticInput = document.createElement(isSelect ? 'select' : 'input');
             staticInput.id = drawingAreaIdBase + '_static';
-            const constraintType = String(constraint?.type || '').toLowerCase();
-            const numericConstraint = ['integer', 'number', 'float'].includes(constraintType);
-            staticInput.type = numericConstraint ? 'number' : 'text';
-            if (numericConstraint) {
-                if (constraint.min != null) staticInput.min = String(constraint.min);
-                if (constraint.max != null) staticInput.max = String(constraint.max);
-                staticInput.step = constraintType === 'integer' ? '1' : 'any';
+            if (!isSelect) {
+                staticInput.type = isToggle
+                    ? 'checkbox'
+                    : isSlider
+                        ? 'range'
+                        : isColor
+                            ? 'color'
+                            : isNumeric ? 'number' : 'text';
+            }
+            if (isSelect) {
+                const options = (uiField?.options || []).map(option => {
+                    if (option && typeof option === 'object' && !Array.isArray(option)) {
+                        const optionValue = option.value ?? option.id ?? option.key ?? '';
+                        return {
+                            value: optionValue,
+                            label: option.label ?? option.name ?? optionValue
+                        };
+                    }
+                    return { value: option, label: option };
+                });
+                options.forEach(({ value: optionValue, label }) => {
+                    const option = document.createElement('option');
+                    option.value = String(optionValue ?? '');
+                    option.textContent = String(label ?? '');
+                    option.dataset.valueType = typeof optionValue;
+                    staticInput.appendChild(option);
+                });
+                if (config.value != null) {
+                    const selected = options.find(option =>
+                        String(option.value) === String(config.value) ||
+                        String(option.label) === String(config.value)
+                    );
+                    if (selected) staticInput.value = String(selected.value);
+                }
+            } else if (isToggle) {
+                staticInput.checked = config.mode === 'static' &&
+                    (config.value === true || config.value === 1 ||
+                        ['true', '1', 'on'].includes(String(config.value).toLowerCase()));
+            } else if (isColor) {
+                staticInput.value = this.formatColorPickerValue(config.value);
+            } else {
+                const min = uiField?.min ?? constraint?.min;
+                const max = uiField?.max ?? constraint?.max;
+                if (min != null) staticInput.min = String(min);
+                if (max != null) staticInput.max = String(max);
+                if (isSlider || isNumeric) {
+                    const step = uiField?.step ?? constraint?.step;
+                    staticInput.step = step != null
+                        ? String(step)
+                        : (String(constraint?.type || fieldType).toLowerCase() === 'integer' ? '1' : 'any');
+                }
+                staticInput.value = config.mode === 'static'
+                    ? (typeof config.value === 'string' ? config.value : (JSON.stringify(config.value) ?? ''))
+                    : '';
             }
             staticInput.className = 'param-static-input';
+            if (isToggle) staticInput.classList.add('param-toggle-input');
             staticInput.setAttribute('data-path', path);
             staticInput.setAttribute('data-mode', 'static');
-            staticInput.placeholder = conditionUiMessage('condition.ui.staticValuePlaceholder', 'Static value (numbers, booleans and objects accept JSON)');
-            staticInput.value = config.mode === 'static'
-                ? (typeof config.value === 'string' ? config.value : (JSON.stringify(config.value) ?? ''))
-                : '';
+            if (!isSelect && !isToggle && !isSlider && !isColor) {
+                staticInput.placeholder = uiField?.placeholder ||
+                    conditionUiMessage('condition.ui.staticValuePlaceholder', 'Static value (numbers, booleans and objects accept JSON)');
+            }
             staticInput.style.display = (config.mode === 'static') ? 'block' : 'none';
-            inputsDiv.appendChild(staticInput);
+            let rangeOutput = null;
+            if (isSlider) {
+                const rangeControl = document.createElement('div');
+                rangeControl.className = 'param-range-control';
+                rangeControl.appendChild(staticInput);
+                rangeOutput = document.createElement('output');
+                rangeOutput.className = 'param-range-value';
+                const rangeUnit = uiField?.unit || constraint?.unit;
+                rangeOutput.textContent = `${staticInput.value}${rangeUnit ? ` ${rangeUnit}` : ''}`;
+                rangeControl.appendChild(rangeOutput);
+                rangeControl.style.display = (config.mode === 'static') ? 'flex' : 'none';
+                inputsDiv.appendChild(rangeControl);
+            } else {
+                inputsDiv.appendChild(staticInput);
+            }
+            if (config.mode === 'static') {
+                config.value = this.readStaticParameterValue(staticInput, path);
+            }
             
             // NOW initialize ConditionEditor for flexible input
             // Create with unique IDs for drawing areas
@@ -624,6 +767,8 @@ class DeviceActionHandler {
         const staticInput = containerDiv.querySelector('[data-mode="static"]');
         const flexibleTextarea = containerDiv.querySelector('[data-mode="flexible"]');
         const drawingArea = containerDiv.querySelector('[data-param-path]');
+        const rangeControl = containerDiv.querySelector('.param-range-control');
+        const rangeOutput = containerDiv.querySelector('.param-range-value');
         
         radios.forEach(radio => {
             radio.addEventListener('change', () => {
@@ -633,12 +778,15 @@ class DeviceActionHandler {
                 if (selectedMode === 'flexible') {
                     this.parameterConfigs[paramPath].evaluator = JSON.parse(flexibleTextarea.value);
                 } else if (this.parameterConfigs[paramPath].value === undefined) {
-                    this.parameterConfigs[paramPath].value = this.parseStaticValue(staticInput.value);
+                    this.parameterConfigs[paramPath].value = this.readStaticParameterValue(staticInput, paramPath);
                 }
                 
                 // Show/hide inputs based on mode
                 if (staticInput) {
                     staticInput.style.display = (selectedMode === 'static') ? 'block' : 'none';
+                }
+                if (rangeControl) {
+                    rangeControl.style.display = (selectedMode === 'static') ? 'flex' : 'none';
                 }
                 
                 if (flexibleTextarea) {
@@ -660,11 +808,16 @@ class DeviceActionHandler {
             });
         });
         
-        // Update numeric inputs as they are edited so constraint validation uses the latest value.
+        // Update controls as they are edited so the stored value keeps its declared type.
         if (staticInput) {
-            const eventName = staticInput.type === 'number' ? 'input' : 'change';
+            const eventName = ['number', 'range', 'color'].includes(staticInput.type) ? 'input' : 'change';
             staticInput.addEventListener(eventName, () => {
-                this.parameterConfigs[paramPath].value = this.parseStaticValue(staticInput.value);
+                this.parameterConfigs[paramPath].value = this.readStaticParameterValue(staticInput, paramPath);
+                if (rangeOutput) {
+                    const uiField = this.getTemplateUiField(paramPath);
+                    const unit = uiField?.unit || this.selectedTemplate.parameter_constraints?.[paramPath]?.unit;
+                    rangeOutput.textContent = `${staticInput.value}${unit ? ` ${unit}` : ''}`;
+                }
                 this.updateJsonFromForm();
             });
         }
@@ -692,6 +845,52 @@ class DeviceActionHandler {
             // Plain text is a valid static string.
             return value;
         }
+    }
+
+    getTemplateUiField(parameterName) {
+        return this.selectedTemplate?.ui_fields?.find(field =>
+            (field.key || field.name) === parameterName
+        );
+    }
+
+    formatColorPickerValue(value) {
+        if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) {
+            return value.toLowerCase();
+        }
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return '#000000';
+        const packedValue = Math.max(0, Math.min(0xffffff, Math.trunc(numericValue)));
+        return `#${packedValue.toString(16).padStart(6, '0')}`;
+    }
+
+    readStaticParameterValue(input, parameterName) {
+        const uiField = this.getTemplateUiField(parameterName);
+        const constraint = this.selectedTemplate?.parameter_constraints?.[parameterName];
+        const fieldType = String(uiField?.type || constraint?.type || '').toLowerCase();
+
+        if (fieldType === 'toggle') return input.checked;
+        if (input.tagName === 'SELECT') {
+            const option = input.selectedOptions[0];
+            if (!option || input.value === '') return '';
+            const constraintType = String(constraint?.type || '').toLowerCase();
+            const valueType = ['integer', 'number', 'float', 'boolean'].includes(constraintType)
+                ? constraintType
+                : String(option.dataset.valueType || '').toLowerCase();
+            if (['integer', 'number', 'float'].includes(valueType)) return Number(input.value);
+            if (valueType === 'boolean') return input.value === 'true';
+            return input.value;
+        }
+        if (input.type === 'color') {
+            const format = String(uiField?.format || constraint?.format || '').toLowerCase();
+            return format === 'rgb24' || String(constraint?.type || '').toLowerCase() === 'integer'
+                ? Number.parseInt(input.value.slice(1), 16)
+                : input.value;
+        }
+        if (input.type === 'number' || input.type === 'range') {
+            return input.value === '' ? '' : input.valueAsNumber;
+        }
+        if (uiField?.type === 'text') return input.value;
+        return this.parseStaticValue(input.value);
     }
 
     /**
@@ -773,18 +972,24 @@ class DeviceActionHandler {
             }
 
             const constraint = this.selectedTemplate.parameter_constraints?.[field];
-            const type = String(constraint?.type || '').toLowerCase();
+            const uiField = this.getTemplateUiField(field);
+            const type = String(constraint?.type || uiField?.type || '').toLowerCase();
+            const format = String(uiField?.format || constraint?.format || '').toLowerCase();
             let value = config.value;
-            if (['integer', 'number', 'float'].includes(type) && value !== '' && value != null) {
+            const numericParameter = ['integer', 'number', 'float', 'slider', 'range'].includes(type) ||
+                format === 'rgb24';
+            const min = constraint?.min ?? uiField?.min;
+            const max = constraint?.max ?? uiField?.max;
+            if (numericParameter && value !== '' && value != null) {
                 value = typeof value === 'number' ? value : Number(value);
                 if (!Number.isFinite(value) || (type === 'integer' && !Number.isInteger(value))) {
                     throw new Error(`${field} must be a valid ${type} value`);
                 }
-                if (constraint.min != null && value < Number(constraint.min)) {
-                    throw new Error(`${field} must be at least ${constraint.min}`);
+                if (min != null && value < Number(min)) {
+                    throw new Error(`${field} must be at least ${min}`);
                 }
-                if (constraint.max != null && value > Number(constraint.max)) {
-                    throw new Error(`${field} must be at most ${constraint.max}`);
+                if (max != null && value > Number(max)) {
+                    throw new Error(`${field} must be at most ${max}`);
                 }
             }
             body[field] = value;
@@ -2474,20 +2679,40 @@ class TextDialogHandler {
         document.getElementById("textEnvArea").onclick = function(e) {
             document.getElementById('textenvradio').checked=true;
             document.getElementById('textEnvArea').classList.add('available');
+            document.getElementById('textColorArea').classList.remove('available');
             document.getElementById('textEnterArea').classList.remove('available');
             document.getElementById('textExtArea').classList.add('available');
             document.getElementById('textExtSelect').disabled='';
+            document.getElementById('textColorExtArea').classList.remove('available');
+            document.getElementById('textColorExtSelect').disabled='disabled';
             this.validate();
         }.bind(this);
 
         document.getElementById("textEnvSelect").onchange = this.validate;
+
+        document.getElementById("textColorArea").onclick = function(e) {
+            document.getElementById('textcolorradio').checked=true;
+            document.getElementById('textColorArea').classList.add('available');
+            document.getElementById('textEnvArea').classList.remove('available');
+            document.getElementById('textEnterArea').classList.remove('available');
+            document.getElementById('textExtArea').classList.remove('available');
+            document.getElementById('textExtSelect').disabled='disabled';
+            document.getElementById('textColorExtArea').classList.add('available');
+            document.getElementById('textColorExtSelect').disabled='';
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("textColorExtSelect").onchange = this.validate;
 
         document.getElementById("textEnterArea").onclick = function (){
             document.getElementById('textenterradio').checked=true;
             document.getElementById('textEnterArea').classList.add('available');
             document.getElementById('textEnvArea').classList.remove('available');
             document.getElementById('textExtArea').classList.remove('available');
-            document.getElementById('textExtSelect').disabled='';
+            document.getElementById('textExtSelect').disabled='disabled';
+            document.getElementById('textColorArea').classList.remove('available');
+            document.getElementById('textColorExtArea').classList.remove('available');
+            document.getElementById('textColorExtSelect').disabled='disabled';
             this.validate();
         }.bind(this);
 
@@ -2496,6 +2721,8 @@ class TextDialogHandler {
         document.getElementById("textExtArea").onchange = function(e) {
             document.getElementById('textenvradio').checked=true;
             document.getElementById('textEnvArea').classList.add('available');
+            document.getElementById('textColorArea').classList.remove('available');
+            document.getElementById('textColorExtArea').classList.remove('available');
             document.getElementById('textExtArea').classList.add('available');
             this.validate();
         }.bind(this);
@@ -2527,6 +2754,42 @@ class TextDialogHandler {
         document.getElementById("textExtSubTo").onchange = this.validate;
         document.getElementById("textExtFirst").onchange = this.validate;
         document.getElementById("textExtLast").onchange = this.validate;
+
+        document.getElementById("textColorExtArea").onchange = function(e) {
+            document.getElementById('textenvradio').checked=true;
+            document.getElementById('textEnvArea').classList.remove('available');
+            document.getElementById('textExtArea').classList.remove('available');
+            document.getElementById('textColorArea').classList.add('available');
+            document.getElementById('textColorExtArea').classList.add('available');
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("textColorExtSelect").onchange = function(e) {
+            this.validate();
+            document.getElementById('textColorExtRegex').style['display']=e.target.value=='regex_extract'?'inline-block':'none';
+            document.getElementById('textColorExtSubFrom').style['display']=e.target.value=='substring'?'inline-block':'none';
+            document.getElementById('textColorExtSubTo').style['display']=e.target.value=='substring'?'inline-block':'none';
+            document.getElementById('textColorExtFirst').style['display']=e.target.value=='first'?'inline-block':'none';
+        }.bind(this);
+        
+        if (document.getElementById("textColorExtSelect").options.length === 0) {
+            const emptyoption = document.createElement("option");
+            emptyoption.value = "";
+            emptyoption.text = "";
+            document.getElementById("textColorExtSelect").appendChild(emptyoption);
+            for (const i in editor.textextractors) {
+                const option = document.createElement("option");
+                option.value = editor.namingmap[editor.textextractors[i]] ||editor.textextractors[i];
+                option.text = translations[editor.textextractors[i]] || editor.textextractors[i];
+                document.getElementById("textColorExtSelect").appendChild(option);
+            }
+        }
+
+        document.getElementById("textColorExtRegex").onchange = this.validate;
+        document.getElementById("textColorExtSubFrom").onchange = this.validate;
+        document.getElementById("textColorExtSubTo").onchange = this.validate;
+        document.getElementById("textColorExtFirst").onchange = this.validate;
+        document.getElementById("textColorExtLast").onchange = this.validate;
     }
 
     /**
@@ -2543,6 +2806,7 @@ class TextDialogHandler {
         document.getElementById("textEnter").value = currenttype == "variable" ? currentvalue : "";
         document.getElementById("textValidator").value = validator ?? "";
 
+        document.getElementById('textColorArea').classList.remove('available');
         document.getElementById('textEnterArea').classList.remove('available');
         document.getElementById('textEnvArea').classList.remove('available');
         document.getElementById('textExtArea').classList.remove('available');

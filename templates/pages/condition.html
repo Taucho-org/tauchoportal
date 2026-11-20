@@ -254,32 +254,52 @@
                 <p>{{.I18n.T "condition.modal.text.description"}}</p>
             </div>
             <div id="textBody" class="modal-body textselection">
-            <div>
-                <div id="textEnvArea" class="selector envselection">
+            <div id="textEnvArea" class="selector envselection">
                 <h4><input id="textenvradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.selectInput"}}</h4>
-                <select id="textEnvSelect">
-                    {{range .EventFieldOptions}}
-                    <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
-                    {{end}}
-                </select>
+                <div>
+                    <h5>{{.I18n.T "condition.modal.text.selectSource"}}</h5>
+                    <select id="textEnvSelect">
+                        {{range .EventFieldOptions}}
+                        <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
+                        {{end}}
+                    </select>
                 </div>
-                <div id="textEnterArea" class="selector entervalue">
+                <div id="textExtArea" class="selector textextractor extractorselection">
+                    <h5>{{.I18n.T "condition.modal.text.extract"}}</h5>
+                    <select id="textExtSelect"></select>
+                    <div>
+                        <input id="textExtRegex" type="text" style="display:none"/>
+                        <input id="textExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
+                        <input id="textExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                        <input id="textExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                    </div>
+                </div>
+            </div>
+            <div id="textColorArea" class="selector colorselection">
+                <h4><input id="textcolorradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.color"}}</h4>
+                <div>
+                    <h5>{{.I18n.T "condition.modal.text.selectSource"}}</h5>
+                    <select id="textColorsourceSelect">
+                        {{range .EventFieldOptions}}
+                        <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div id="textColorExtArea" class="selector textextractor extractorselection">
+                    <h5>{{.I18n.T "condition.modal.text.extract"}}</h5>
+                    <select id="textColorExtSelect"></select>
+                    <div>
+                        <input id="textColorExtRegex" type="text" style="display:none"/>
+                        <input id="textColorExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textColorExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
+                        <input id="textColorExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                        <input id="textColorExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                    </div>
+                </div>
+            </div>
+            <div id="textEnterArea" class="selector entervalue">
                 <h4><input id="textenterradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.staticValue"}}</h4>
                 <input id="textEnter" type="text" >
                 <input id="textValidator" type="hidden" >
-                </div>
-            </div>
-            <div class="extractorselection">
-                <div id="textExtArea" class="selector textextractor">
-                <h4>{{.I18n.T "condition.modal.text.extract"}}</h4>
-                <select id="textExtSelect"></select>
-                <div>
-                    <input id="textExtRegex" type="text" style="display:none"/>
-                    <input id="textExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
-                    <input id="textExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
-                    <input id="textExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
-                </div>
-                </div>
             </div>
             </div>
             <div class="modal-footer">
@@ -345,7 +365,7 @@
                 <span class="close" onclick="closeModal('textRangeModal')">×</span>
                 <p>{{.I18n.T "condition.modal.range.description"}}</p>
             </div>
-            <div id="textRangeBody" class="modal-body textselection">
+            <div id="textRangeBody" class="modal-body textrangeselection">
                 <input id="textRangeFrom" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
                 <span class="rangeconnection">{{.I18n.T "condition.modal.range.connection"}}</span>
                 <input id="textRangeTo"   type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
