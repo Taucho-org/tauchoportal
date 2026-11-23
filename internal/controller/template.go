@@ -32,8 +32,14 @@ type ChannelForTemplate struct {
 
 // EventFieldOption represents a single field from the event schema
 type EventFieldOption struct {
-	Name  string
-	Label string
+	Name                    string
+	Label                   string
+	Exchangeable            bool
+	ConditionParameter      string
+	SourceCurrencyParameter string
+	ExchangeRatePerUnit     float64
+	ExchangeRateCurrency    string
+	ExchangeRateApproximate bool
 }
 
 // ConditionForTemplate represents a condition as prepared for template rendering
@@ -163,8 +169,14 @@ func GetEventFieldOptions(cond Conditions, platform, eventType string, translato
 			}
 		}
 		options = append(options, EventFieldOption{
-			Name:  fieldName,
-			Label: label,
+			Name:                    fieldName,
+			Label:                   label,
+			Exchangeable:            field.Exchangeable,
+			ConditionParameter:      field.ConditionParameter,
+			SourceCurrencyParameter: field.SourceCurrencyParameter,
+			ExchangeRatePerUnit:     field.ExchangeRatePerUnit,
+			ExchangeRateCurrency:    field.ExchangeRateCurrency,
+			ExchangeRateApproximate: field.ExchangeRateApproximate,
 		})
 	}
 

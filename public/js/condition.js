@@ -3,6 +3,77 @@
  * Supports: static values, event extraction (via condition logic), and JSON editors for complex objects
  * Uses modal dialog for template and parameter selection
  */
+function conditionUiMessage(key, fallback) {
+    return window._i18nMsg?.[key] || fallback;
+}
+
+function parseDeviceTemplateBody(bodyTemplate) {
+    if (typeof bodyTemplate !== 'string') return bodyTemplate;
+
+    // Temporarily quote placeholders so both string and raw-value slots can be parsed as JSON.
+    let markerPrefix = '__TAUCHO_TEMPLATE_PLACEHOLDER_';
+    while (bodyTemplate.includes(markerPrefix)) markerPrefix += '_';
+
+    const placeholders = [];
+    let jsonTemplate = '';
+    let insideString = false;
+    let escaped = false;
+
+    for (let index = 0; index < bodyTemplate.length;) {
+        const isPlaceholderStart = bodyTemplate[index] === '{' &&
+            bodyTemplate[index - 1] !== '{' &&
+            bodyTemplate[index + 1] !== '{';
+        const match = !escaped && isPlaceholderStart
+            ? bodyTemplate.slice(index).match(/^\{([A-Za-z0-9_][A-Za-z0-9_.-]*)\}/)
+            : null;
+
+        if (match) {
+            const marker = `${markerPrefix}${placeholders.length}__`;
+            placeholders.push([marker, match[0]]);
+            jsonTemplate += insideString ? marker : JSON.stringify(marker);
+            index += match[0].length;
+            continue;
+        }
+
+        const character = bodyTemplate[index];
+        jsonTemplate += character;
+        if (insideString) {
+            if (escaped) {
+                escaped = false;
+            } else if (character === '\\') {
+                escaped = true;
+            } else if (character === '"') {
+                insideString = false;
+            }
+        } else if (character === '"') {
+            insideString = true;
+        }
+        index++;
+    }
+
+    const parsedBody = JSON.parse(jsonTemplate);
+    const restorePlaceholders = value => {
+        if (typeof value === 'string') {
+            return placeholders.reduce(
+                (restored, [marker, placeholder]) => restored.split(marker).join(placeholder),
+                value
+            );
+        }
+        if (Array.isArray(value)) return value.map(restorePlaceholders);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(
+                Object.entries(value).map(([key, child]) => [
+                    restorePlaceholders(key),
+                    restorePlaceholders(child)
+                ])
+            );
+        }
+        return value;
+    };
+
+    return restorePlaceholders(parsedBody);
+}
+
 class DeviceActionHandler {
     constructor(containerElement, options = {}) {
         this.mainContainer = typeof containerElement === 'string' 
@@ -62,13 +133,13 @@ class DeviceActionHandler {
         const groupSelect = this.mainContainer.querySelector('#deviceActionGroup');
         if (!groupSelect) return;
         
-        groupSelect.innerHTML = '<option value="">Select a device group...</option>';
+        groupSelect.innerHTML = `<option value="">${conditionUiMessage('condition.ui.selectDeviceGroup', 'Select a device group...')}</option>`;
         this.deviceGroups.forEach(group => {
             const option = document.createElement('option');
             option.value = group.id || group.ID;
             option.textContent = group.devices?.length === 1
-                ? (group.devices[0].name || group.devices[0].id || 'Unnamed')
-                : (group.name || group.Name || 'Unnamed');
+                ? (group.devices[0].name || group.devices[0].id || conditionUiMessage('condition.ui.unnamed', 'Unnamed'))
+                : (group.name || group.Name || conditionUiMessage('condition.ui.unnamed', 'Unnamed'));
             groupSelect.appendChild(option);
         });
         if (this.selectedGroupId) {
@@ -167,20 +238,20 @@ class DeviceActionHandler {
         }
         const label = document.createElement('div');
         label.className = 'group-devices-label';
-        label.textContent = `${container.dataset.label || 'Included devices'} (${devices.length})`;
+        label.textContent = `${container.dataset.label || conditionUiMessage('condition.deviceAction.includedDevices', 'Included devices')} (${devices.length})`;
         container.appendChild(label);
 
         if (devices.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'group-devices-empty';
-            empty.textContent = container.dataset.empty || 'No devices in this group';
+            empty.textContent = container.dataset.empty || conditionUiMessage('condition.deviceAction.noDevices', 'No devices in this group');
             container.appendChild(empty);
         } else {
             const list = document.createElement('ul');
             devices.forEach(device => {
                 const item = document.createElement('li');
                 const name = document.createElement('strong');
-                name.textContent = device.name || device.id || 'Unnamed';
+                name.textContent = device.name || device.id || conditionUiMessage('condition.ui.unnamed', 'Unnamed');
                 item.appendChild(name);
                 const details = [device.brand, device.product_name, device.room].filter(Boolean).join(' / ');
                 if (details) {
@@ -274,22 +345,22 @@ class DeviceActionHandler {
         if (!templateSelect) return;
         
         if (!templates || templates.length === 0) {
-            templateSelect.innerHTML = '<option value="">No templates available</option><option value="__custom__">Custom Template (JSON)</option>';
+            templateSelect.innerHTML = `<option value="">${conditionUiMessage('condition.ui.noTemplatesAvailable', 'No templates available')}</option><option value="__custom__">${conditionUiMessage('condition.deviceAction.customTemplate', 'Custom Template (JSON)')}</option>`;
             templateSelect.disabled = false;
         } else {
             templateSelect.disabled = false;
-            templateSelect.innerHTML = '<option value="">Select template...</option>';
+            templateSelect.innerHTML = `<option value="">${conditionUiMessage('condition.selectTemplate', 'Select template...')}</option>`;
             templates.forEach(template => {
                 const option = document.createElement('option');
                 option.value = template.id || template.ID;
-                option.textContent = template.template_name || template.TemplateName || 'Unnamed';
+                option.textContent = template.template_name || template.TemplateName || conditionUiMessage('condition.ui.unnamed', 'Unnamed');
                 templateSelect.appendChild(option);
             });
             
             // Add custom template option at the end
             const customOption = document.createElement('option');
             customOption.value = '__custom__';
-            customOption.textContent = globalThis._i18nMsg?.['condition.deviceAction.customTemplate'] || 'Custom Template (JSON)';
+            customOption.textContent = conditionUiMessage('condition.deviceAction.customTemplate', 'Custom Template (JSON)');
             templateSelect.appendChild(customOption);
             
         }
@@ -339,9 +410,7 @@ class DeviceActionHandler {
             
             this.selectedTemplate = {
                 ...template,
-                actionBody: typeof template.body_template === 'string'
-                    ? JSON.parse(template.body_template)
-                    : template.body_template
+                actionBody: parseDeviceTemplateBody(template.body_template)
             };
             
             this.renderParameterForm();
@@ -430,7 +499,18 @@ class DeviceActionHandler {
             }
         }
         
-        const paramPaths = this.extractParameterPaths(templateBody)
+        const hasParameterConstraints = this.selectedTemplateId !== '__custom__' &&
+            Object.prototype.hasOwnProperty.call(this.selectedTemplate, 'parameter_constraints');
+        const parameterConstraints = hasParameterConstraints
+            ? (this.selectedTemplate.parameter_constraints || {})
+            : {};
+        const uiFields = new Map((this.selectedTemplate.ui_fields || []).map(field => [
+            field.key || field.name,
+            field
+        ]));
+        const paramPaths = (hasParameterConstraints
+            ? Object.keys(parameterConstraints)
+            : this.extractParameterPaths(templateBody))
             .filter(path => !this.deviceIdentifyParameters.includes(path));
         this.parameterEditors = {};
         
@@ -443,6 +523,7 @@ class DeviceActionHandler {
         
         // Render each parameter
         paramPaths.forEach((path, index) => {
+            const uiField = uiFields.get(path);
             const div = document.createElement('div');
             div.className = 'parameter-config-card';
             div.setAttribute('data-param-path', path);
@@ -451,18 +532,44 @@ class DeviceActionHandler {
             const header = document.createElement('div');
             header.className = 'param-header';
             const headerTitle = document.createElement('strong');
-            headerTitle.textContent = path;
+            headerTitle.textContent = uiField?.name || path;
             header.appendChild(headerTitle);
+            const constraint = parameterConstraints[path];
+            const details = [];
+            if (constraint?.type || uiField?.type) details.push(constraint?.type || uiField.type);
+            const min = uiField?.min ?? constraint?.min;
+            const max = uiField?.max ?? constraint?.max;
+            if (min != null || max != null) {
+                details.push(`${min ?? 'no minimum'} to ${max ?? 'no maximum'}`);
+            }
+            const unit = uiField?.unit || constraint?.unit;
+            if (unit) details.push(unit);
+            const format = uiField?.format || constraint?.format;
+            if (format) details.push(format);
+            if (details.length) {
+                const constraintDetails = document.createElement('small');
+                constraintDetails.className = 'param-constraint-details';
+                constraintDetails.textContent = details.join(' · ');
+                header.appendChild(constraintDetails);
+            }
             div.appendChild(header);
             
             // Create mode selection
             const modesDiv = document.createElement('div');
             modesDiv.className = 'param-modes';
             
-            const value = templateBody[path];
+            const constraintDefault = constraint && typeof constraint === 'object'
+                ? constraint.default
+                : undefined;
+            const value = this.selectedTemplate.parameter_defaults?.[path] ??
+                constraintDefault ??
+                templateBody[path];
+            const initialValue = typeof value === 'string' && /^\{[^{}]+\}$/.test(value)
+                ? undefined
+                : value;
             const config = this.parameterConfigs[path] || (value && typeof value === 'object' && value.Operator
                 ? { mode: 'flexible', evaluator: value }
-                : { mode: 'static', value });
+                : { mode: 'static', value: initialValue });
             this.parameterConfigs[path] = config;
             
             // Static mode radio
@@ -474,7 +581,7 @@ class DeviceActionHandler {
             staticRadio.className = 'param-mode-radio';
             staticRadio.checked = (config.mode === 'static');
             staticLabel.appendChild(staticRadio);
-            staticLabel.appendChild(document.createTextNode(globalThis._i18nMsg?.['condition.deviceAction.staticValue'] || 'Static Value'));
+            staticLabel.appendChild(document.createTextNode(conditionUiMessage('condition.ui.staticValue', 'Static Value')));
             modesDiv.appendChild(staticLabel);
             
             // Flexible mode radio
@@ -486,7 +593,7 @@ class DeviceActionHandler {
             flexibleRadio.className = 'param-mode-radio';
             flexibleRadio.checked = (config.mode === 'flexible');
             flexibleLabel.appendChild(flexibleRadio);
-            flexibleLabel.appendChild(document.createTextNode(globalThis._i18nMsg?.['condition.deviceAction.flexibleValue'] || 'Flexible (From Event)'));
+            flexibleLabel.appendChild(document.createTextNode(conditionUiMessage('condition.ui.flexibleFromEvent', 'Flexible (From Event)')));
             modesDiv.appendChild(flexibleLabel);
             
             div.appendChild(modesDiv);
@@ -497,19 +604,96 @@ class DeviceActionHandler {
             
             const drawingAreaIdBase = `paramsinput_${index}`;
 
-            // Static input
-            const staticInput = document.createElement('input');
+            const fieldType = String(uiField?.type || constraint?.type || 'text').toLowerCase();
+            const isSelect = fieldType === 'select' || Array.isArray(uiField?.options);
+            const isToggle = fieldType === 'toggle';
+            const isSlider = fieldType === 'slider' || fieldType === 'range';
+            const isColor = fieldType === 'color';
+            const isNumeric = isSlider || ['integer', 'number', 'float'].includes(fieldType);
+            const staticInput = document.createElement(isSelect ? 'select' : 'input');
             staticInput.id = drawingAreaIdBase + '_static';
-            staticInput.type = 'text';
+            if (!isSelect) {
+                staticInput.type = isToggle
+                    ? 'checkbox'
+                    : isSlider
+                        ? 'range'
+                        : isColor
+                            ? 'color'
+                            : isNumeric ? 'number' : 'text';
+            }
+            if (isSelect) {
+                const options = (uiField?.options || []).map(option => {
+                    if (option && typeof option === 'object' && !Array.isArray(option)) {
+                        const optionValue = option.value ?? option.id ?? option.key ?? '';
+                        return {
+                            value: optionValue,
+                            label: option.label ?? option.name ?? optionValue
+                        };
+                    }
+                    return { value: option, label: option };
+                });
+                options.forEach(({ value: optionValue, label }) => {
+                    const option = document.createElement('option');
+                    option.value = String(optionValue ?? '');
+                    option.textContent = String(label ?? '');
+                    option.dataset.valueType = typeof optionValue;
+                    staticInput.appendChild(option);
+                });
+                if (config.value != null) {
+                    const selected = options.find(option =>
+                        String(option.value) === String(config.value) ||
+                        String(option.label) === String(config.value)
+                    );
+                    if (selected) staticInput.value = String(selected.value);
+                }
+            } else if (isToggle) {
+                staticInput.checked = config.mode === 'static' &&
+                    (config.value === true || config.value === 1 ||
+                        ['true', '1', 'on'].includes(String(config.value).toLowerCase()));
+            } else if (isColor) {
+                staticInput.value = this.formatColorPickerValue(config.value);
+            } else {
+                const min = uiField?.min ?? constraint?.min;
+                const max = uiField?.max ?? constraint?.max;
+                if (min != null) staticInput.min = String(min);
+                if (max != null) staticInput.max = String(max);
+                if (isSlider || isNumeric) {
+                    const step = uiField?.step ?? constraint?.step;
+                    staticInput.step = step != null
+                        ? String(step)
+                        : (String(constraint?.type || fieldType).toLowerCase() === 'integer' ? '1' : 'any');
+                }
+                staticInput.value = config.mode === 'static'
+                    ? (typeof config.value === 'string' ? config.value : (JSON.stringify(config.value) ?? ''))
+                    : '';
+            }
             staticInput.className = 'param-static-input';
+            if (isToggle) staticInput.classList.add('param-toggle-input');
             staticInput.setAttribute('data-path', path);
             staticInput.setAttribute('data-mode', 'static');
-            staticInput.placeholder = globalThis._i18nMsg?.['condition.deviceAction.staticValuePlaceholder'] || 'Static value (numbers, booleans and objects accept JSON)';
-            staticInput.value = config.mode === 'static'
-                ? (typeof config.value === 'string' ? config.value : JSON.stringify(config.value))
-                : '';
+            if (!isSelect && !isToggle && !isSlider && !isColor) {
+                staticInput.placeholder = uiField?.placeholder ||
+                    conditionUiMessage('condition.ui.staticValuePlaceholder', 'Static value (numbers, booleans and objects accept JSON)');
+            }
             staticInput.style.display = (config.mode === 'static') ? 'block' : 'none';
-            inputsDiv.appendChild(staticInput);
+            let rangeOutput = null;
+            if (isSlider) {
+                const rangeControl = document.createElement('div');
+                rangeControl.className = 'param-range-control';
+                rangeControl.appendChild(staticInput);
+                rangeOutput = document.createElement('output');
+                rangeOutput.className = 'param-range-value';
+                const rangeUnit = uiField?.unit || constraint?.unit;
+                rangeOutput.textContent = `${staticInput.value}${rangeUnit ? ` ${rangeUnit}` : ''}`;
+                rangeControl.appendChild(rangeOutput);
+                rangeControl.style.display = (config.mode === 'static') ? 'flex' : 'none';
+                inputsDiv.appendChild(rangeControl);
+            } else {
+                inputsDiv.appendChild(staticInput);
+            }
+            if (config.mode === 'static') {
+                config.value = this.readStaticParameterValue(staticInput, path);
+            }
             
             // NOW initialize ConditionEditor for flexible input
             // Create with unique IDs for drawing areas
@@ -583,6 +767,8 @@ class DeviceActionHandler {
         const staticInput = containerDiv.querySelector('[data-mode="static"]');
         const flexibleTextarea = containerDiv.querySelector('[data-mode="flexible"]');
         const drawingArea = containerDiv.querySelector('[data-param-path]');
+        const rangeControl = containerDiv.querySelector('.param-range-control');
+        const rangeOutput = containerDiv.querySelector('.param-range-value');
         
         radios.forEach(radio => {
             radio.addEventListener('change', () => {
@@ -592,12 +778,15 @@ class DeviceActionHandler {
                 if (selectedMode === 'flexible') {
                     this.parameterConfigs[paramPath].evaluator = JSON.parse(flexibleTextarea.value);
                 } else if (this.parameterConfigs[paramPath].value === undefined) {
-                    this.parameterConfigs[paramPath].value = this.parseStaticValue(staticInput.value);
+                    this.parameterConfigs[paramPath].value = this.readStaticParameterValue(staticInput, paramPath);
                 }
                 
                 // Show/hide inputs based on mode
                 if (staticInput) {
                     staticInput.style.display = (selectedMode === 'static') ? 'block' : 'none';
+                }
+                if (rangeControl) {
+                    rangeControl.style.display = (selectedMode === 'static') ? 'flex' : 'none';
                 }
                 
                 if (flexibleTextarea) {
@@ -619,10 +808,16 @@ class DeviceActionHandler {
             });
         });
         
-        // Attach change listener to static input
+        // Update controls as they are edited so the stored value keeps its declared type.
         if (staticInput) {
-            staticInput.addEventListener('change', () => {
-                this.parameterConfigs[paramPath].value = this.parseStaticValue(staticInput.value);
+            const eventName = ['number', 'range', 'color'].includes(staticInput.type) ? 'input' : 'change';
+            staticInput.addEventListener(eventName, () => {
+                this.parameterConfigs[paramPath].value = this.readStaticParameterValue(staticInput, paramPath);
+                if (rangeOutput) {
+                    const uiField = this.getTemplateUiField(paramPath);
+                    const unit = uiField?.unit || this.selectedTemplate.parameter_constraints?.[paramPath]?.unit;
+                    rangeOutput.textContent = `${staticInput.value}${unit ? ` ${unit}` : ''}`;
+                }
                 this.updateJsonFromForm();
             });
         }
@@ -652,6 +847,52 @@ class DeviceActionHandler {
         }
     }
 
+    getTemplateUiField(parameterName) {
+        return this.selectedTemplate?.ui_fields?.find(field =>
+            (field.key || field.name) === parameterName
+        );
+    }
+
+    formatColorPickerValue(value) {
+        if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) {
+            return value.toLowerCase();
+        }
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return '#000000';
+        const packedValue = Math.max(0, Math.min(0xffffff, Math.trunc(numericValue)));
+        return `#${packedValue.toString(16).padStart(6, '0')}`;
+    }
+
+    readStaticParameterValue(input, parameterName) {
+        const uiField = this.getTemplateUiField(parameterName);
+        const constraint = this.selectedTemplate?.parameter_constraints?.[parameterName];
+        const fieldType = String(uiField?.type || constraint?.type || '').toLowerCase();
+
+        if (fieldType === 'toggle') return input.checked;
+        if (input.tagName === 'SELECT') {
+            const option = input.selectedOptions[0];
+            if (!option || input.value === '') return '';
+            const constraintType = String(constraint?.type || '').toLowerCase();
+            const valueType = ['integer', 'number', 'float', 'boolean'].includes(constraintType)
+                ? constraintType
+                : String(option.dataset.valueType || '').toLowerCase();
+            if (['integer', 'number', 'float'].includes(valueType)) return Number(input.value);
+            if (valueType === 'boolean') return input.value === 'true';
+            return input.value;
+        }
+        if (input.type === 'color') {
+            const format = String(uiField?.format || constraint?.format || '').toLowerCase();
+            return format === 'rgb24' || String(constraint?.type || '').toLowerCase() === 'integer'
+                ? Number.parseInt(input.value.slice(1), 16)
+                : input.value;
+        }
+        if (input.type === 'number' || input.type === 'range') {
+            return input.value === '' ? '' : input.valueAsNumber;
+        }
+        if (uiField?.type === 'text') return input.value;
+        return this.parseStaticValue(input.value);
+    }
+
     /**
      * Validate parameter evaluator (flexible parameter extraction operator)
      * Only extraction operators are allowed (PARAM, REGEX_EXTRACT, etc.)
@@ -665,7 +906,7 @@ class DeviceActionHandler {
         ]);
 
         if (!evaluator || !evaluator.Operator) {
-            return { valid: false, error: 'Operator is required' };
+            return { valid: false, error: conditionUiMessage('condition.ui.operatorRequired', 'Operator is required') };
         }
 
         const operator = evaluator.Operator;
@@ -673,19 +914,19 @@ class DeviceActionHandler {
         if (!EXTRACTION_OPERATORS.has(operator)) {
             return { 
                 valid: false, 
-                error: `Operator '${operator}' is not valid for parameter extraction. Must be one of: ${Array.from(EXTRACTION_OPERATORS).join(', ')}`
+                error: `${conditionUiMessage('condition.ui.invalidExtractionOperator', "Operator '{0}' is not valid for parameter extraction. Must be one of:").replace('{0}', operator)} ${Array.from(EXTRACTION_OPERATORS).join(', ')}`
             };
         }
 
         if (evaluator.Variables != null &&
             (!Array.isArray(evaluator.Variables) || evaluator.Variables.some(value => typeof value !== 'string'))) {
-            return { valid: false, error: 'Variables must be an array of strings' };
+            return { valid: false, error: conditionUiMessage('condition.ui.variablesArrayStrings', 'Variables must be an array of strings') };
         }
         if (evaluator.SubConditions != null && !Array.isArray(evaluator.SubConditions)) {
-            return { valid: false, error: 'SubConditions must be an array' };
+            return { valid: false, error: conditionUiMessage('condition.ui.subConditionsArray', 'SubConditions must be an array') };
         }
         if (!(evaluator.Variables?.length || evaluator.SubConditions?.length)) {
-            return { valid: false, error: `Operator '${operator}' requires an input` };
+            return { valid: false, error: conditionUiMessage('condition.ui.operatorRequiresInput', "Operator '{0}' requires an input").replace('{0}', operator) };
         }
         for (const child of evaluator.SubConditions || []) {
             const validation = this.validateParameterEvaluator(child);
@@ -697,7 +938,7 @@ class DeviceActionHandler {
 
     validateActionBody(body) {
         if (!body || typeof body !== 'object' || Array.isArray(body) || !Object.keys(body).length) {
-            throw new Error('Device action body must be a non-empty JSON object');
+            throw new Error(conditionUiMessage('condition.ui.actionBodyRequired', 'Device action body must be a non-empty JSON object'));
         }
         for (const [field, value] of Object.entries(body)) {
             if (value && typeof value === 'object' && Object.hasOwn(value, 'Operator')) {
@@ -708,18 +949,50 @@ class DeviceActionHandler {
     }
 
     buildActionParams() {
-        if (!this.selectedGroupId) throw new Error('Please select a device group');
-        if (!this.selectedTemplateId || !this.selectedTemplate) throw new Error('Please select an action template');
-        const body = this.selectedTemplateId === '__custom__'
-            ? JSON.parse(this.modalElement.querySelector('#modal_customTemplateJSON').value)
-            : JSON.parse(JSON.stringify(this.selectedTemplate.actionBody));
+        if (!this.selectedGroupId) throw new Error(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
+        if (!this.selectedTemplateId || !this.selectedTemplate) throw new Error(conditionUiMessage('condition.ui.selectActionTemplateRequired', 'Please select an action template'));
+        let body;
+        try {
+            body = this.selectedTemplateId === '__custom__'
+                ? JSON.parse(this.modalElement.querySelector('#modal_customTemplateJSON').value)
+                : JSON.parse(JSON.stringify(this.selectedTemplate.actionBody));
+        } catch (error) {
+            if (this.selectedTemplateId === '__custom__') {
+                throw new Error(conditionUiMessage('condition.ui.invalidDeviceActionJSON', 'Invalid device action JSON'));
+            }
+            throw error;
+        }
 
         // Read live editor values: graphical edits do not dispatch textarea change events.
         for (const [field, config] of Object.entries(this.parameterConfigs)) {
             const editor = this.parameterEditors?.[field];
-            body[field] = config.mode === 'flexible'
-                ? (editor ? JSON.parse(editor.conditionInput.value) : config.evaluator)
-                : config.value;
+            if (config.mode === 'flexible') {
+                body[field] = editor ? JSON.parse(editor.conditionInput.value) : config.evaluator;
+                continue;
+            }
+
+            const constraint = this.selectedTemplate.parameter_constraints?.[field];
+            const uiField = this.getTemplateUiField(field);
+            const type = String(constraint?.type || uiField?.type || '').toLowerCase();
+            const format = String(uiField?.format || constraint?.format || '').toLowerCase();
+            let value = config.value;
+            const numericParameter = ['integer', 'number', 'float', 'slider', 'range'].includes(type) ||
+                format === 'rgb24';
+            const min = constraint?.min ?? uiField?.min;
+            const max = constraint?.max ?? uiField?.max;
+            if (numericParameter && value !== '' && value != null) {
+                value = typeof value === 'number' ? value : Number(value);
+                if (!Number.isFinite(value) || (type === 'integer' && !Number.isInteger(value))) {
+                    throw new Error(`${field} must be a valid ${type} value`);
+                }
+                if (min != null && value < Number(min)) {
+                    throw new Error(`${field} must be at least ${min}`);
+                }
+                if (max != null && value > Number(max)) {
+                    throw new Error(`${field} must be at most ${max}`);
+                }
+            }
+            body[field] = value;
         }
         this.validateActionBody(body);
         return {
@@ -732,10 +1005,10 @@ class DeviceActionHandler {
     parseTemplateId(value) {
         if (value == null) return null;
         if (typeof value === 'number' && (!Number.isSafeInteger(value) || value <= 0)) {
-            throw new Error('Invalid action template ID');
+            throw new Error(conditionUiMessage('condition.ui.invalidActionTemplateId', 'Invalid action template ID'));
         }
         const id = String(value);
-        if (!/^[0-9]*[1-9][0-9]*$/.test(id)) throw new Error('Invalid action template ID');
+        if (!/^[0-9]*[1-9][0-9]*$/.test(id)) throw new Error(conditionUiMessage('condition.ui.invalidActionTemplateId', 'Invalid action template ID'));
         return id;
     }
 
@@ -756,12 +1029,17 @@ class DeviceActionHandler {
         if (this.modalElement.style.display === 'block' && !this.updateJsonFromForm()) {
             throw new Error(this.configurationError);
         }
-        const params = JSON.parse(this.jsonTextarea.value);
+        let params;
+        try {
+            params = JSON.parse(this.jsonTextarea.value);
+        } catch {
+            throw new Error(conditionUiMessage('condition.ui.invalidDeviceActionJSON', 'Invalid device action JSON'));
+        }
         if (!params || typeof params.device_group_id !== 'string' || !params.device_group_id.trim()) {
-            throw new Error('Please select a device group');
+            throw new Error(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
         }
         if (!this.deviceGroups.some(group => (group.id || group.ID) === params.device_group_id)) {
-            throw new Error('The selected device group is unavailable. Please select an existing group.');
+            throw new Error(conditionUiMessage('condition.ui.deviceGroupUnavailable', 'The selected device group is unavailable. Please select an existing group.'));
         }
         this.validateActionBody(params.device_action_body);
         return {
@@ -804,7 +1082,7 @@ class DeviceActionHandler {
         const selectionVersion = this.selectionVersion = (this.selectionVersion || 0) + 1;
         this.loadFromJson();
         if (!this.selectedGroupId) {
-            alert(globalThis._i18nMsg?.['condition.deviceAction.selectGroupAlert'] || 'Please select a device group');
+            alert(conditionUiMessage('condition.ui.selectDeviceGroupRequired', 'Please select a device group'));
             return;
         }
         const group = await this.showGroupDevices(this.selectedGroupId);
@@ -815,7 +1093,7 @@ class DeviceActionHandler {
             const template = await this.fetchTemplateById(this.selectedTemplateId);
             if (selectionVersion !== this.selectionVersion) return;
             if (!template) {
-                alert(globalThis._i18nMsg?.['condition.deviceAction.templateUnavailable'] || 'The saved action template is unavailable. Please select an action template again.');
+                alert(conditionUiMessage('condition.ui.savedTemplateUnavailable', 'The saved action template is unavailable. Please select an action template again.'));
                 this.selectedTemplateId = null;
                 this.selectedTemplate = null;
                 this.renderTemplateSelector(templates);
@@ -936,6 +1214,9 @@ class ConditionEditor {
         // Initialize text condition dialog handler
         this.textDialog = new TextDialogHandler(this);
         
+        // Initialize exchange dialog handler
+        this.exchangeDialog = new ExchangeDialogHandler(this);
+
         // Initialize range dialog handler
         this.rangeDialog = new RangeDialogHandler(this);
         
@@ -1701,7 +1982,7 @@ class ConditionEditor {
                     items_parseint.push(node.Variables[i]);
                 }
                 if (items_parseint.length) {
-                    return "<span class='parseint'>" + items_parseint.join(translations["value-joint"]) + "</span>";
+                    return "<span class='parseint'>" + items_parseint.join(translations["valueof-joint"]) + "</span>";
                 } else {
                     return translations["calc-missingvalue"];
                 }
@@ -1712,13 +1993,16 @@ class ConditionEditor {
                 for (const i in node.SubConditions) {
                     items_exchange.push(this._summarize(node.SubConditions[i]));
                 }
-                if (node.Variables.length) {
+                if (node.Variables.length > 1) {
+                    currency = node.Variables[1];
+                } else 
+                if (node.Variables.length > 0) {
                     currency = node.Variables[0];
                 } else {
                     currency = translations["calc-missingvalue"];
                 }
                 if (items_exchange.length) {
-                    return translations["exchange-sentense"].replace("{0}", items_exchange.join(translations["value-joint"])).replace("{1}", currency);
+                    return translations["exchange-sentense"].replace("{0}", items_exchange.join(translations["valueof-joint"])).replace("{1}", currency);
                 } else {
                     return translations["calc-missingvalue"];
                 }
@@ -1875,6 +2159,28 @@ class ConditionEditor {
                 currentnode["Operator"] = this.operatormap[numericcompareoperator];
                 currentnode["SubConditions"] = [JSON.parse(numericcomparebasevalue), JSON.parse(numericcomparetarget)];
                 
+            } else if (document.getElementById("boolcurrencyradio").checked) {
+                const field = this.boolDialog.getSelectedExchangeableField();
+                const target = document.getElementById("currencycomparetarget").value;
+                if (!field || !target) {
+                    return;
+                }
+                currentnode.Operator = this.operatormap[document.getElementById("currencycompareoperator").value];
+                currentnode.Variables = [];
+                const exchangeSubConditions = [
+                    { Operator: "PARAM", Variables: [this.boolDialog.getConditionParameter(field)] }
+                ];
+                const variables = [document.getElementById("currencyselector").value];
+                const sourceCurrencyParameter = this.boolDialog.getSourceCurrencyParameter(field);
+                if (sourceCurrencyParameter) {
+                    variables.unshift(sourceCurrencyParameter);
+                }
+                currentnode.SubConditions = [{
+                    Operator: "EXCHANGE",
+                    SubConditions: exchangeSubConditions,
+                    Variables: variables
+                }, JSON.parse(target)];
+
             } else if (document.getElementById("boolconditionradio").checked) {
                 // Add boolean condition
                 currentnode["Operator"] = document.getElementById("boolcondition").value;
@@ -1990,11 +2296,13 @@ class BoolDialogHandler {
     constructor(editor) {
         this.editor = editor;
         this.elem = document.getElementById("boolBody");
+        this.localizeCurrencyOptions();
 
         document.getElementById("boolmodal_text").onclick = function(e) {
             document.getElementById('booltextradio').checked=true;
             document.getElementById('boolmodal_text').classList.add('available');
             document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
             document.getElementById('boolmodal_bool').classList.remove('available');
             this.validate();
         }.bind(this);
@@ -2003,6 +2311,16 @@ class BoolDialogHandler {
             document.getElementById('boolnumericradio').checked=true;
             document.getElementById('boolmodal_text').classList.remove('available');
             document.getElementById('boolmodal_numeric').classList.add('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
+            document.getElementById('boolmodal_bool').classList.remove('available');
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("boolmodal_currency").onclick = function(e) {
+            document.getElementById('boolcurrencyradio').checked=true;
+            document.getElementById('boolmodal_text').classList.remove('available');
+            document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.add('available');
             document.getElementById('boolmodal_bool').classList.remove('available');
             this.validate();
         }.bind(this);
@@ -2058,10 +2376,33 @@ class BoolDialogHandler {
             }.bind(this));
         }.bind(this);
 
+
+        document.getElementById("currencycomparetargetdisp").onclick = function(e) {
+            this.editor.numericDialog.open(
+                document.getElementById('currencycomparetarget').value,
+                function(val,disp){
+                    document.getElementById('currencycomparetarget').value = val;
+                    document.getElementById('currencycomparetargetplacedisp').innerHTML=disp;
+                    document.getElementById('currencycomparetargetplacedisp').style['display']='inline';
+                    document.getElementById('currencycomparetargetplaceholder').style['display']='none';
+                    document.getElementById('currencycomparetarget').value=val;
+                    this.validate();
+            }.bind(this));
+        }.bind(this);
+
+        document.getElementById("currencyfieldselector").onchange = function() {
+            this.applyExchangeFieldCurrencyDefault();
+            this.updateExchangeRateWarning();
+            this.validate();
+        }.bind(this);
+        document.getElementById("currencyselector").onchange = this.validate.bind(this);
+        document.getElementById("currencycompareoperator").onchange = this.validate.bind(this);
+
         document.getElementById("boolmodal_bool").onclick= function(e) {
             document.getElementById('boolconditionradio').checked=true;
             document.getElementById('boolmodal_text').classList.remove('available');
             document.getElementById('boolmodal_numeric').classList.remove('available');
+            document.getElementById('boolmodal_currency').classList.remove('available');
             document.getElementById('boolmodal_bool').classList.add('available');
             this.validate();
         }.bind(this);
@@ -2081,6 +2422,19 @@ class BoolDialogHandler {
                 option.text = editor.booleanoperators[i];
                 document.getElementById("boolcondition").appendChild(option);
             }
+        }
+    }
+
+    localizeCurrencyOptions() {
+        const locale = document.documentElement.lang || "en";
+        const selector = document.getElementById("currencyselector");
+        for (const option of selector.options) {
+            const symbol = new Intl.NumberFormat(locale, {
+                style: "currency",
+                currency: option.value,
+                currencyDisplay: "narrowSymbol"
+            }).formatToParts(0).find((part) => part.type === "currency")?.value || option.value;
+            option.textContent = `${option.value} (${symbol})`;
         }
     }
 
@@ -2106,6 +2460,10 @@ class BoolDialogHandler {
             document.getElementById("booltextradio").style["display"] = "inline";
             document.getElementById("boolnumericradio").style["display"] = "inline";
             document.getElementById("boolconditionradio").style["display"] = "inline";
+            this.populateExchangeableFields();
+            const currencyModeAvailable = this.getExchangeableFields().length > 0;
+            document.getElementById("boolmodal_currency").style["display"] = currencyModeAvailable ? "block" : "none";
+            document.getElementById("boolcurrencyradio").style["display"] = currencyModeAvailable ? "inline" : "none";
 
             if (this.editor.textoperators.includes(currentnode.Operator)) {
                 document.getElementById("boolmodal_text").style["display"] = "inline";
@@ -2185,14 +2543,50 @@ class BoolDialogHandler {
             document.getElementById("numericcomparebaseplaceholder").style["display"] = "inline-block";
             document.getElementById("numericcomparebaseplacedisp").style["display"] = "none";
             document.getElementById("numericcomparebase").value = "";
-            document.getElementById("numericcompareoperator").value = ">";
+            document.getElementById("numericcompareoperator").value = "greater_than";
             document.getElementById("numericcomparetargetplaceholder").style["display"] = "inline-block";
             document.getElementById("numericcomparetargetplacedisp").style["display"] = "none";
             document.getElementById("numericcomparetarget").value = "";
+            document.getElementById("currencyselector").value = "USD";
+            document.getElementById("currencycompareoperator").value = "greater_than";
+            document.getElementById("currencycomparetargetplaceholder").style["display"] = "inline-block";
+            document.getElementById("currencycomparetargetplacedisp").style["display"] = "none";
+            document.getElementById("currencycomparetarget").value = "";
+            document.getElementById("boolcurrencyradio").checked = false;
+            document.getElementById("boolmodal_currency").classList.remove("available");
+            document.getElementById("currencyfieldselector").selectedIndex = 0;
+            this.applyExchangeFieldCurrencyDefault();
+            this.updateExchangeRateWarning();
             document.getElementById("boolconditionradio").checked = false;
             document.getElementById("boolmodal_bool").classList.remove("available");
             document.getElementById("boolSubmitButton").disabled = "disabled";
             document.getElementById("boolcondition").value = "";
+
+            const exchangeCondition = currentnode.SubConditions?.[0]?.Operator === "EXCHANGE"
+                ? currentnode.SubConditions[0]
+                : null;
+            if (exchangeCondition && currencyModeAvailable) {
+                const selectedField = this.getExchangeableFields().find((field) =>
+                    this.getConditionParameter(field) === exchangeCondition.SubConditions?.[0]?.Variables?.[0] &&
+                    (!this.getSourceCurrencyParameter(field) ||
+                        this.getSourceCurrencyParameter(field) === exchangeCondition.SubConditions?.[1]?.Variables?.[0]));
+                if (selectedField) {
+                    document.getElementById("boolcurrencyradio").checked = true;
+                    document.getElementById("boolmodal_currency").classList.add("available");
+                    document.getElementById("currencyfieldselector").value = selectedField.Name;
+                    document.getElementById("currencyselector").value = exchangeCondition.Variables?.[0] || "USD";
+                    document.getElementById("currencycompareoperator").value = this.editor.namingmap[currentnode.Operator] || "greater_than";
+                    const targetValue = currentnode.SubConditions?.[1];
+                    if (targetValue) {
+                        const target = JSON.stringify(targetValue);
+                        document.getElementById("currencycomparetarget").value = target;
+                        document.getElementById("currencycomparetargetplacedisp").innerHTML = this.editor._summarize(targetValue);
+                        document.getElementById("currencycomparetargetplacedisp").style["display"] = "inline";
+                        document.getElementById("currencycomparetargetplaceholder").style["display"] = "none";
+                    }
+                    this.updateExchangeRateWarning();
+                }
+            }
 
             document.getElementById("boolModal").style["display"] = "block";
             document.getElementById("boolPath").value = path;
@@ -2202,6 +2596,7 @@ class BoolDialogHandler {
             document.getElementById("boolSubmitButton").onclick = function() {
                 self.editor._editBoolItem(path);
             };
+            this.validate();
         } catch (err) {
             console.error('Error in BoolDialogHandler.open():', err);
         }
@@ -2211,7 +2606,6 @@ class BoolDialogHandler {
      * Validate boolean dialog form inputs
      */
     validate() {
-        const classList = document.getElementById("boolBody").classList;
         document.getElementById("boolSubmitButton").disabled = "disabled";
         if (document.getElementById("booltextradio").checked) {
             document.getElementById("boolSubmitButton").disabled =
@@ -2224,9 +2618,57 @@ class BoolDialogHandler {
                 document.getElementById("numericcomparebase").value &&
                 document.getElementById("numericcompareoperator").value && 
                 document.getElementById("numericcomparetarget").value ? "" : "disabled";
+        } else if (document.getElementById("boolcurrencyradio").checked) {
+            document.getElementById("boolSubmitButton").disabled =
+                this.getSelectedExchangeableField() &&
+                document.getElementById("currencyselector").value &&
+                document.getElementById("currencycompareoperator").value &&
+                document.getElementById("currencycomparetarget").value ? "" : "disabled";
         } else if (document.getElementById("boolconditionradio").checked) {
             document.getElementById("boolSubmitButton").disabled =
                 document.getElementById("boolcondition").value ? "" : "disabled";
+        }
+    }
+
+    getExchangeableFields() {
+        return this.editor.eventFieldOptions.filter((field) => field.Exchangeable === true);
+    }
+
+    getConditionParameter(field) {
+        return field.ConditionParameter || field.Name;
+    }
+
+    getSourceCurrencyParameter(field) {
+        return field.SourceCurrencyParameter || "";
+    }
+
+    getSelectedExchangeableField() {
+        const selectedName = document.getElementById("currencyfieldselector").value;
+        return this.getExchangeableFields().find((field) => field.Name === selectedName);
+    }
+
+    populateExchangeableFields() {
+        const selector = document.getElementById("currencyfieldselector");
+        selector.replaceChildren();
+        for (const field of this.getExchangeableFields()) {
+            const option = document.createElement("option");
+            option.value = field.Name;
+            option.textContent = field.Label || field.Name;
+            selector.appendChild(option);
+        }
+    }
+
+    updateExchangeRateWarning() {
+        const field = this.getSelectedExchangeableField();
+        const warning = document.getElementById("currencyratewarning");
+        warning.style.display = field?.ExchangeRateApproximate ? "block" : "none";
+    }
+
+    applyExchangeFieldCurrencyDefault() {
+        const currency = this.getSelectedExchangeableField()?.ExchangeRateCurrency;
+        const selector = document.getElementById("currencyselector");
+        if (currency && Array.from(selector.options).some((option) => option.value === currency)) {
+            selector.value = currency;
         }
     }
 }
@@ -2237,20 +2679,40 @@ class TextDialogHandler {
         document.getElementById("textEnvArea").onclick = function(e) {
             document.getElementById('textenvradio').checked=true;
             document.getElementById('textEnvArea').classList.add('available');
+            document.getElementById('textColorArea').classList.remove('available');
             document.getElementById('textEnterArea').classList.remove('available');
             document.getElementById('textExtArea').classList.add('available');
             document.getElementById('textExtSelect').disabled='';
+            document.getElementById('textColorExtArea').classList.remove('available');
+            document.getElementById('textColorExtSelect').disabled='disabled';
             this.validate();
         }.bind(this);
 
         document.getElementById("textEnvSelect").onchange = this.validate;
+
+        document.getElementById("textColorArea").onclick = function(e) {
+            document.getElementById('textcolorradio').checked=true;
+            document.getElementById('textColorArea').classList.add('available');
+            document.getElementById('textEnvArea').classList.remove('available');
+            document.getElementById('textEnterArea').classList.remove('available');
+            document.getElementById('textExtArea').classList.remove('available');
+            document.getElementById('textExtSelect').disabled='disabled';
+            document.getElementById('textColorExtArea').classList.add('available');
+            document.getElementById('textColorExtSelect').disabled='';
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("textColorExtSelect").onchange = this.validate;
 
         document.getElementById("textEnterArea").onclick = function (){
             document.getElementById('textenterradio').checked=true;
             document.getElementById('textEnterArea').classList.add('available');
             document.getElementById('textEnvArea').classList.remove('available');
             document.getElementById('textExtArea').classList.remove('available');
-            document.getElementById('textExtSelect').disabled='';
+            document.getElementById('textExtSelect').disabled='disabled';
+            document.getElementById('textColorArea').classList.remove('available');
+            document.getElementById('textColorExtArea').classList.remove('available');
+            document.getElementById('textColorExtSelect').disabled='disabled';
             this.validate();
         }.bind(this);
 
@@ -2259,6 +2721,8 @@ class TextDialogHandler {
         document.getElementById("textExtArea").onchange = function(e) {
             document.getElementById('textenvradio').checked=true;
             document.getElementById('textEnvArea').classList.add('available');
+            document.getElementById('textColorArea').classList.remove('available');
+            document.getElementById('textColorExtArea').classList.remove('available');
             document.getElementById('textExtArea').classList.add('available');
             this.validate();
         }.bind(this);
@@ -2290,6 +2754,42 @@ class TextDialogHandler {
         document.getElementById("textExtSubTo").onchange = this.validate;
         document.getElementById("textExtFirst").onchange = this.validate;
         document.getElementById("textExtLast").onchange = this.validate;
+
+        document.getElementById("textColorExtArea").onchange = function(e) {
+            document.getElementById('textenvradio').checked=true;
+            document.getElementById('textEnvArea').classList.remove('available');
+            document.getElementById('textExtArea').classList.remove('available');
+            document.getElementById('textColorArea').classList.add('available');
+            document.getElementById('textColorExtArea').classList.add('available');
+            this.validate();
+        }.bind(this);
+
+        document.getElementById("textColorExtSelect").onchange = function(e) {
+            this.validate();
+            document.getElementById('textColorExtRegex').style['display']=e.target.value=='regex_extract'?'inline-block':'none';
+            document.getElementById('textColorExtSubFrom').style['display']=e.target.value=='substring'?'inline-block':'none';
+            document.getElementById('textColorExtSubTo').style['display']=e.target.value=='substring'?'inline-block':'none';
+            document.getElementById('textColorExtFirst').style['display']=e.target.value=='first'?'inline-block':'none';
+        }.bind(this);
+        
+        if (document.getElementById("textColorExtSelect").options.length === 0) {
+            const emptyoption = document.createElement("option");
+            emptyoption.value = "";
+            emptyoption.text = "";
+            document.getElementById("textColorExtSelect").appendChild(emptyoption);
+            for (const i in editor.textextractors) {
+                const option = document.createElement("option");
+                option.value = editor.namingmap[editor.textextractors[i]] ||editor.textextractors[i];
+                option.text = translations[editor.textextractors[i]] || editor.textextractors[i];
+                document.getElementById("textColorExtSelect").appendChild(option);
+            }
+        }
+
+        document.getElementById("textColorExtRegex").onchange = this.validate;
+        document.getElementById("textColorExtSubFrom").onchange = this.validate;
+        document.getElementById("textColorExtSubTo").onchange = this.validate;
+        document.getElementById("textColorExtFirst").onchange = this.validate;
+        document.getElementById("textColorExtLast").onchange = this.validate;
     }
 
     /**
@@ -2306,6 +2806,7 @@ class TextDialogHandler {
         document.getElementById("textEnter").value = currenttype == "variable" ? currentvalue : "";
         document.getElementById("textValidator").value = validator ?? "";
 
+        document.getElementById('textColorArea').classList.remove('available');
         document.getElementById('textEnterArea').classList.remove('available');
         document.getElementById('textEnvArea').classList.remove('available');
         document.getElementById('textExtArea').classList.remove('available');
@@ -2415,6 +2916,21 @@ class TextDialogHandler {
         }
         
         document.getElementById("textSubmitButton").disabled = valid ? "" : "disabled";
+    }
+}
+
+class ExchangeDialogHandler {
+    constructor(editor) {
+        this.editor = editor;
+    }
+
+    open(currentvalue, currenttype, currentextractor, currentextractorval, includeenv, includeenter, callback, validator){
+        document.getElementById("exchangeModal").style["display"] = "block";
+        document.getElementById("exchangeSubmitButton").onclick = function() {
+            let exchange = document.getElementById("exchangeSelect").value;
+            callback(exchange, exchange);
+            document.getElementById("exchangeModal").style["display"] = "none";
+        }.bind(this);
     }
 }
 
@@ -2728,6 +3244,27 @@ class NumericDialogHandler {
             window.keyupEvent = keyEventEvac;
         }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
         document.getElementById("textModal").ondialogclose = function(){ window.keyupEvent = keyEventEvac; };
+    }
+
+    /**
+     * Appends a Exchange pattern
+     */
+    openExchangeInput() {
+        this.editor.exchangeDialog.open(null, null, null, null, true, true, function(dispval, val, type, exttype, extval){
+            let appendnode;
+            if (type == "env") {
+                if (exttype && exttype != "wholesentence" && extval) {
+                    appendnode = {"Operator": "PARSEINT", "SubConditions": [{"Operator": this.editor.operatormap[exttype], "SubConditions": [{"Operator": "PARAM", "SubConditions": null, "Variables": [val]}], "Variables": [extval]}], "Variables": null };
+                } else {
+                    appendnode = {"Operator": "PARSEINT", "SubConditions": [{"Operator": "PARAM", "SubConditions": null, "Variables": [val]}], "Variables": null };
+                }
+            } else if (type == "variable") {
+                appendnode = {"Operator": "PARSEINT", "SubConditions": null, "Variables": [val]};
+            }
+            if (appendnode) {
+                this.appendItemToFormula(appendnode);
+            }
+        }.bind(this), "^[0-9]+(\\.[0-9]+)?$");
     }
 
     /**
@@ -3345,7 +3882,7 @@ async function runConditionTest() {
     const eventType = document.getElementById('testEventType').value;
     
     if (!eventType) {
-        alert(globalThis._i18nMsg?.['conditions.selectEventTypeRequired'] || 'Please select an event type');
+        alert(window._i18nMsg?.['condition.ui.selectEventType'] || 'Please select an event type');
         return;
     }
     
@@ -3360,12 +3897,12 @@ async function runConditionTest() {
     }
     
     if (!conditionLogic) {
-        alert(globalThis._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
+        alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
     if (!window.createTestEventFromMetadata) {
-        alert('Test event metadata builder not available');
+        alert(window._i18nMsg?.['condition.ui.testMetadataUnavailable'] || 'Test event metadata builder not available');
         return;
     }
 
@@ -3380,7 +3917,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert((globalThis._i18nMsg?.['condition.failedLoadEventMetadata'] || 'Failed to load event metadata: ') + error.message);
+        alert((window._i18nMsg?.['condition.ui.testMetadataLoadFailed'] || 'Failed to load event metadata:') + ' ' + error.message);
         return;
     }
     
@@ -3395,7 +3932,7 @@ async function runConditionTest() {
     const resultsContainer = document.getElementById('testResultsContainer');
     const resultsContent = document.getElementById('testResultsContent');
     if (!resultsContainer || !resultsContent) {
-        alert('Test results container not found');
+        alert(window._i18nMsg?.['condition.ui.testResultsUnavailable'] || 'Test results container not found');
         return;
     }
 
@@ -3413,7 +3950,7 @@ async function runConditionTest() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Test failed: ' + response.status);
+            throw new Error((window._i18nMsg?.['condition.ui.testFailed'] || 'Test failed:') + ' ' + response.status);
         }
         return response.json();
     })
@@ -3421,9 +3958,9 @@ async function runConditionTest() {
         // Display results
         let resultHTML = '<pre style="max-height: 300px; overflow-y: auto; background: #fff; padding: 0.5rem; border-radius: 3px; font-size: 0.85rem;">' + JSON.stringify(result, null, 2) + '</pre>';
         resultHTML += '<div style="margin-top: 1rem; padding: 1rem; background: #fff; border-left: 4px solid ' + (result.matched ? '#28a745' : '#dc3545') + ';">';
-        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ Yes' : '✗ No') + '</span><br>';
+        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
         if (result.matched) {
-            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ Yes' : '✗ No') + '</span><br>';
+            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
             if (result.computed_values && result.computed_values.length > 0) {
                 resultHTML += '<strong>' + (window._i18nMsg?.['condition.details'] || 'Details') + ':</strong> <code>' + result.computed_values.join(', ') + '</code><br>';
             }
@@ -3432,7 +3969,7 @@ async function runConditionTest() {
             resultHTML += '<br><strong style="color:red;">' + (window._i18nMsg?.['condition.errors'] || 'Errors') + ':</strong> ' + result.execution_error + '<br>';
         }
         if (result.execution_result) {
-            resultHTML += '<br><strong style="color:green;">Success:</strong> ' + result.execution_result + '<br>';
+            resultHTML += '<br><strong style="color:green;">' + (window._i18nMsg?.['condition.success'] || 'Success') + ':</strong> ' + result.execution_result + '<br>';
         }
         resultHTML += '</div>';
         
@@ -3465,7 +4002,7 @@ function testRegexPattern() {
     const resultDiv = document.getElementById('regexResult');
     
     if (!pattern) {
-        resultDiv.textContent = globalThis._i18nMsg?.['condition.regexPatternRequired'] || 'Please enter a regex pattern';
+        resultDiv.textContent = window._i18nMsg?.['condition.ui.regexPatternRequired'] || 'Please enter a regex pattern';
         resultDiv.style.color = '#d32f2f';
         return;
     }
@@ -3475,14 +4012,14 @@ function testRegexPattern() {
         const matches = testString.match(regex);
         
         if (matches) {
-            resultDiv.textContent = `✓ Match found!\n\nMatched text: "${matches[0]}"${matches.length > 1 ? `\n\nCapture groups: ${matches.slice(1).map((m, i) => `[${i + 1}] "${m}"`).join(', ')}` : ''}`;
+            resultDiv.textContent = `✓ ${window._i18nMsg?.['condition.ui.regexMatchFound'] || 'Match found!'}\n\n${window._i18nMsg?.['condition.ui.regexMatchedText'] || 'Matched text'}: "${matches[0]}"${matches.length > 1 ? `\n\n${window._i18nMsg?.['condition.ui.regexCaptureGroups'] || 'Capture groups'}: ${matches.slice(1).map((m, i) => `[${i + 1}] "${m}"`).join(', ')}` : ''}`;
             resultDiv.style.color = '#2e7d32';
         } else {
-            resultDiv.textContent = '✗ No match found';
+            resultDiv.textContent = `✗ ${window._i18nMsg?.['condition.noMatch'] || 'No match found'}`;
             resultDiv.style.color = '#d32f2f';
         }
     } catch (err) {
-        resultDiv.textContent = `✗ Invalid regex pattern:\n${err.message}`;
+        resultDiv.textContent = `✗ ${window._i18nMsg?.['condition.ui.regexInvalidPattern'] || 'Invalid regex pattern'}:\n${err.message}`;
         resultDiv.style.color = '#d32f2f';
     }
 }
@@ -3508,7 +4045,7 @@ function copyToClipboard(text, element) {
         const originalBg = element.style.backgroundColor;
         element.style.backgroundColor = '#4caf50';
         element.style.color = 'white';
-        element.textContent = '✓ Copied!';
+        element.textContent = `✓ ${window._i18nMsg?.['condition.ui.copied'] || 'Copied!'}`;
         
         setTimeout(() => {
             element.textContent = originalText;

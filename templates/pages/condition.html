@@ -40,7 +40,7 @@
       {{else}}
         <div id="templateCards">
         {{range .ConditionTemplates}}
-        <div class="template-card" onclick="conditionEditor.addTemplate('{{toJSON .JSON}}')" title="Click to add: {{($.I18n.T .NameKey .Name)}}">
+        <div class="template-card" onclick="conditionEditor.addTemplate('{{toJSON .JSON}}')" title="{{$.I18n.T "condition.templates.clickToAdd" ($.I18n.T .NameKey .Name)}}">
           <h5 class="template-card-name">{{$.I18n.T .NameKey .Name}}</h5>
           <p class="template-card-desc">{{$.I18n.T .DescriptionKey .Description}}</p>
         </div>
@@ -175,28 +175,67 @@
                     <input id="textconditionselectvalue" type="hidden" value="" />
                     <input id="textconditionselecttype" type="hidden" value="" />
                 </span>
-                </div>
-                <div id="boolmodal_numeric" class="selector">
+            </div>
+            <div id="boolmodal_numeric" class="selector">
                 <div><input id="boolnumericradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.comparison"}}</div>
-                    <span id="numericcomparebasedisp" class="numselector">
-                        <span id="numericcomparebaseplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
-                        <span id="numericcomparebaseplacedisp" class="value" style="display:none"></span>
-                    </span>
-                    <input id="numericcomparebase" type="hidden" />
-                    <select id="numericcompareoperator">
+                <span id="numericcomparebasedisp" class="numselector">
+                    <span id="numericcomparebaseplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="numericcomparebaseplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="numericcomparebase" type="hidden" />
+                <select id="numericcompareoperator">
                     <option value="greater_than">&gt;</option>
                     <option value="greater_or_equal" selected>&gt;=</option>
                     <option value="equivalent">=</option>
                     <option value="less_or_equal">&lt;=</option>
                     <option value="less_than">&lt;</option>
-                    </select>
-                    <span id="numericcomparetargetdisp" class="numselector">
-                        <span id="numericcomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
-                        <span id="numericcomparetargetplacedisp" class="value" style="display:none"></span>
-                    </span>
-                    <input id="numericcomparetarget" type="hidden" />
-                </div>
-                <div id="boolmodal_bool" class="selector">
+                </select>
+                <span id="numericcomparetargetdisp" class="numselector">
+                    <span id="numericcomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="numericcomparetargetplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="numericcomparetarget" type="hidden" />
+            </div>
+            <div id="boolmodal_currency" class="selector">
+                <div><input id="boolcurrencyradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.exchange"}}</div>
+                <select id="currencyfieldselector"></select>
+                <select id="currencyselector">
+                    <option value="EUR">EUR</option>
+                    <option value="USD" selected>USD</option>
+                    <option value="JPY">JPY</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CNY">CNY</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                    <option value="HKD">HKD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="KRW">KRW</option>
+                    <option value="INR">INR</option>
+                    <option value="MXN">MXN</option>
+                    <option value="BRL">BRL</option>
+                    <option value="NZD">NZD</option>
+                    <option value="SEK">SEK</option>
+                    <option value="NOK">NOK</option>
+                    <option value="PLN">PLN</option>
+                    <option value="THB">THB</option>
+                    <option value="ZAR">ZAR</option>
+                </select>
+                <select id="currencycompareoperator">
+                    <option value="greater_than">&gt;</option>
+                    <option value="greater_or_equal" selected>&gt;=</option>
+                    <option value="equivalent">=</option>
+                    <option value="less_or_equal">&lt;=</option>
+                    <option value="less_than">&lt;</option>
+                </select>
+                <span id="currencycomparetargetdisp" class="numselector">
+                    <span id="currencycomparetargetplaceholder" class="placeholder">{{.I18n.T "condition.modal.bool.numericEnter"}}</span>
+                    <span id="currencycomparetargetplacedisp" class="value" style="display:none"></span>
+                </span>
+                <input id="currencycomparetarget" type="hidden" />
+                <small id="currencyratewarning" style="display:none">{{.I18n.T "condition.modal.bool.exchangeApproximate"}}</small>
+            </div>
+            <div id="boolmodal_bool" class="selector">
                 <div><input id="boolconditionradio" type="radio" name="addboolradio" />{{.I18n.T "condition.modal.bool.moreCondition"}}</div>
                 <select id="boolcondition"></select>
                 </div>
@@ -215,37 +254,80 @@
                 <p>{{.I18n.T "condition.modal.text.description"}}</p>
             </div>
             <div id="textBody" class="modal-body textselection">
-            <div>
-                <div id="textEnvArea" class="selector envselection">
+            <div id="textEnvArea" class="selector envselection">
                 <h4><input id="textenvradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.selectInput"}}</h4>
-                <select id="textEnvSelect">
-                    {{range .EventFieldOptions}}
-                    <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
-                    {{end}}
-                </select>
+                <div>
+                    <h5>{{.I18n.T "condition.modal.text.selectSource"}}</h5>
+                    <select id="textEnvSelect">
+                        {{range .EventFieldOptions}}
+                        <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
+                        {{end}}
+                    </select>
                 </div>
-                <div id="textEnterArea" class="selector entervalue">
+                <div id="textExtArea" class="selector textextractor extractorselection">
+                    <h5>{{.I18n.T "condition.modal.text.extract"}}</h5>
+                    <select id="textExtSelect"></select>
+                    <div>
+                        <input id="textExtRegex" type="text" style="display:none"/>
+                        <input id="textExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
+                        <input id="textExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                        <input id="textExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                    </div>
+                </div>
+            </div>
+            <div id="textColorArea" class="selector colorselection">
+                <h4><input id="textcolorradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.color"}}</h4>
+                <div>
+                    <h5>{{.I18n.T "condition.modal.text.selectSource"}}</h5>
+                    <select id="textColorsourceSelect">
+                        {{range .EventFieldOptions}}
+                        <option value="{{.Name}}" data-translation-key="condition.schema.{{$.CurrentChannel.Platform}}.{{.Name}}.label">{{.Label}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div id="textColorExtArea" class="selector textextractor extractorselection">
+                    <h5>{{.I18n.T "condition.modal.text.extract"}}</h5>
+                    <select id="textColorExtSelect"></select>
+                    <div>
+                        <input id="textColorExtRegex" type="text" style="display:none"/>
+                        <input id="textColorExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textColorExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
+                        <input id="textColorExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                        <input id="textColorExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
+                    </div>
+                </div>
+            </div>
+            <div id="textEnterArea" class="selector entervalue">
                 <h4><input id="textenterradio" type="radio" name="inputtextradio"> {{.I18n.T "condition.modal.text.staticValue"}}</h4>
                 <input id="textEnter" type="text" >
                 <input id="textValidator" type="hidden" >
-                </div>
-            </div>
-            <div class="extractorselection">
-                <div id="textExtArea" class="selector textextractor">
-                <h4>{{.I18n.T "condition.modal.text.extract"}}</h4>
-                <select id="textExtSelect"></select>
-                <div>
-                    <input id="textExtRegex" type="text" style="display:none"/>
-                    <input id="textExtSubFrom" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" /><input id="textExtSubTo" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" style="display:none" />
-                    <input id="textExtFirst" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
-                    <input id="textExtLast" type="number" inputmode="numeric" min="1" max="999" pattern="[0-9]*" class="numerictext" style="display:none" />
-                </div>
-                </div>
             </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('textModal')">{{.I18n.T "condition.button.cancel"}}</button>
                 <button id="textSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="exchangeModal" class="modal">
+        <div class="modal-content modal-middle">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal('exchangeModal')">×</span>
+                <p>{{.I18n.T "condition.modal.exchange.description"}}</p>
+            </div>
+            <div id="exchangeBody" class="modal-body exchange-selection">
+                <div id="exchangeInputArea" class="selector exchangeinput">
+                    <h4><input id="exchangeInputRadio" type="radio" name="exchangeInputRadio"> {{.I18n.T "condition.modal.exchange.input"}}</h4>
+                    <input id="exchangeInputValue" type="text" placeholder='{{.I18n.T "condition.modal.exchange.inputPlaceholder"}}'>
+                </div>
+                <div id="exchangeSelectArea" class="selector exchangeselect">
+                    <h4><input id="exchangeSelectRadio" type="radio" name="exchangeInputRadio"> {{.I18n.T "condition.modal.exchange.select"}}</h4>
+                    <select id="exchangeSelectValue"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('exchangeModal')">{{.I18n.T "condition.button.cancel"}}</button>
+                <button id="exchangeSubmitButton" type="button" class="btn btn-primary" onclick="">{{.I18n.T "condition.modal.button.okay"}}</button>
             </div>
         </div>
     </div>
@@ -283,7 +365,7 @@
                 <span class="close" onclick="closeModal('textRangeModal')">×</span>
                 <p>{{.I18n.T "condition.modal.range.description"}}</p>
             </div>
-            <div id="textRangeBody" class="modal-body textselection">
+            <div id="textRangeBody" class="modal-body textrangeselection">
                 <input id="textRangeFrom" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
                 <span class="rangeconnection">{{.I18n.T "condition.modal.range.connection"}}</span>
                 <input id="textRangeTo"   type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
@@ -452,36 +534,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('operatorRefModal')">{{.I18n.T "condition.button.close"}}</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Test Condition Modal -->
-    <div id="testConditionModal" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <span class="close" onclick="closeTestModal()">×</span>
-                <h2>{{.I18n.T "channelLayout.testConditionTitle"}}</h2>
-                <p>{{.I18n.T "channelLayout.testConditionSubtitle"}}</p>
-            </div>
-            <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
-                <div>
-                    <label for="testEventType" style="display:block; font-weight:600; margin-bottom:0.5rem;">{{.I18n.T "channelLayout.testEventType"}}:</label>
-                    <select id="testEventType" onchange="updateTestEventParams()" style="width:100%; padding:0.75rem; border:1px solid #ced4da; border-radius:6px;">
-                        <option value="">{{.I18n.T "channelLayout.testEventTypeSelect"}}</option>
-                    </select>
-                </div>
-                <div id="testEventParamsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9;">
-                    <p style="color:#666; font-size:0.9rem;">{{.I18n.T "condition.testEventParamsHint"}}</p>
-                </div>
-                <div id="testResultsContainer" style="border:1px solid #ddd; border-radius:6px; padding:1rem; background:#f9f9f9; display:none;">
-                    <div style="font-weight:600; margin-bottom:0.75rem;">{{.I18n.T "channelLayout.testResults"}}</div>
-                    <div id="testResultsContent" style="font-family:monospace; white-space:pre-wrap; font-size:0.9rem;"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeTestModal()">{{.I18n.T "condition.button.close"}}</button>
-                <button type="button" class="btn btn-primary" onclick="runConditionTest()">{{.I18n.T "channelLayout.testButton"}}</button>
             </div>
         </div>
     </div>
@@ -666,7 +718,7 @@ async function runConditionTest() {
     const triggerRealDevice = document.getElementById('testTriggerRealDevice').checked;
     
     if (!eventType) {
-        alert(window._i18nMsg?.['conditions.selectEventTypeRequired'] || 'Please select an event type');
+        alert(window._i18nMsg?.['condition.ui.selectEventType'] || 'Please select an event type');
         return;
     }
     
@@ -682,11 +734,12 @@ async function runConditionTest() {
     
     if (!conditionLogic) {
         alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
+        alert(window._i18nMsg?.['condition.invalidLogicJSON'] || 'Invalid condition logic JSON');
         return;
     }
     
     if (!window.createTestEventFromMetadata) {
-        alert('Test event metadata builder not available');
+        alert(window._i18nMsg?.['condition.ui.testMetadataUnavailable'] || 'Test event metadata builder not available');
         return;
     }
     let sampleEvent;
@@ -700,7 +753,7 @@ async function runConditionTest() {
             { watchTargetId: '{{.CurrentChannel.ID}}' }
         );
     } catch (error) {
-        alert((window._i18nMsg?.['condition.failedLoadEventMetadata'] || 'Failed to load event metadata: ') + error.message);
+        alert((window._i18nMsg?.['condition.ui.testMetadataLoadFailed'] || 'Failed to load event metadata:') + ' ' + error.message);
         return;
     }
     
@@ -728,7 +781,7 @@ async function runConditionTest() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Test failed: ' + response.status);
+            throw new Error((window._i18nMsg?.['condition.ui.testFailed'] || 'Test failed:') + ' ' + response.status);
         }
         return response.json();
     })
@@ -736,9 +789,9 @@ async function runConditionTest() {
         // Display results
         let resultHTML = '<pre style="max-height: 300px; overflow-y: auto; background: #fff; padding: 0.5rem; border-radius: 3px; font-size: 0.85rem;">' + JSON.stringify(result, null, 2) + '</pre>';
         resultHTML += '<div style="margin-top: 1rem; padding: 1rem; background: #fff; border-left: 4px solid ' + (result.matched ? '#28a745' : '#dc3545') + ';">';
-        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ Yes' : '✗ No') + '</span><br>';
+        resultHTML += '<strong>' + (window._i18nMsg?.['condition.matched'] || 'Matched') + ':</strong> <span style="color:' + (result.matched ? 'green' : 'red') + ';">' + (result.matched ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
         if (result.matched) {
-            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ Yes' : '✗ No') + '</span><br>';
+            resultHTML += '<strong>' + (window._i18nMsg?.['condition.wouldTrigger'] || 'Would trigger') + ':</strong> <span style="color:' + (result.would_trigger ? 'green' : 'red') + ';">' + (result.would_trigger ? '✓ ' + (window._i18nMsg?.['condition.ui.yes'] || 'Yes') : '✗ ' + (window._i18nMsg?.['condition.ui.no'] || 'No')) + '</span><br>';
             if (result.computed_values && result.computed_values.length > 0) {
                 resultHTML += '<strong>' + (window._i18nMsg?.['condition.details'] || 'Details') + ':</strong> <code>' + result.computed_values.join(', ') + '</code><br>';
             }
@@ -808,6 +861,7 @@ function submitCondition() {
     const submitBtn = document.getElementById('submitConditionButton');
     const originalText = submitBtn.textContent;
     submitBtn.textContent = window._i18nMsg?.['condition.ui.saving'] || 'Saving...';
+    submitBtn.textContent = window._i18nMsg?.['condition.ui.saving'] || 'Saving...';
     submitBtn.disabled = true;
     
     fetch(endpoint, {
@@ -841,13 +895,13 @@ function submitCondition() {
     })
     .then(result => {
         console.log('Condition saved:', result);
-        alert(window._i18nMsg?.['condition.savedSuccess'] || 'Condition saved successfully!');
+        alert(window._i18nMsg?.['condition.ui.savedSuccess'] || 'Condition saved successfully!');
         // Redirect back to conditions list
         window.location.href = '/channels/' + encodeURIComponent(channelID) + '/conditions';
     })
     .catch(error => {
         console.error('Save error:', error);
-        alert((window._i18nMsg?.['condition.errorSaving'] || 'Error saving condition: ') + error.message);
+        alert((window._i18nMsg?.['condition.ui.saveFailed'] || 'Error saving condition:') + ' ' + error.message);
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     });

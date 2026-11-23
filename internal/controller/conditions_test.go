@@ -162,3 +162,43 @@ func TestConditionPageLoadsCurrentActionFields(t *testing.T) {
 		t.Fatalf("saved field evaluator not loaded: %#v", params.Body)
 	}
 }
+
+func TestEventFieldOptionsPreserveExchangeMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/event-metadata/niconico/gift" {
+			t.Errorf("unexpected request path: %s", r.URL.Path)
+		}
+		w.Write([]byte(`{"platform":"niconico","event_type":"gift","fields":[{"name":"amount_value","type":"number","exchangeable":true,"condition_parameter":"event_amount","source_currency_parameter":"event_amount_currency","exchange_rate_per_unit":0.01,"exchange_rate_currency":"USD","exchange_rate_approximate":true},{"name":"bonus_amount","exchangeable":true}]}`))
+	}))
+	defer server.Close()
+
+	options := GetEventFieldOptions(New(server.URL, "7", nil).Conditions, "niconico", "gift", nil)
+	if len(options) != 2 {
+		t.Fatalf("expected two event fields, got %#v", options)
+	}
+	field := options[0]
+	if field.Name != "amount_value" || !field.Exchangeable ||
+		field.ConditionParameter != "event_amount" ||
+		field.SourceCurrencyParameter != "event_amount_currency" ||
+		field.ExchangeRatePerUnit != 0.01 ||
+		field.ExchangeRateCurrency != "USD" ||
+		!field.ExchangeRateApproximate {
+		t.Fatalf("exchange metadata was not preserved: %#v", field)
+	}
+	if options[1].Name != "bonus_amount" || !options[1].Exchangeable {
+		t.Fatalf("field key or exchangeable flag was not preserved: %#v", options[1])
+	}
+}
+
+func TestEventMetadataResponseSupportsObjectFields(t *testing.T) {
+	var metadata EventMetadataResponse
+	err := json.Unmarshal([]byte(`{"fields":{"amount_value":{"exchangeable":true}}}`), &metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metadata.Fields) != 1 || metadata.Fields[0].Name != "amount_value" ||
+		!metadata.Fields[0].Exchangeable {
+		t.Fatalf("object-form event fields were not decoded: %#v", metadata.Fields)
+	}
+}

@@ -9,12 +9,16 @@ import (
 type DeviceTemplates struct{ s *session }
 
 type DeviceTemplateUIField struct {
-	Name    string        `json:"name"`
-	Key     string        `json:"key"`
-	Options []interface{} `json:"options"`
-	Type    string        `json:"type"`
-	Min     int           `json:"min"`
-	Max     int           `json:"max"`
+	Name        string        `json:"name"`
+	Key         string        `json:"key"`
+	Options     []interface{} `json:"options"`
+	Type        string        `json:"type"`
+	Min         interface{}   `json:"min,omitempty"`
+	Max         interface{}   `json:"max,omitempty"`
+	Step        interface{}   `json:"step,omitempty"`
+	Unit        string        `json:"unit,omitempty"`
+	Placeholder string        `json:"placeholder,omitempty"`
+	Format      string        `json:"format,omitempty"`
 }
 
 type DeviceTemplateExample struct {

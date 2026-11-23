@@ -11,16 +11,46 @@ import (
 type Conditions struct{ s *session }
 
 type EventSchemaField struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
-	Optional    bool   `json:"optional"`
+	Name                    string  `json:"name"`
+	Type                    string  `json:"type"`
+	Description             string  `json:"description"`
+	Optional                bool    `json:"optional"`
+	Exchangeable            bool    `json:"exchangeable"`
+	ConditionParameter      string  `json:"condition_parameter"`
+	SourceCurrencyParameter string  `json:"source_currency_parameter"`
+	ExchangeRatePerUnit     float64 `json:"exchange_rate_per_unit"`
+	ExchangeRateCurrency    string  `json:"exchange_rate_currency"`
+	ExchangeRateApproximate bool    `json:"exchange_rate_approximate"`
+}
+
+type EventSchemaFields []EventSchemaField
+
+func (fields *EventSchemaFields) UnmarshalJSON(data []byte) error {
+	var fieldList []EventSchemaField
+	if err := json.Unmarshal(data, &fieldList); err == nil {
+		*fields = fieldList
+		return nil
+	}
+
+	var fieldsByName map[string]EventSchemaField
+	if err := json.Unmarshal(data, &fieldsByName); err != nil {
+		return err
+	}
+	fieldList = make([]EventSchemaField, 0, len(fieldsByName))
+	for name, field := range fieldsByName {
+		if field.Name == "" {
+			field.Name = name
+		}
+		fieldList = append(fieldList, field)
+	}
+	*fields = fieldList
+	return nil
 }
 
 type EventMetadataResponse struct {
-	Platform  string             `json:"platform"`
-	EventType string             `json:"event_type"`
-	Fields    []EventSchemaField `json:"fields"`
+	Platform  string            `json:"platform"`
+	EventType string            `json:"event_type"`
+	Fields    EventSchemaFields `json:"fields"`
 }
 
 type EventMetadataProvider struct {

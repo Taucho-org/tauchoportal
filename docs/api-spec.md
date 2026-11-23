@@ -722,12 +722,17 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 ### Devices (`/devices/...`)
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/devices` | List all devices (`device_identification` omitted) |
-| GET | `/devices/get?id=<id>` | Get a single device (includes `device_identification`) |
+| GET | `/devices` | List all devices (`device_identifier` omitted) |
+| GET | `/devices/get?id=<id>` | Get a single device (includes `device_identifier`) |
 | POST | `/devices` | Register a device |
 | PATCH | `/devices/update?id=<id>` | Update a device |
 | DELETE | `/devices?id=<id>` | Delete a device |
 | POST | `/devices/test?id=<id>` | **Send a test command to device using template system** |
+
+When a device is registered, the API also creates a dedicated `PARALLEL` device
+group named `"{device name} Group"` and stores its ID in `device_group_id`.
+If group creation fails, the device is not created. If device creation fails,
+the automatic group is removed.
 
 **Device test endpoint** (`POST /devices/test?id=<id>`):
 - ✅ **NOW FULLY FUNCTIONAL** — calls actual device APIs
@@ -772,7 +777,7 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 ### Device Templates (`/device-templates/...`) ⭐ NEW
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/device-templates` | List all templates (supports `?brand=` and `?category=` filters) |
+| GET | `/device-templates` | List templates by `?brand_name=`, `?category=`, or `?product_id=` (`?brand=` remains supported) |
 | GET | `/device-templates/get?id=<id>` | Get a single template |
 
 **Template object includes:**
@@ -783,19 +788,22 @@ Set `"clear_filter": true` to remove the filter entirely (resetting to track-all
 - Required and optional parameters with constraints
 - UI hints and examples
 
-For select fields where the display label differs from the value sent to the API, use `{ "label": "...", "value": ... }` entries in `ui_fields[].options`; the value can be a string, integer, or other JSON scalar and is submitted as that type. `parameter_constraints` describes validation metadata such as `{ "type": "integer", "min": 0, "max": 1 }` and is not used to map labels to values.
-
 **Example usage:**
 ```bash
 # List templates for Govee
-GET /device-templates?brand=govee
+GET /device-templates?brand_name=govee
 
 # List templates for brightness control
 GET /device-templates?category=brightness
 
+# List templates matching a product's capabilities
+GET /device-templates?product_id=govee-h6199
+
 # Get specific template
 GET /device-templates/get?id=123
 ```
+
+The product-filtered request looks up the product's `brand_id` and `capabilities`, then returns templates for that brand whose `category` matches one of the product's capabilities. If the product has no capabilities, it returns an empty array.
 
 ### Device Groups (`/device-groups/...`)
 | Method | Path | Description |
@@ -1544,6 +1552,7 @@ Registered smart home devices. Credentials are stored per-brand.
   "brand": "govee | hue | kasa | lifx | tuya | nanoleaf | yeelight | wled | wyze | amazon | custom",
   "product_id": "string (e.g. govee-h6159, hue-color, or custom_product_id for custom brand)",
   "product_name": "string (human-readable product name from catalog, e.g. 'H6159 LED Strip')",
+  "capabilities": ["string (template categories supported by this product, e.g. 'power', 'brightness')"],
   "supported_actions": ["string (device capability IDs, e.g. 'on', 'off', 'brightness', 'color')"],
   "room": "string (optional)",
   "is_configured": true,
@@ -1555,6 +1564,7 @@ Registered smart home devices. Credentials are stored per-brand.
 
 **Product Information Sourcing:**
 - `product_name` is populated from the product catalog when the device is retrieved. If the product is not found in the catalog, this field is omitted from the response.
+- `capabilities` is populated from the product catalog. Values should match `device_brand_templates.category` values (for example, `power` or `brightness`). This is catalog metadata; template selection is not automatically performed from these values.
 - `supported_actions` is populated from the product catalog. Contains device capabilities like `"on"`, `"off"`, `"brightness"`, `"color"`, `"temperature"`, etc. If the product is not found in the catalog, this field is omitted from the response.
 - For `custom` brand devices, `supported_actions` is omitted (actions are user-defined HTTP requests).
 
@@ -1574,16 +1584,16 @@ Registered smart home devices. Credentials are stored per-brand.
 | amazon | `endpoint_id` |
 | custom | *(empty; actions are user-defined HTTP requests)* |
 
-> **Storage note:** `device_identification` is stored as a JSONB column in PostgreSQL. It contains values specific to an individual device, such as a device ID or local IP address. Brand authentication values belong in `user_brand_credentials`.  
-> **Security note:** Omit the `device_identification` field from `GET /devices` list responses; include it only in `GET /devices/get?id=<id>`.
+> **Storage note:** `device_identifier` is stored as a JSONB column in PostgreSQL. It contains values specific to an individual device, such as a device ID or local IP address. Brand authentication values belong in `user_brand_credentials`.  
+> **Security note:** Omit the `device_identifier` field from `GET /devices` list responses; include it only in `GET /devices/get?id=<id>`.
 > **Actions note:** `supported_actions` is populated from the product definition in the catalog. If a product is not in the catalog, this field is omitted from the response.
 
 | Method | Path | Body / Params | Description |
 |--------|------|---------------|-------------|
-| GET | `/devices` | — | List all devices for the authenticated user (`device_identification` omitted) |
-| GET | `/devices/get?id=<id>` | — | Get a single device (includes `device_identification`) |
-| POST | `/devices` | `{ name, brand, product_id, room?, credentials?, device_identification? }` | Register a device |
-| PATCH | `/devices/update?id=<id>` | any subset of `{ name, product_id, room, credentials?, device_identification? }` | Update a device |
+| GET | `/devices` | — | List all devices for the authenticated user (`device_identifier` omitted) |
+| GET | `/devices/get?id=<id>` | — | Get a single device (includes `device_identifier`) |
+| POST | `/devices` | `{ name, brand, product_id, room?, credentials?, device_identifier? }` | Register a device |
+| PATCH | `/devices/update?id=<id>` | any subset of `{ name, product_id, room, credentials?, device_identifier? }` | Update a device |
 | DELETE | `/devices?id=<id>` | — | Delete a device (conditions using it should have device_id cleared) |
 | POST | `/devices/test?id=<id>` | — | Send a brief test command to the physical device (flash/ping) |
 
@@ -2047,6 +2057,7 @@ Create a product.
   "name": "H6159 LED Strip",  // required
   "category": "light_strip",
   "thumbnail_url": "",
+  "capabilities": ["power", "brightness"],
   "supported_actions": ["set_color", "set_brightness", "turn_on", "turn_off"],
   "is_active": true
 }
@@ -2944,6 +2955,20 @@ Returns platform-specific event schema. Each platform and event type has unique 
 **Use case:**
 - Frontend calls this when user is building a condition for a specific platform and event
 - Display only the available fields for that platform-event combination
+
+#### Exchangeability metadata
+
+Each field includes `exchangeable`. Treat `true` as the signal that the field can be offered for currency conversion. For an exchangeable amount, use:
+
+| Property | Frontend use |
+|---|---|
+| `condition_parameter` | Parameter to put in the amount `PARAM` node (currently `event_amount`). |
+| `source_currency_parameter` | Source currency parameter for `EXCHANGE` (currently `event_amount_currency`). |
+| `exchange_rate_per_unit` | Optional fixed target-currency value per source unit. |
+| `exchange_rate_currency` | Currency for the optional fixed rate. |
+| `exchange_rate_approximate` | If `true`, display the approximate-rate warning. |
+
+For example, YouTube amounts are exchangeable but use the event's reported currency and stored FX rates, so fixed-rate properties are omitted. Twitch Bits and NicoNico Gift points include fixed-rate properties. `exchange_rate_*` fields are optional; `exchangeable` is the authoritative availability flag.
 - Fields with `"optional": false` are always present; `"optional": true` fields may be absent for some events
 
 ---
