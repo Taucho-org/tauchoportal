@@ -818,13 +818,24 @@ function submitCondition() {
         credentials: 'include',
         body: JSON.stringify(conditionData)
     })
-    .then(response => {
+    .then(async response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || 'Failed to save condition');
-            }).catch(() => {
-                throw new Error('HTTP ' + response.status);
-            });
+            const responseBody = await response.text();
+            let apiMessage = '';
+            try {
+                const errorBody = JSON.parse(responseBody);
+                if (typeof errorBody === 'string') {
+                    apiMessage = errorBody;
+                } else if (errorBody && typeof errorBody === 'object') {
+                    const message = errorBody.message || errorBody.error || errorBody.detail;
+                    if (typeof message === 'string') apiMessage = message;
+                }
+            } catch {
+                // Non-JSON error responses are surfaced as plain text below.
+            }
+            const detail = apiMessage || responseBody.trim();
+            const status = `HTTP ${response.status}${response.statusText ? ' ' + response.statusText : ''}`;
+            throw new Error(detail ? `${status}: ${detail}` : status);
         }
         return response.json();
     })
