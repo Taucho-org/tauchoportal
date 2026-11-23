@@ -192,6 +192,10 @@
     <div id="nicoToast" class="nico-toast"></div>
     
     <script>
+        window._regT = {{i18nJSONByPrefix .I18n "register"}};
+        function rt(key, fallback) { return (window._regT && window._regT['register.' + key]) || fallback; }
+    </script>
+    <script>
         const form = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
@@ -224,7 +228,7 @@
             const submitBtn = document.getElementById('submitBtn');
             
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>Sending…';
+            submitBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>' + rt('sending', 'Sending…');
             
             try {
                 const response = await fetch('/api/auth/register/send-verification-code', {
@@ -246,18 +250,18 @@
                     document.getElementById('verificationCode').focus();
                     startVerificationTimer(data.expires_in || 3600);
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Create Account';
+                    submitBtn.textContent = rt('createAccountBtn', 'Create Account');
                 } else {
-                    errorMessage.textContent = data.error || 'Failed to send verification code';
+                    errorMessage.textContent = data.error || rt('sendCodeFailed', 'Failed to send verification code');
                     errorMessage.classList.add('show');
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Create Account';
+                    submitBtn.textContent = rt('createAccountBtn', 'Create Account');
                 }
             } catch (error) {
-                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.textContent = rt('errorOccurred', 'An error occurred. Please try again.');
                 errorMessage.classList.add('show');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Create Account';
+                submitBtn.textContent = rt('createAccountBtn', 'Create Account');
             }
         });
         
@@ -273,13 +277,13 @@
             const verifyBtn = document.getElementById('verifyBtn');
             
             if (!code || code.length !== 6) {
-                errorMessage.textContent = 'Please enter a valid 6-digit code';
+                errorMessage.textContent = rt('invalidCode', 'Please enter a valid 6-digit code');
                 errorMessage.classList.add('show');
                 return;
             }
             
             verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>Verifying…';
+            verifyBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #f3f3f3;border-top:2px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></span>' + rt('verifying', 'Verifying…');
             
             try {
                 const response = await fetch('/api/auth/register/verify-code', {
@@ -294,22 +298,22 @@
                 
                 if (response.ok) {
                     clearVerificationTimer();
-                    successMessage.textContent = 'Account created! Redirecting to login…';
+                    successMessage.textContent = rt('accountCreated', 'Account created! Redirecting to login…');
                     successMessage.classList.add('show');
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 2000);
                 } else {
-                    errorMessage.textContent = data.error || 'Verification failed. Please try again.';
+                    errorMessage.textContent = data.error || rt('verificationFailed', 'Verification failed. Please try again.');
                     errorMessage.classList.add('show');
                     verifyBtn.disabled = false;
-                    verifyBtn.textContent = 'Verify & Create Account';
+                    verifyBtn.textContent = rt('verifyCreateBtn', 'Verify & Create Account');
                 }
             } catch (error) {
-                errorMessage.textContent = 'An error occurred. Please try again.';
+                errorMessage.textContent = rt('errorOccurred', 'An error occurred. Please try again.');
                 errorMessage.classList.add('show');
                 verifyBtn.disabled = false;
-                verifyBtn.textContent = 'Verify & Create Account';
+                verifyBtn.textContent = rt('verifyCreateBtn', 'Verify & Create Account');
             }
         });
         
@@ -334,7 +338,7 @@
                 if (seconds <= 0) {
                     clearVerificationTimer();
                     document.getElementById('verifyBtn').disabled = true;
-                    errorMessage.textContent = 'Verification code expired. Please start over.';
+                    errorMessage.textContent = rt('codeExpiredMsg', 'Verification code expired. Please start over.');
                     errorMessage.classList.add('show');
                 } else {
                     seconds--;
@@ -371,7 +375,7 @@
             document.getElementById('nicoStep1').style.display = '';
             document.getElementById('nicoStep2').style.display = 'none';
             document.getElementById('nicoLoginBtn').disabled = false;
-            document.getElementById('nicoLoginBtn').textContent = 'Continue';
+            document.getElementById('nicoLoginBtn').textContent = rt('nicoContinue', 'Continue');
             document.getElementById('nicoOverlay').style.display = 'flex';
             document.getElementById('nicoEmail').focus();
         };
@@ -401,10 +405,10 @@
             var errEl    = document.getElementById('nicoErr1');
 
             errEl.style.display = 'none';
-            if (!email || !password) { showErr(errEl, 'Please enter your NicoNico email and password.'); return; }
+            if (!email || !password) { showErr(errEl, rt('nicoLoginError', 'Please enter your NicoNico email and password.')); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="nico-spinner"></span>Connecting…';
+            btn.innerHTML = '<span class="nico-spinner"></span>' + rt('nicoConnecting', 'Connecting…');
             try {
                 var resp = await fetch('/api/niconico/portal-login', {
                     method: 'POST', credentials: 'include',
@@ -421,20 +425,20 @@
                     document.getElementById('nicoErr2').style.display  = 'none';
                     document.getElementById('nicoOtp').value = '';
                     document.getElementById('nicoMfaBtn').disabled = false;
-                    document.getElementById('nicoMfaBtn').textContent = 'Verify';
+                    document.getElementById('nicoMfaBtn').textContent = rt('nicoVerifyBtn', 'Verify');
                     startTimer(600);
                     document.getElementById('nicoOtp').focus();
                 } else if (data.status === 'logged_in') {
                     closeNicoModal();
-                    showNicoToast('Logged in via NicoNico! ✅');
+                    showNicoToast(rt('nicoLoggedIn', 'Logged in via NicoNico! ✅'));
                     setTimeout(function () { window.location.href = '/dashboard'; }, 1200);
                 } else {
-                    throw new Error('Unexpected response from server.');
+                    throw new Error(rt('unexpectedResponse', 'Unexpected response from server.'));
                 }
             } catch (e) {
                 showErr(errEl, e.message);
                 btn.disabled = false;
-                btn.textContent = 'Continue';
+                btn.textContent = rt('nicoContinue', 'Continue');
             }
         };
 
@@ -444,10 +448,10 @@
             var errEl = document.getElementById('nicoErr2');
 
             errEl.style.display = 'none';
-            if (!otp) { showErr(errEl, 'Please enter the OTP code.'); return; }
+            if (!otp) { showErr(errEl, rt('nicoOtpMissing', 'Please enter the OTP code.')); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<span class="nico-spinner"></span>Verifying…';
+            btn.innerHTML = '<span class="nico-spinner"></span>' + rt('nicoVerifying', 'Verifying…');
             try {
                 var resp = await fetch('/api/niconico/portal-login/mfa', {
                     method: 'POST', credentials: 'include',
@@ -459,13 +463,13 @@
 
                 clearTimer();
                 closeNicoModal();
-                showNicoToast('Logged in via NicoNico! ✅');
+                showNicoToast(rt('nicoLoggedIn', 'Logged in via NicoNico! ✅'));
                 setTimeout(function () { window.location.href = '/dashboard'; }, 1200);
             } catch (e) {
                 clearTimer();
-                showErr(errEl, e.message + ' Please go back and try again.');
+                showErr(errEl, e.message + rt('goBackTryAgain', ' Please go back and try again.'));
                 btn.disabled = true;
-                btn.textContent = 'Verify';
+                btn.textContent = rt('nicoVerifyBtn', 'Verify');
             }
         };
 
@@ -479,7 +483,7 @@
                 if (_seconds <= 0) {
                     clearTimer();
                     document.getElementById('nicoMfaBtn').disabled = true;
-                    showErr(document.getElementById('nicoErr2'), 'OTP expired. Please go back and try again.');
+                    showErr(document.getElementById('nicoErr2'), rt('nicoOtpExpired', 'OTP expired. Please go back and try again.'));
                 }
             }, 1000);
         }
