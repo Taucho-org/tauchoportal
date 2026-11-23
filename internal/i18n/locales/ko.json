@@ -2049,5 +2049,12 @@
   "devices.discoverImportSuccess": "기기 {0}대를 가져왔습니다!",
   "devices.discoverImportPartialFailed": "기기 {0}대를 가져왔지만 {1}대는 실패했거나 건너뛰었습니다.",
   "devices.discoverImportFailed": "기기를 가져오지 못했습니다: ",
-  "devices.failedLoadDiscoveredDevices": "찾은 기기를 불러오지 못했습니다: "
+  "devices.failedLoadDiscoveredDevices": "찾은 기기를 불러오지 못했습니다: ",
+  "validation.deviceActionRequired": "기기와 기기 동작을 선택하세요.",
+  "validation.fieldRequired": "이 항목은 필수입니다.",
+  "validation.selectItemRequired": "목록에서 항목을 선택하세요.",
+  "validation.invalidValue": "올바른 값을 입력하세요.",
+  "validation.tooShort": "더 긴 값을 입력하세요.",
+  "validation.outOfRange": "허용된 범위의 값을 입력하세요.",
+  "validation.patternMismatch": "요청된 형식에 맞게 입력하세요."
 }

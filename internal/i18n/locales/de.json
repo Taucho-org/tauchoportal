@@ -2050,5 +2050,12 @@
   "devices.discoverImportSuccess": "{0} Gerät(e) erfolgreich importiert!",
   "devices.discoverImportPartialFailed": "{0} Gerät(e) importiert, aber {1} fehlgeschlagen oder übersprungen.",
   "devices.discoverImportFailed": "Geräte konnten nicht importiert werden: ",
-  "devices.failedLoadDiscoveredDevices": "Entdeckte Geräte konnten nicht geladen werden: "
+  "devices.failedLoadDiscoveredDevices": "Entdeckte Geräte konnten nicht geladen werden: ",
+  "validation.deviceActionRequired": "Bitte wählen Sie ein Gerät und eine Geräteaktion aus.",
+  "validation.fieldRequired": "Dieses Feld ist erforderlich.",
+  "validation.selectItemRequired": "Bitte wählen Sie einen Eintrag in der Liste aus.",
+  "validation.invalidValue": "Geben Sie einen gültigen Wert ein.",
+  "validation.tooShort": "Bitte geben Sie einen längeren Wert ein.",
+  "validation.outOfRange": "Bitte geben Sie einen Wert innerhalb des zulässigen Bereichs ein.",
+  "validation.patternMismatch": "Bitte entsprechen Sie dem geforderten Format."
 }

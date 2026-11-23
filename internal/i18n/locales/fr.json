@@ -2049,5 +2049,12 @@
   "devices.discoverImportSuccess": "{0} appareil(s) importé(s) avec succès !",
   "devices.discoverImportPartialFailed": "{0} appareil(s) importé(s), mais {1} ont échoué ou ont été ignorés.",
   "devices.discoverImportFailed": "Échec de l'importation des appareils : ",
-  "devices.failedLoadDiscoveredDevices": "Échec du chargement des appareils découverts : "
+  "devices.failedLoadDiscoveredDevices": "Échec du chargement des appareils découverts : ",
+  "validation.deviceActionRequired": "Veuillez sélectionner un appareil et une action d'appareil.",
+  "validation.fieldRequired": "Ce champ est obligatoire.",
+  "validation.selectItemRequired": "Veuillez sélectionner un élément dans la liste.",
+  "validation.invalidValue": "Veuillez saisir une valeur valide.",
+  "validation.tooShort": "Veuillez saisir une valeur plus longue.",
+  "validation.outOfRange": "Veuillez saisir une valeur dans la plage autorisée.",
+  "validation.patternMismatch": "Veuillez respecter le format demandé."
 }

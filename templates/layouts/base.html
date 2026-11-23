@@ -9,7 +9,42 @@
   <link rel="stylesheet" href="/css/main.css">
   {{block "head" .}}{{end}}
   <script src="/js/auth.js"></script>
-  <script>window.__user = {{userJSON .User}}; window.__platformIcons = {{platformIconsJSON}};</script>
+  <script>
+    window.__user = {{userJSON .User}};
+    window.__platformIcons = {{platformIconsJSON}};
+    window._i18nMsg = Object.assign({{i18nJSON .I18n}}, window._i18nMsg || {});
+
+    document.addEventListener('invalid', function (event) {
+      const field = event.target;
+      if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
+
+      let message;
+      if (field.validity.valueMissing) {
+        message = field.tagName === 'SELECT'
+          ? window._i18nMsg['validation.selectItemRequired']
+          : window._i18nMsg['validation.fieldRequired'];
+      } else if (field.validity.tooShort || field.validity.rangeUnderflow || field.validity.rangeOverflow) {
+        message = field.validity.tooShort
+          ? window._i18nMsg['validation.tooShort']
+          : window._i18nMsg['validation.outOfRange'];
+      } else if (field.validity.patternMismatch) {
+        message = window._i18nMsg['validation.patternMismatch'];
+      } else if (field.validity.typeMismatch || field.validity.badInput) {
+        message = window._i18nMsg['validation.invalidValue'];
+      }
+
+      if (message) field.setCustomValidity(message);
+    }, true);
+
+    document.addEventListener('input', function (event) {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        event.target.setCustomValidity('');
+      }
+    }, true);
+    document.addEventListener('change', function (event) {
+      if (event.target instanceof HTMLSelectElement) event.target.setCustomValidity('');
+    }, true);
+  </script>
 </head>
 <body>
   {{if .User}}{{template "header" .}}{{else}}{{template "nologinheader" .}}{{end}}

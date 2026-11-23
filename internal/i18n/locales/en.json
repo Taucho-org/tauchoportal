@@ -2049,5 +2049,12 @@
   "brandSettings.sso.success": "Connected to {brand}!",
   "brandSettings.sso.createAccount": "Create a new {brand} account with your email?",
   "brandSettings.sso.registerError": "Registration failed",
-  "brandSettings.sso.error": "SSO authentication failed"
+  "brandSettings.sso.error": "SSO authentication failed",
+  "validation.deviceActionRequired": "Please select a device and device action.",
+  "validation.fieldRequired": "This field is required.",
+  "validation.selectItemRequired": "Please select an item in the list.",
+  "validation.invalidValue": "Enter a valid value.",
+  "validation.tooShort": "Please enter a longer value.",
+  "validation.outOfRange": "Please enter a value in the allowed range.",
+  "validation.patternMismatch": "Please match the requested format."
 }

@@ -2049,5 +2049,12 @@
   "devices.discoverImportSuccess": "¡Se importaron {0} dispositivo(s) correctamente!",
   "devices.discoverImportPartialFailed": "Se importaron {0} dispositivo(s), pero {1} fallaron o se omitieron.",
   "devices.discoverImportFailed": "No se pudieron importar los dispositivos: ",
-  "devices.failedLoadDiscoveredDevices": "No se pudieron cargar los dispositivos descubiertos: "
+  "devices.failedLoadDiscoveredDevices": "No se pudieron cargar los dispositivos descubiertos: ",
+  "validation.deviceActionRequired": "Selecciona un dispositivo y una acción del dispositivo.",
+  "validation.fieldRequired": "Este campo es obligatorio.",
+  "validation.selectItemRequired": "Selecciona un elemento de la lista.",
+  "validation.invalidValue": "Introduce un valor válido.",
+  "validation.tooShort": "Introduce un valor más largo.",
+  "validation.outOfRange": "Introduce un valor dentro del rango permitido.",
+  "validation.patternMismatch": "Introduce el valor con el formato solicitado."
 }

@@ -4,6 +4,16 @@ body {
     background-image: url(/image/channels_bg.png), linear-gradient(165deg, #ceeaff 40%, #6c79d1 100%);
 }
 
+/* Stream and condition filters are intentionally hidden; conditions remain the trigger configuration. */
+#filterModal,
+#condFilterGroup,
+.action-btn.filter,
+.filter-badge,
+.filter-active-dot,
+.filter-summary,
+.filter-inactive-msg {
+    display: none !important;
+}
 
 .channels-container {
     max-width: 1100px;

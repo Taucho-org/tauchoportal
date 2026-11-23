@@ -2049,5 +2049,12 @@
   "devices.discoverImportSuccess": "已成功匯入 {0} 個裝置！",
   "devices.discoverImportPartialFailed": "已匯入 {0} 個裝置，但有 {1} 個失敗或已略過。",
   "devices.discoverImportFailed": "匯入裝置失敗：",
-  "devices.failedLoadDiscoveredDevices": "無法載入探索到的裝置："
+  "devices.failedLoadDiscoveredDevices": "無法載入探索到的裝置：",
+  "validation.deviceActionRequired": "請選擇裝置和裝置動作。",
+  "validation.fieldRequired": "此欄位為必填。",
+  "validation.selectItemRequired": "請從清單中選擇一個項目。",
+  "validation.invalidValue": "請輸入有效的值。",
+  "validation.tooShort": "請輸入較長的值。",
+  "validation.outOfRange": "請輸入允許範圍內的值。",
+  "validation.patternMismatch": "請依指定格式輸入。"
 }
