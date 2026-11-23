@@ -172,14 +172,14 @@
                             <span>{{.I18n.T "channelLayout.triggerDevice"}}</span>
                         </label>
                     </div>
-                    <div id="deviceActionFields" style="display:none">
+                    <div id="deviceActionFields" style="display:none" inert>
                         <div class="form-group">
                             <label for="condDeviceSelect">{{.I18n.T "channelLayout.device"}}</label>
-                            <select id="condDeviceSelect" onchange="updateCondActionSelect()"><option value="">{{.I18n.T "channelLayout.selectDevice"}}</option></select>
+                            <select id="condDeviceSelect" disabled onchange="updateCondActionSelect()"><option value="">{{.I18n.T "channelLayout.selectDevice"}}</option></select>
                         </div>
                         <div class="form-group" id="condActionSelectGroup" style="display:none">
                             <label for="condActionSelect">{{.I18n.T "channelLayout.action"}}</label>
-                            <select id="condActionSelect" onchange="updateCondActionParams()"><option value="">{{.I18n.T "channelLayout.selectAction"}}</option></select>
+                            <select id="condActionSelect" disabled onchange="updateCondActionParams()"><option value="">{{.I18n.T "channelLayout.selectAction"}}</option></select>
                         </div>
                         <div class="form-group" id="condColorGroup" style="display:none">
                             <h5>{{.I18n.T "channelLayout.color"}}</h5>

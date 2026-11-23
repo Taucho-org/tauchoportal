@@ -181,7 +181,8 @@
     }
 
     function updateCondEventFields() { 
-        document.getElementById('condFilterGroup').style.display = document.getElementById('condEventType').value === 'comment' ? 'block' : 'none'; 
+        document.getElementById('condFilterGroup').style.display = 'none';
+        document.getElementById('condFilter').value = '';
     }
 
     async function saveCondition(event) { 
@@ -189,8 +190,15 @@
         const button = document.getElementById('condSaveBtn'); 
         button.disabled = true; 
         try { 
-            const deviceId = document.getElementById('condHasDevice').checked ? document.getElementById('condDeviceSelect').value || null : null; 
-            const deviceAction = deviceId ? document.getElementById('condActionSelect').value || null : null; 
+            const triggerDevice = document.getElementById('condHasDevice').checked;
+            const deviceId = triggerDevice ? document.getElementById('condDeviceSelect').value || null : null;
+            const deviceAction = triggerDevice && deviceId ? document.getElementById('condActionSelect').value || null : null;
+
+            if (triggerDevice && (!deviceId || !deviceAction)) {
+                alert(window._i18nMsg?.['validation.deviceActionRequired'] || 'Please select a device and device action.');
+                return;
+            }
+
             const deviceActionParams = {}; 
             
             // Handle legacy color/brightness params
@@ -206,19 +214,23 @@
             const deviceActionParamName = document.getElementById('condParamName')?.value || '';
             const deviceActionParamEvaluator = deviceActionParamName ? buildEvaluatorLogic() : null;
             
-            const body = { 
+            const body = {
                 watch_id: getChannelIdFromUrl(), 
                 name: document.getElementById('condName').value, 
                 event_type: document.getElementById('condEventType').value, 
-                filter: document.getElementById('condFilter').value || '', 
+                filter: '',
                 is_enabled: document.getElementById('condEnabled').checked, 
-                device_id: deviceId, 
-                device_action: deviceAction, 
-                device_action_params: Object.keys(deviceActionParams).length ? deviceActionParams : null,
-                device_action_body: deviceActionBody,
-                device_action_param_name: deviceActionParamName || null,
-                device_action_param_evaluator: deviceActionParamEvaluator
             }; 
+
+            if (triggerDevice) {
+                body.device_id = deviceId;
+                body.device_action = deviceAction;
+                body.device_action_params = Object.keys(deviceActionParams).length ? deviceActionParams : null;
+                body.device_action_body = deviceActionBody;
+                body.device_action_param_name = deviceActionParamName || null;
+                body.device_action_param_evaluator = deviceActionParamEvaluator;
+            }
+
             await apiRequest('POST', '/conditions', body); 
             closeModal('conditionModal'); 
             window.location.reload(); 
@@ -331,14 +343,27 @@
 
     async function toggleDeviceAction(checkbox) { 
         const enabled = checkbox.checked; 
-        document.getElementById('deviceActionFields').style.display = enabled ? 'block' : 'none'; 
-        if (enabled) await populateDeviceDropdown(); 
-        else { 
-            document.getElementById('condDeviceSelect').value = ''; 
-            document.getElementById('condActionSelect').value = ''; 
-            document.getElementById('condActionSelectGroup').style.display = 'none'; 
-            updateCondActionParams(); 
-        } 
+        const fields = document.getElementById('deviceActionFields');
+        const deviceSelect = document.getElementById('condDeviceSelect');
+        const actionSelect = document.getElementById('condActionSelect');
+
+        fields.style.display = enabled ? 'block' : 'none';
+        fields.toggleAttribute('inert', !enabled);
+
+        deviceSelect.disabled = !enabled;
+        deviceSelect.required = enabled;
+        actionSelect.disabled = !enabled;
+
+        if (enabled) {
+            await populateDeviceDropdown();
+        } else {
+            deviceSelect.value = '';
+            actionSelect.value = '';
+            actionSelect.required = false;
+            actionSelect.disabled = true;
+            document.getElementById('condActionSelectGroup').style.display = 'none';
+            updateCondActionParams();
+        }
     }
 
     async function populateDeviceDropdown() { 
@@ -362,6 +387,8 @@
         if (!device || !device.supported_actions || !device.supported_actions.length) { 
             group.style.display = 'none'; 
             actionSelect.value = ''; 
+            actionSelect.required = false;
+            actionSelect.disabled = true;
             if (sendingParamsSection) sendingParamsSection.style.display = 'none';
             updateCondActionParams(); 
             return; 
@@ -369,6 +396,8 @@
         
         const currentValue = actionSelect.value; 
         group.style.display = 'block'; 
+        actionSelect.disabled = false;
+        actionSelect.required = true;
         while (actionSelect.options.length > 1) actionSelect.remove(1); 
         const labels = { 
             on: t['deviceAction.on'] || 'Turn On', 

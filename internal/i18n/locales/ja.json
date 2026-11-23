@@ -18,7 +18,7 @@
   "nav.devices": "マイデバイス",
   "nav.shopping": "ショッピング",
   "nav.loginSettings": "ログイン設定",
-  "nav.accountSettings": "外部アカウント設定",
+  "nav.accountSettings": "配信アカウント設定",
   "nav.brandSettings": "デバイスブランド設定",
   "nav.signOut": "サインアウト",
   "nav.home": "ホーム",
@@ -2049,6 +2049,13 @@
   "devices.discoverImportSuccess": "{0} 台のデバイスをインポートしました！",
   "devices.discoverImportPartialFailed": "{0} 台のデバイスをインポートしましたが、{1} 台は失敗またはスキップされました。",
   "devices.discoverImportFailed": "デバイスのインポートに失敗しました: ",
-  "devices.failedLoadDiscoveredDevices": "検出されたデバイスの読み込みに失敗しました: "
+  "devices.failedLoadDiscoveredDevices": "検出されたデバイスの読み込みに失敗しました: ",
+  "validation.deviceActionRequired": "デバイスとデバイスアクションを選択してください。",
+  "validation.fieldRequired": "この項目は必須です。",
+  "validation.selectItemRequired": "リスト内の項目を選択してください。",
+  "validation.invalidValue": "有効な値を入力してください。",
+  "validation.tooShort": "もっと長い値を入力してください。",
+  "validation.outOfRange": "許可された範囲内の値を入力してください。",
+  "validation.patternMismatch": "指定された形式で入力してください。"
 
 }
