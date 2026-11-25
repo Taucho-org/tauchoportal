@@ -19,6 +19,8 @@
 
   let activeApiKeyBrand = null;
   let activeLocalBrand = null;
+  let activeUnicornBrand = null;
+  let activeUnicornConnectController = null;
   let pendingDisconnectBrand = null;
   let setupWizardState = { brandId: null, currentStep: 0, credentials: {} };
   let setupWizardCredentialsSaved = false;
@@ -73,6 +75,34 @@
     }, 2800);
   }
 
+  function setUnicornConnectError(message = '') {
+    const errorElement = document.getElementById('unicornConnectError');
+    errorElement.textContent = message;
+    errorElement.hidden = !message;
+  }
+
+  function localizeUnicornConnectError(message, status) {
+    const i18n = window._i18nMsg || {};
+    const errorMessage = String(message || '').trim();
+    const normalizedMessage = errorMessage.toLowerCase().replace(/[.!]+$/, '').replace(/\s+/g, ' ');
+
+    if (status === 400) return i18n['brandSettings.sso.invalidRequest'] || 'Check the connection details and try again.';
+    if (status === 401) return i18n['brandSettings.sso.sessionExpired'] || 'Please sign in again.';
+    if (status === 422 || [
+      'unicorn id or password was not accepted',
+      'unicorn id or password not accepted',
+      'invalid unicorn id or password'
+    ].includes(normalizedMessage)) {
+      return i18n['brandSettings.sso.invalidCredentials'] || 'Unicorn ID or password was not accepted.';
+    }
+    if (status === 500) return i18n['brandSettings.sso.connectionFailed'] || 'Could not save the Unicorn connection. Please try again.';
+    if (status === 503) return i18n['brandSettings.sso.serviceUnavailable'] || 'The Unicorn login service is temporarily unavailable.';
+    if (status == null || !errorMessage || /^HTTP \d+$/.test(errorMessage) || normalizedMessage === 'invalid response from server') {
+      return i18n['brandSettings.sso.connectionFailed'] || 'Could not connect to Unicorn. Please try again.';
+    }
+    return errorMessage;
+  }
+
   function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -84,6 +114,14 @@
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.style.display = 'none';
+    }
+
+    if (modalId === 'unicornConnectModal') {
+      document.getElementById('unicornPassword').value = '';
+      setUnicornConnectError();
+      activeUnicornBrand = null;
+      activeUnicornConnectController?.abort();
+      activeUnicornConnectController = null;
     }
     
     // If setupWizardModal was closed and credentials were saved, reload page
@@ -965,7 +1003,8 @@
     try {
       // Step 1: Check if user exists in the brand's system
       // This endpoint is handled by main.go which adds X-User-ID from session
-      // Key: If user exists in brand but not registered with us, backend auto-registers them
+      // If the user exists in the brand but is not registered with us, the
+      // registration response determines whether they need to be reconnected.
       const checkUrl = `/auth/brand/${encodeURIComponent(meta.id)}/check-sso`;
       const checkResponse = await fetch(checkUrl, {
         method: 'GET',
@@ -1000,41 +1039,137 @@
         if (!shouldRegister) {
           return;
         }
-
-        // Register/Create the user
-        const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
-        const registerResponse = await fetch(registerUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: '{}',
-          credentials: 'include'
-        }).then(async r => {
-          if (!r.ok) {
-            let errorMessage = `HTTP ${r.status}`;
-            try {
-              const payload = await r.json();
-              errorMessage = payload.message || payload.error || errorMessage;
-            } catch (e) {
-              // Response wasn't JSON, use status code only
-            }
-            throw new Error(errorMessage);
-          }
-          return r.json();
-        });
-
-        if (!registerResponse.success) {
-          showToast(`❌ ${registerResponse.message || window._i18nMsg?.['brandSettings.sso.registerError'] || 'Registration failed'}`);
-          return;
-        }
-
-        showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
-        setTimeout(() => window.location.reload(), 1500);
       }
+
+      // Register/Create the user, including when they already exist in the brand
+      // but were disconnected from our service.
+      const registerUrl = `/auth/brand/${encodeURIComponent(meta.id)}/register-sso`;
+      const registerResponse = await fetch(registerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: '{}',
+        credentials: 'include'
+      }).then(async r => {
+        if (!r.ok) {
+          let errorMessage = `HTTP ${r.status}`;
+          try {
+            const payload = await r.json();
+            errorMessage = payload.message || payload.error || errorMessage;
+          } catch (e) {
+            // Response wasn't JSON, use status code only
+          }
+          throw new Error(errorMessage);
+        }
+        return r.json();
+      });
+
+      if (!registerResponse.success) {
+        showToast(`❌ ${registerResponse.message || window._i18nMsg?.['brandSettings.sso.registerError'] || 'Registration failed'}`);
+        return;
+      }
+
+      showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to {brand}!').replace('{brand}', getBrandName(meta.id))}`);
+      setTimeout(() => window.location.reload(), 1500);
 
     } catch (error) {
       showToast(`❌ ${window._i18nMsg?.['brandSettings.sso.error'] || 'SSO authentication failed'}: ${error.message}`);
+    }
+  }
+
+  function openUnicornConnectModal(brandId) {
+    const meta = getBrandMeta(brandId);
+    if (!meta) return;
+
+    activeUnicornBrand = meta;
+    const userIdInput = document.getElementById('unicornUserId');
+    userIdInput.value = window.__user?.email || '';
+    document.getElementById('unicornPassword').value = '';
+    setUnicornConnectError();
+    const connectButton = document.getElementById('unicornConnectButton');
+    connectButton.disabled = false;
+    connectButton.textContent = window._i18nMsg?.['brandSettings.sso.connect'] || 'Connect';
+    openModal('unicornConnectModal');
+    document.getElementById(userIdInput.value ? 'unicornPassword' : 'unicornUserId').focus();
+  }
+
+  async function connectUnicornBrand(event) {
+    event.preventDefault();
+    if (!activeUnicornBrand) return;
+
+    const brand = activeUnicornBrand;
+    const userIdInput = document.getElementById('unicornUserId');
+    const passwordInput = document.getElementById('unicornPassword');
+    const connectButton = document.getElementById('unicornConnectButton');
+    const userId = userIdInput.value.trim();
+    const password = passwordInput.value;
+    if (!userId) {
+      setUnicornConnectError(window._i18nMsg?.['brandSettings.sso.userIdRequired'] || 'Please enter your Unicorn user ID.');
+      userIdInput.focus();
+      return;
+    }
+    if (!password) {
+      setUnicornConnectError(window._i18nMsg?.['brandSettings.sso.passwordRequired'] || 'Please enter your Unicorn password.');
+      passwordInput.focus();
+      return;
+    }
+
+    setUnicornConnectError();
+    const controller = new AbortController();
+    activeUnicornConnectController = controller;
+    connectButton.disabled = true;
+    connectButton.textContent = window._i18nMsg?.['brandSettings.sso.connecting'] || 'Connecting...';
+    let responseStatus = null;
+
+    try {
+      const response = await fetch(`/auth/brand/${encodeURIComponent(brand.id)}/connect-sso`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          password
+        }),
+        credentials: 'include',
+        signal: controller.signal
+      });
+      responseStatus = response.status;
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        if (response.ok) {
+          throw new Error('Invalid response from server');
+        }
+      }
+
+      const errorMessage = payload && typeof payload === 'object'
+        ? payload.message || payload.reason || payload.error
+        : '';
+      if (!response.ok) {
+        throw new Error(errorMessage || `HTTP ${response.status}`);
+      }
+      if (!payload || typeof payload !== 'object' || payload.success !== true) {
+        throw new Error(errorMessage || window._i18nMsg?.['brandSettings.sso.error'] || 'Could not connect to Unicorn');
+      }
+
+      closeModal('unicornConnectModal');
+      showToast(`✅ ${(window._i18nMsg?.['brandSettings.sso.success'] || 'Connected to {brand}!').replace('{brand}', getBrandName(brand.id))}`);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        setUnicornConnectError(localizeUnicornConnectError(error.message, responseStatus));
+      }
+    } finally {
+      if (activeUnicornConnectController === controller) {
+        passwordInput.value = '';
+        activeUnicornConnectController = null;
+        connectButton.disabled = false;
+        connectButton.textContent = window._i18nMsg?.['brandSettings.sso.connect'] || 'Connect';
+      }
     }
   }
 
@@ -1044,7 +1179,11 @@
 
     // SSO brands never use a setup guide
     if (meta.authentication_type === 'sso') {
-      openSSOModal(meta.id);
+      if (normalizeBrandId(meta.id) === 'unicorn') {
+        openUnicornConnectModal(meta.id);
+      } else {
+        openSSOModal(meta.id);
+      }
       return;
     }
 
@@ -1128,6 +1267,14 @@
       confirmDisconnectButton.addEventListener('click', () => {
         if (!pendingDisconnectBrand) return;
         disconnectBrand(pendingDisconnectBrand.id);
+      });
+    }
+
+    const unicornConnectForm = document.getElementById('unicornConnectForm');
+    if (unicornConnectForm) {
+      unicornConnectForm.addEventListener('submit', connectUnicornBrand);
+      ['unicornUserId', 'unicornPassword'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => setUnicornConnectError());
       });
     }
 

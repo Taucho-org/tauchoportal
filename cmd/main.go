@@ -315,7 +315,8 @@ func main() {
 		</html>
 		`)
 	})
-	// SSO check and register endpoints - handles auth internally and proxies to API with X-User-ID header
+	// Legacy SSO check/register endpoints are handled here. New brand-auth routes,
+	// including connect-sso, pass through the API proxy with the session cookie.
 	mux.HandleFunc("/auth/brand/", func(w http.ResponseWriter, r *http.Request) {
 		// Extract path: /auth/brand/{brandId}/{action}
 		path := strings.TrimPrefix(r.URL.Path, "/auth/brand/")
@@ -327,6 +328,11 @@ func main() {
 
 		brandID := parts[0]
 		action := parts[1]
+
+		if action == "connect-sso" {
+			proxy.ServeHTTP(w, r)
+			return
+		}
 
 		// Only handle SSO check and register
 		if (action != "check-sso" && action != "register-sso") || r.Method == "GET" && action == "register-sso" {
