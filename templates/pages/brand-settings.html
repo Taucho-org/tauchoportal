@@ -86,6 +86,33 @@
     </div>
 </div>
 
+<div id="unicornConnectModal" class="modal" style="display:none">
+    <div class="modal-content modal-small" role="dialog" aria-modal="true" aria-labelledby="unicornConnectTitle">
+        <div class="modal-header">
+            <button type="button" class="close" data-close-modal="unicornConnectModal" aria-label="{{.I18n.T "brandSettings.modal.close"}}">&times;</button>
+            <h2 id="unicornConnectTitle">{{.I18n.T "brandSettings.sso.connectTitle"}}</h2>
+            <p>{{.I18n.T "brandSettings.sso.connectDescription"}}</p>
+        </div>
+        <form id="unicornConnectForm" novalidate>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="unicornUserId">{{.I18n.T "brandSettings.sso.userId"}}</label>
+                    <input id="unicornUserId" name="user_id" type="text" autocomplete="username" aria-describedby="unicornConnectError">
+                </div>
+                <div class="form-group">
+                    <label for="unicornPassword">{{.I18n.T "brandSettings.sso.password"}}</label>
+                    <input id="unicornPassword" name="password" type="password" autocomplete="current-password" aria-describedby="unicornConnectError">
+                </div>
+                <p id="unicornConnectError" class="modal-note warning" role="alert" hidden></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-disconnect" data-close-modal="unicornConnectModal">{{.I18n.T "button.cancel"}}</button>
+                <button type="submit" id="unicornConnectButton" class="btn-primary">{{.I18n.T "brandSettings.sso.connect"}}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="apiKeyModal" class="modal" style="display:none">
     <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="apiKeyModalTitle">
         <div class="modal-header">
