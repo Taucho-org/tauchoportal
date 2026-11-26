@@ -54,6 +54,7 @@ type ConditionForTemplate struct {
 	DeviceID           string
 	DeviceAction       string
 	DeviceActionParams string
+	TriggeringDevice   string
 }
 
 // PageData contains all data needed to render a page
@@ -273,6 +274,23 @@ func PrepareConditionsPageData(api *API, channelID string) *ConditionsPageData {
 
 	// Convert to template format
 	conditions := make([]ConditionForTemplate, 0)
+	deviceNames := make(map[string]string)
+	groupNames := make(map[string]string)
+	needsDeviceNames, needsGroupNames := false, false
+	for _, c := range condList {
+		needsDeviceNames = needsDeviceNames || c.DeviceId != ""
+		needsGroupNames = needsGroupNames || c.DeviceGroupId != ""
+	}
+	if needsDeviceNames {
+		for _, device := range api.Devices.ListDevices() {
+			deviceNames[device.Id] = device.Name
+		}
+	}
+	if needsGroupNames {
+		for _, group := range api.DeviceGroups.ListDeviceGroups() {
+			groupNames[group.Id] = group.Name
+		}
+	}
 	for _, c := range condList {
 		condLogicJSON, _ := json.Marshal(c.ConditionLogic)
 		deviceActionParamsJSON, _ := json.Marshal(ConditionDeviceActionParams{
@@ -280,6 +298,10 @@ func PrepareConditionsPageData(api *API, channelID string) *ConditionsPageData {
 			"device_action_body": c.DeviceActionBody,
 			"template_id":        c.TemplateId,
 		})
+		triggeringDevice := groupNames[c.DeviceGroupId]
+		if triggeringDevice == "" {
+			triggeringDevice = deviceNames[c.DeviceId]
+		}
 		conditions = append(conditions, ConditionForTemplate{
 			ID:                 c.Id,
 			Name:               c.Name,
@@ -291,6 +313,7 @@ func PrepareConditionsPageData(api *API, channelID string) *ConditionsPageData {
 			DeviceID:           c.DeviceId,
 			DeviceAction:       c.DeviceAction,
 			DeviceActionParams: string(deviceActionParamsJSON),
+			TriggeringDevice:   triggeringDevice,
 		})
 	}
 

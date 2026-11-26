@@ -49,10 +49,6 @@
     </div>
     {{else}}
     {{range .Conditions}}
-    {{$filterDetail := ""}}
-    {{if .Filter}}
-      {{$filterDetail = printf " containing <code>\"%s\"</code>" (escHtml .Filter)}}
-    {{end}}
     <div class="rule-card" data-type="{{.EventType}}" data-cond-id="{{.ID}}" onclick="editConditionLogic('{{.ID}}')">
       <div class="rule-header">
         <div class="rule-title-group">
@@ -78,14 +74,13 @@
             <span class="detail-label">{{$.I18n.T "conditions.event"}}</span>
             <span class="detail-value">
               {{getEventLabel .EventType $.CurrentChannel.Platform $.I18n}}
-              <span class="editable-condition-filter" role="button" tabindex="0" title="{{$.I18n.T "channelLayout.keywordFilter"}}" onclick="startEditConditionFilter(event, '{{.ID}}', decodeURIComponent('{{.Filter | urlEscape}}'))" onkeydown="if (event.key === 'Enter' || event.key === ' ') { startEditConditionFilter(event, '{{.ID}}', decodeURIComponent('{{.Filter | urlEscape}}')); }">
-                {{if .Filter}} {{$.I18n.T "conditions.eventContaining"}}<code>"{{escHtml .Filter}}"</code>{{else}} + {{$.I18n.T "channelLayout.keywordFilter"}}{{end}} <span class="name-edit-pencil">✏️</span>
-              </span>
             </span>
           </div>
           <div class="rule-detail">
-            <span class="detail-label">{{$.I18n.T "conditions.externalApi"}}</span>
-            <span class="detail-value"><span class="api-not-configured">⚠ {{$.I18n.T "devices.setupIncomplete"}}</span></span>
+            <span class="detail-label">{{$.I18n.T "conditions.triggeringDevice"}}</span>
+            <span class="detail-value">
+              {{if .TriggeringDevice}}{{escHtml .TriggeringDevice}}{{else}}<span class="api-not-configured">⚠ {{$.I18n.T "devices.setupIncomplete"}}</span>{{end}}
+            </span>
           </div>
           <div class="rule-detail">
             <span class="detail-label">{{$.I18n.T "conditions.lastTriggered"}}</span>

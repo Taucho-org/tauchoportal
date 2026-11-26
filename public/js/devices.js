@@ -47,29 +47,26 @@ async function apiRequest(method, path, body) {
 }
 
 async function loadDeviceProductThumbnails() {
-    const imagesByProduct = new Map();
-    document.querySelectorAll('.device-product-thumbnail[data-product-id]').forEach(image => {
-        const productId = image.dataset.productId;
-        if (!productId || image.dataset.brand === 'custom') return;
-        if (!imagesByProduct.has(productId)) imagesByProduct.set(productId, []);
-        imagesByProduct.get(productId).push(image);
-    });
-
-    await Promise.all(Array.from(imagesByProduct, async ([productId, images]) => {
-        try {
-            const product = await apiRequest(
-                'GET',
-                `/catalog/products/get?id=${encodeURIComponent(productId)}`
-            );
-            const thumbnailUrl = product?.thumbnail_url;
-            if (typeof thumbnailUrl !== 'string' || !thumbnailUrl.trim()) return;
-            images.forEach(image => {
-                image.src = thumbnailUrl;
-            });
-        } catch (error) {
-            console.warn(`Failed to load thumbnail for product ${productId}:`, error);
-        }
-    }));
+    try {
+        const products = await window.StorefrontCatalog.load();
+        const productsById = new Map();
+        products.forEach(product => {
+            if (product.device_product_id) productsById.set(String(product.device_product_id), product);
+        });
+        document.querySelectorAll('.device-product-thumbnail[data-product-id]').forEach(image => {
+            if (image.dataset.brand === 'custom') return;
+            const product = productsById.get(image.dataset.productId);
+            if (!product) return;
+            const imageUrl = product.images?.[0]?.image_url;
+            if (typeof imageUrl === 'string' && imageUrl.trim()) image.src = imageUrl;
+            const productName = image.closest('.device-header-section')
+                ?.querySelector('.device-header-brand');
+            if (productName && product.name) productName.textContent = product.name;
+            if (product.name) image.alt = product.name;
+        });
+    } catch (error) {
+        console.warn('Failed to load localized device product details:', error);
+    }
 }
 
 let activeTestDeviceId = null;

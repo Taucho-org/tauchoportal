@@ -69,6 +69,50 @@
 </div>
 {{end}}
 
+{{define "catalog-storefront"}}
+<div class="catalog-{{.BrandID}} brand-catalog storefront-catalog"
+     data-storefront-catalog
+     data-brand="{{.BrandID}}"
+     data-brand-name="{{.BrandName}}"
+     data-add-label="{{.I18n.T "catalog.addDevice"}}"
+     data-buy-label="{{.I18n.T "catalog.buyNow"}}"
+     data-no-results="{{.I18n.T "catalog.noResults"}}"
+     data-count-template="{{.I18n.T "catalog.showingResults"}}"
+     data-all-products-label="{{.I18n.T "catalog.allProducts"}}"
+     data-page-template="{{.I18n.T "catalog.pageInfo"}}">
+    <div class="catalog-header-section">
+         {{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.BrandName}}" class="catalog-logo">{{end}}
+        <h2>{{.Title}}</h2>
+        <div class="search-box">
+            <select data-catalog-category aria-label="{{.I18n.T "catalog.allProducts"}}">
+                <option value="">{{.I18n.T "catalog.allProducts"}}</option>
+            </select>
+            <input type="search" data-catalog-search placeholder="{{.I18n.T "catalog.searchPlaceholder"}}">
+            <button type="button" class="btn-icon" data-catalog-clear aria-label="{{.I18n.T "catalog.searchPlaceholder"}}">✕</button>
+        </div>
+    </div>
+    <div class="catalog-products-wrapper">
+        <div class="loading-state" data-catalog-loading>{{.I18n.T "catalog.loading"}}</div>
+        <div class="error-state" data-catalog-error hidden>
+            <div>⚠️</div>
+            <div data-catalog-error-message>{{.I18n.T "catalog.noResults"}}</div>
+            <button type="button" class="retry-btn" data-catalog-retry>{{.I18n.T "catalog.retry"}}</button>
+        </div>
+        <div class="empty-state" data-catalog-empty hidden>{{.I18n.T "catalog.noResults"}}</div>
+        <div class="catalog-products" data-catalog-products></div>
+    </div>
+    <div class="pagination-controls" data-catalog-pagination hidden>
+        <button type="button" data-page-direction="-1">{{.I18n.T "catalog.previous"}}</button>
+        <span data-page-info></span>
+        <button type="button" data-page-direction="1">{{.I18n.T "catalog.next"}}</button>
+    </div>
+    <div class="catalog-footer">
+        <span data-catalog-count></span>
+        {{if .Website}}<a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{replace (.I18n.T "catalog.visitBrand") "{brand}" .BrandName}}</a>{{end}}
+    </div>
+</div>
+{{end}}
+
 {{/* Catalog View Wrapper */}}
 {{define "catalog-view"}}
 <div class="catalog-view">

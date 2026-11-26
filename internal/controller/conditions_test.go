@@ -163,6 +163,39 @@ func TestConditionPageLoadsCurrentActionFields(t *testing.T) {
 	}
 }
 
+func TestConditionsPageResolvesTriggeringDeviceNames(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/watches":
+			w.Write([]byte(`[{"id":"watch-1","name":"Channel","platform":"youtube"}]`))
+		case "/conditions":
+			w.Write([]byte(`[
+				{"id":"device-condition","device_id":"device-1","device_action":"on"},
+				{"id":"group-condition","device_group_id":"group-1"}
+			]`))
+		case "/devices":
+			w.Write([]byte(`[{"id":"device-1","name":"Desk Lamp"}]`))
+		case "/device-groups":
+			w.Write([]byte(`[{"id":"group-1","name":"Living Room"}]`))
+		default:
+			w.Write([]byte(`{}`))
+		}
+	}))
+	defer server.Close()
+
+	page := PrepareConditionsPageData(New(server.URL, "7", nil), "watch-1")
+	if len(page.Conditions) != 2 {
+		t.Fatalf("expected 2 conditions, got %d", len(page.Conditions))
+	}
+	if page.Conditions[0].TriggeringDevice != "Desk Lamp" {
+		t.Errorf("device condition target = %q, want %q", page.Conditions[0].TriggeringDevice, "Desk Lamp")
+	}
+	if page.Conditions[1].TriggeringDevice != "Living Room" {
+		t.Errorf("group condition target = %q, want %q", page.Conditions[1].TriggeringDevice, "Living Room")
+	}
+}
+
 func TestEventFieldOptionsPreserveExchangeMetadata(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
