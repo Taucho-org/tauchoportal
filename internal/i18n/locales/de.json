@@ -377,7 +377,7 @@
   "condition.REGEX_MATCH": "Regex-Übereinstimmung",
   "condition.WHOLESENTENCE": "Ganzer String",
   "condition.REGEX_EXTRACT": "Mit Regex extrahieren",
-  "condition.SUBSTRING": "Teilstring (nach Zeichenanzahl)",
+  "condition.SUBSTRING": "Wie oft? (optional: mindestens ～ höchstens)",
   "condition.FIRST": "Anfang des Strings",
   "condition.LAST": "Ende des Strings",
   "condition.COUNT": "Anzahl der Sammlung",

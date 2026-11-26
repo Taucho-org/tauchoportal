@@ -363,7 +363,7 @@
         <div class="modal-content modal-middle">
             <div class="modal-header">
                 <span class="close" onclick="closeModal('textRangeModal')">×</span>
-                <p>{{.I18n.T "condition.modal.range.description"}}</p>
+                <p id="textRangeDescription">{{.I18n.T "condition.modal.range.description"}}</p>
             </div>
             <div id="textRangeBody" class="modal-body textrangeselection">
                 <input id="textRangeFrom" type="number" class="numerictext" inputmode="numeric" min="1" max="999" pattern="[0-9]*" />
