@@ -1303,7 +1303,7 @@
   "condition.modal.range.connection": "～",
   "condition.modal.textCondition.equals": "같음 (정확히 일치)",
   "condition.modal.textCondition.includes": "포함",
-  "condition.modal.textCondition.range": "특정 범위?",
+  "condition.modal.textCondition.range": "여러 번 일어났다",
   "condition.modal.textCondition.regex": "정규 표현식",
   "condition.modal.eventInspector.title": "이벤트 검사기",
   "condition.modal.eventInspector.description": "이 조건에 사용 가능한 이벤트 속성을 검토하고 속성을 클릭하여 복사합니다.",

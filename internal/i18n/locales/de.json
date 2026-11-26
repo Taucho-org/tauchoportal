@@ -1304,7 +1304,7 @@
   "condition.modal.textCondition.description": "Textbedingung.",
   "condition.modal.textCondition.equals": "ENTSPRICHT (Genaue Übereinstimmung)",
   "condition.modal.textCondition.includes": "Enthält",
-  "condition.modal.textCondition.range": "Spezifischer Bereich?",
+  "condition.modal.textCondition.range": "Mehrfach aufgetreten?",
   "condition.modal.textCondition.regex": "REGEX",
   "condition.modal.eventInspector.title": "Ereignisinspektor",
   "condition.modal.eventInspector.description": "Überprüfe die verfügbaren Ereigniseigenschaften für diese Bedingung und klicke auf eine Eigenschaft, um sie zu kopieren.",

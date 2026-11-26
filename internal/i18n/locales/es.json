@@ -1303,7 +1303,7 @@
   "condition.modal.textCondition.description": "Condición de texto.",
   "condition.modal.textCondition.equals": "IGUALA (Coincidencia Exacta)",
   "condition.modal.textCondition.includes": "Incluye",
-  "condition.modal.textCondition.range": "¿Rango Específico?",
+  "condition.modal.textCondition.range": "¿Apareció varias veces?",
   "condition.modal.textCondition.regex": "REGEX",
   "condition.modal.eventInspector.title": "Inspector de Eventos",
   "condition.modal.eventInspector.description": "Revisa las propiedades de eventos disponibles para esta condición y haz clic en cualquier propiedad para copiarla.",

@@ -2863,8 +2863,10 @@ class TextDialogHandler {
                         dispval = this.editor._generateDisplayText("extract", "regex_extract", env, extval);
                         break;
                     case "substring":
-                        extval = `${document.getElementById('textExtSubFrom').value}-${document.getElementById('textExtSubTo').value}`;
-                        dispval = this.editor._generateDisplayText("extract", "substring", env, extval);
+                        let from = document.getElementById('textExtSubFrom').value;
+                        let to = document.getElementById('textExtSubTo').value;
+                        extval = `${from}-${to}`;
+                        dispval = this.editor._generateDisplayText("extract", "substring", env, from, to);
                         break;
                     case "first":
                         extval = document.getElementById("textExtFirst").value;

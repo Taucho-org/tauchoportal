@@ -1303,7 +1303,7 @@
   "condition.modal.textCondition.description": "文字條件。",
   "condition.modal.textCondition.equals": "等於（確切符合）",
   "condition.modal.textCondition.includes": "包含",
-  "condition.modal.textCondition.range": "特定範圍?",
+  "condition.modal.textCondition.range": "多次?",
   "condition.modal.textCondition.regex": "正規表達式",
   "condition.modal.eventInspector.title": "事件檢查器",
   "condition.modal.eventInspector.description": "檢查此條件可用的事件屬性，然後按一下任何屬性進行複製。",

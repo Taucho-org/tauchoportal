@@ -1326,7 +1326,7 @@
   "condition.modal.textCondition.description": "Condition of text.",
   "condition.modal.textCondition.equals": "EQUALS(Exact Match)",
   "condition.modal.textCondition.includes": "Includes",
-  "condition.modal.textCondition.range": "Specific Range?",
+  "condition.modal.textCondition.range": "Appeared multiple times?",
   "condition.modal.textCondition.regex": "REGEX",
   "condition.modal.eventInspector.title": "Event Inspector",
   "condition.modal.eventInspector.description": "Review the available event properties for this condition and click any property to copy it.",

@@ -1303,7 +1303,7 @@
   "condition.modal.textCondition.description": "文字列としての比較",
   "condition.modal.textCondition.equals": "文章が一致する(完全一致)",
   "condition.modal.textCondition.includes": "含まれる",
-  "condition.modal.textCondition.range": "特定文字目からの切出し",
+  "condition.modal.textCondition.range": "複数回の発生",
   "condition.modal.textCondition.regex": "正規表現による抜き出し",
   "condition.modal.eventInspector.title": "イベントインスペクター",
   "condition.modal.eventInspector.description": "イベント種別から選択してコピーすることができます",
