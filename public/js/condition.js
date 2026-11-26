@@ -1396,8 +1396,25 @@ class ConditionEditor {
             tobutton.pattern = "[0-9]*";
             tobutton.classList.add("numerictext");
             tobutton.style["display"] = "inline-block";
-            tobutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 && jsonnode.Variables[0].indexOf("-") ? jsonnode.Variables[0].split("-")[1] : "";
+            tobutton.value = jsonnode.Variables && jsonnode.Variables.length > 0 && jsonnode.Variables[0].indexOf("-") >= 0 ? jsonnode.Variables[0].split("-")[1] : "";
             somefield.append(tobutton);
+            // Save the from/to boxes back into the condition JSON as "from-to"
+            // ("2-" = at least 2, "-3" = at most 3, "2-3" = between 2 and 3).
+            const saveSomeRange = () => {
+                const json = this.getJSON();
+                if (!json) {
+                    return;
+                }
+                const node = this._getSubCondition(json, path);
+                const from = String(frombutton.value || "").trim();
+                const to = String(tobutton.value || "").trim();
+                node.Variables = (from || to) ? [`${from}-${to}`] : [];
+                this.setJSON(json);
+            };
+            for (const input of [frombutton, tobutton]) {
+                input.onchange = saveSomeRange;
+                input.onclick = (e) => e.stopPropagation();
+            }
             const suffix = document.createElement("span");
             suffix.innerText = translations["some-sentense_suffix"] == undefined ? "conditions" : translations["some-sentense_suffix"];
             somefield.append(suffix);
@@ -2071,7 +2088,7 @@ class ConditionEditor {
                     this.rangeDialog.open(current, function(dispval, val) {
                         currentnode.Variables[ind] = val;
                         finishupdating();
-                    }.bind(this));
+                    }.bind(this), currentnode.Operator);
                 } else {
                     this.textDialog.open(current, "variable", null, null, false, true, function(dispval, val) {
                         currentnode.Variables[ind] = val;
@@ -2566,15 +2583,18 @@ class BoolDialogHandler {
                 ? currentnode.SubConditions[0]
                 : null;
             if (exchangeCondition && currencyModeAvailable) {
+                // EXCHANGE is saved as {SubConditions: [PARAM amount], Variables: [source currency parameter?, target currency]}.
+                const exchangeVariables = exchangeCondition.Variables || [];
+                const targetCurrency = exchangeVariables[exchangeVariables.length - 1];
                 const selectedField = this.getExchangeableFields().find((field) =>
                     this.getConditionParameter(field) === exchangeCondition.SubConditions?.[0]?.Variables?.[0] &&
                     (!this.getSourceCurrencyParameter(field) ||
-                        this.getSourceCurrencyParameter(field) === exchangeCondition.SubConditions?.[1]?.Variables?.[0]));
+                        this.getSourceCurrencyParameter(field) === exchangeVariables[0]));
                 if (selectedField) {
                     document.getElementById("boolcurrencyradio").checked = true;
                     document.getElementById("boolmodal_currency").classList.add("available");
                     document.getElementById("currencyfieldselector").value = selectedField.Name;
-                    document.getElementById("currencyselector").value = exchangeCondition.Variables?.[0] || "USD";
+                    document.getElementById("currencyselector").value = targetCurrency || "USD";
                     document.getElementById("currencycompareoperator").value = this.editor.namingmap[currentnode.Operator] || "greater_than";
                     const targetValue = currentnode.SubConditions?.[1];
                     if (targetValue) {
@@ -2943,7 +2963,16 @@ class RangeDialogHandler {
         document.getElementById("textRangeTo").value = "";
     }
 
-    open(current, callback) {
+    open(current, callback, operator) {
+        const description = document.getElementById("textRangeDescription");
+        if (description) {
+            if (description.dataset.defaultText === undefined) {
+                description.dataset.defaultText = description.innerText;
+            }
+            const key = operator === "INCLUDES" ? "range-description-includes"
+                : operator === "SUBSTRING" ? "range-description-substring" : null;
+            description.innerText = (key && translations[key]) || description.dataset.defaultText;
+        }
         if (!current||current.indexOf("-")<0) {
             document.getElementById("textRangeFrom").value = current;
             document.getElementById("textRangeTo").value = "";
@@ -2954,10 +2983,9 @@ class RangeDialogHandler {
         document.getElementById("textRangeSubmitButton").onclick = function() {
             let from = document.getElementById("textRangeFrom").value;
             let to = document.getElementById("textRangeTo").value;
-            let range = from;
-            if (to) {
-                range += "-" + to;
-            }
+            // Always store "from-to" so a single "from" reads as "from onwards"
+            // ("2-") for both INCLUDES (times) and SUBSTRING (characters).
+            const range = (from || to) ? `${from}-${to}` : "";
             callback(range, range);
             document.getElementById("textRangeModal").style["display"] = "none";
         }.bind(this);
