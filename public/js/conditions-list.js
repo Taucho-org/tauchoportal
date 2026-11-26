@@ -279,10 +279,16 @@
             console.error(t.populateEventsError || 'Failed to populate test events:', e);
         }
         document.getElementById('testEventType').value = eventType; 
+        document.getElementById('testEventType').disabled = true;
         document.getElementById('testTriggerRealDevice').checked = false; 
         document.getElementById('testResultsContainer').style.display = 'none'; 
         await updateTestEventParams(); 
         openModal('testConditionModal'); 
+    }
+
+    function closeTestConditionModal() {
+        document.getElementById('testEventType').disabled = false;
+        closeModal('testConditionModal');
     }
 
     async function updateTestEventParams() { 
@@ -652,10 +658,19 @@
 
     // ====== END Device Action Parameters Functions ======
 
+    const testModal = document.getElementById('testConditionModal');
+    if (testModal) {
+        testModal.querySelectorAll('.close, .btn-secondary').forEach((button) => {
+            if (button.getAttribute('onclick')?.includes('testConditionModal')) {
+                button.setAttribute('onclick', 'closeTestConditionModal()');
+            }
+        });
+    }
+
     Object.assign(window, { 
-        loadWatches, filterConds, openAddConditionModal, startEditConditionName, startEditConditionFilter, populateEventSelect, 
+        loadWatches, filterConds, openAddConditionModal, startEditConditionName, populateEventSelect,
         updateCondEventFields, saveCondition, toggleCondition, deleteCondition, openTestConditionModal, 
-        updateTestEventParams, runConditionTest, displayTestResults, toggleDeviceAction, populateDeviceDropdown, 
+        closeTestConditionModal, updateTestEventParams, runConditionTest, displayTestResults, toggleDeviceAction, populateDeviceDropdown,
         updateCondActionSelect, updateCondActionParams, selectCondColor, editConditionLogic, navigate, route,
         updateParamNameDropdown, updateEvaluatorUI, updateResultPreview, buildEvaluatorLogic
     });
